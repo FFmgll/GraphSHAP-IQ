@@ -1,6 +1,7 @@
 """This module contains all plotting functions for the shapiq package."""
 
 from .bar_importances import bar_importance_plot
+from .beeswarm import beeswarm_plot
 from .force import force_plot
 from .network import network_plot
 from .scatter import scatter_plot
@@ -14,4 +15,5 @@ __all__ = [
     "waterfall_plot",
     "force_plot",
     "scatter_plot",
+    "beeswarm_plot",
 ]
