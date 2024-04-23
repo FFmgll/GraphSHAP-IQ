@@ -6,7 +6,8 @@ from graphxai_local.datasets import (
     MUTAG,
 )  # renamed to avoid conflict with potential installs
 
-from graphxai_local.gnn_models.graph_classification import GCN_3layer
+from graphxai_local.gnn_models.graph_classification import GCN_3layer, GCN_2layer, GCN_2layer_max
+
 
 
 def train_gnn():
@@ -28,7 +29,9 @@ def train_gnn():
 
     # Model and optimizer
     model_list = {}
-    model_list["GCN3"] = GCN_3layer
+    #model_list["GCN3"] = GCN_3layer
+    #model_list["GCN2"] = GCN_2layer
+    model_list["GCN2_max"] = GCN_2layer_max
 
     for CURRENT_MODEL_NAME, CURRENT_MODEL in model_list.items():
         model = CURRENT_MODEL(num_nodes_features, 64, num_classes).to(device)

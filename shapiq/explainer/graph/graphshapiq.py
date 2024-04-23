@@ -95,7 +95,7 @@ class GraphSHAP:
             # Compute k-neighborhood of each node with maximum range max_neighborhood_size
             neighbors[node] = self._get_k_neighborhood(node, max_neighborhood_size)
             # Compute maximum size of interactions in the neighborhood
-            max_interaction_size = min(len(neighbors[node]), max_interaction_size)
+            #max_interaction_size = min(len(neighbors[node]), max_interaction_size)
             # Collect all non-zero Möbius interactions up to order max_interaction_size
             # For these, game evaluations are required
             for interaction in powerset(neighbors[node], max_size=max_interaction_size):
@@ -127,7 +127,7 @@ class GraphSHAP:
             coalition_lookup=moebius_coalition_lookup,
         )
 
-        moebius_coefficients.sparsify()
+        moebius_coefficients.sparsify(10e-9)
 
         if efficiency_routine:
             # Add neighborhood interactions
@@ -186,7 +186,7 @@ class GraphSHAP:
         )
 
         interactions = converter.moebius_to_shapley_interaction(order=order, index="k-SII")
-        interactions.sparsify()
+        interactions.sparsify(10e-9)
 
         return final_moebius_coefficients, interactions
 
