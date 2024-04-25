@@ -1,5 +1,5 @@
 from shapiq.explainer.graph.train_gnn import train_gnn
-from graphxai_local.gnn_models.graph_classification import GCN_3layer, GCN_2layer, GCN_2layer_max
+from graphxai_local.gnn_models.graph_classification import GCN_3layer, GCN_2layer, GCN_2layer_max, GCN_3layer_biased,GCN_3layer_mlp
 from graphxai_local.datasets.real_world.MUTAG import (
     MUTAG,
 )  # renamed to avoid conflict with potential installs
@@ -28,7 +28,7 @@ def test_train_gnn():
 
 @pytest.mark.parametrize(
     "CURRENT_MODEL_NAME",
-    [("GCN2")],
+    [("GCN3_mlp")],
 )
 def test_graphshapiq_mutag(CURRENT_MODEL_NAME):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,8 +44,10 @@ def test_graphshapiq_mutag(CURRENT_MODEL_NAME):
 
     model_list = {}
     model_list["GCN3"] = GCN_3layer
+    model_list["GCN3_bias"] = GCN_3layer_biased
     model_list["GCN2"] = GCN_2layer
     model_list["GCN2_max"] = GCN_2layer_max
+    model_list["GCN3_mlp"] = GCN_3layer_mlp
 
     # Model and optimizer
     model = model_list[CURRENT_MODEL_NAME](num_nodes_features, 64, num_classes).to(device)
@@ -82,7 +84,7 @@ def test_graphshapiq_mutag(CURRENT_MODEL_NAME):
     masking_mode = "feature-removal"
     EXPLANATION_ORDER = 2
 
-    if CURRENT_MODEL_NAME == "GCN3":
+    if CURRENT_MODEL_NAME in ["GCN3","GCN3_bias","GCN3_mlp"]:
         N_LAYERS = 3
     if CURRENT_MODEL_NAME in ["GCN2","GCN2_max"]:
         N_LAYERS = 2
@@ -165,7 +167,7 @@ def test_graphshapiq_mutag(CURRENT_MODEL_NAME):
 
 @pytest.mark.parametrize(
     "CURRENT_MODEL_NAME",
-    [("GCN3"),("GCN2"),("GCN2_max")],
+    [("GCN3_mlp")],
 )
 def test_plot_results(CURRENT_MODEL_NAME):
     save_directory = Path(__file__).resolve().parent.parent.parent / "results" / CURRENT_MODEL_NAME
