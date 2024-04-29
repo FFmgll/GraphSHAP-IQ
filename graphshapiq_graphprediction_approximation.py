@@ -51,6 +51,17 @@ def get_explanation_instances(dataset_name="MUTAG"):
 
 
 def save_results(model_id,data_id,game,sse,max_neighborhood_size,gshap_budget):
+    """
+    Naming convention for results file are the following attributes separated by underscore:
+        - Type of model, e.g. GCN, GIN
+        - Dataset name, e.g. MUTAG
+        - Number of Graph Convolutions, e.g. 2 graph conv layers
+        - Graph bias, e.g. True, if the linear layer after global pooling has a bias
+        - Node bias, e.g. True, if the convolution layers have a bias
+        - Data ID: a technical identifier of the explained instance
+        - Number of players, i.e. number of nodes in the graph
+        - Largest neighborhood size as integer
+    """
     for i,approx_id in enumerate(sse.keys()):
         tmp = pd.DataFrame(index=sse[approx_id].keys(),data=sse[approx_id].values(),columns=[approx_id])
         if i==0:
