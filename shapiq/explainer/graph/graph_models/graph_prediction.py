@@ -5,7 +5,7 @@ from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn import GCNConv, GINConv
 
 class GCN(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, n_layers, node_bias=False, graph_bias=False):
+    def __init__(self, in_channels, hidden_channels, out_channels, n_layers, node_bias=True, graph_bias=True):
         super().__init__()
         self.n_layers = n_layers
         self.conv_layers = {}
@@ -32,7 +32,7 @@ class GCN(torch.nn.Module):
 
 
 class GIN(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, n_layers, node_bias=False,graph_bias=False):
+    def __init__(self, in_channels, hidden_channels, out_channels, n_layers, node_bias=True,graph_bias=True):
         super().__init__()
         self.n_layers = n_layers
         self.mlp_layers = {}
