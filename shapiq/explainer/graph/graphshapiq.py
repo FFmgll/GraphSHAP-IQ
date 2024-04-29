@@ -12,13 +12,15 @@ from shapiq.games.benchmark.local_xai.benchmark_graph import GraphGame
 
 
 class GraphSHAP:
-    def __init__(self, n_players: int, game: GraphGame, edge_index: np.ndarray):
+    def __init__(self, n_players: int, game: GraphGame, edge_index: np.ndarray, n_layers: int):
         self.n_players = n_players
         self._grand_coalition_set = set(range(n_players))
         self.game: GraphGame = game
         self.edge_index = copy.copy(edge_index)
         self._grand_coalition_prediction = game(np.ones(n_players))
         self._last_n_model_calls: int = None
+        self.max_neighborhood_size = n_layers
+
     def _get_k_neighborhood(self, node, k):
         neighbors = set()
         queue = [(node, 0)]
@@ -81,7 +83,6 @@ class GraphSHAP:
 
     def explain(
         self,
-        max_neighborhood_size: int,
         max_interaction_size: int,
         order: int,
         efficiency_routine: bool = True,
@@ -91,11 +92,16 @@ class GraphSHAP:
         neighbors = {}
         incomplete_neighborhoods = set()
         moebius_interactions = set()
+        max_size_neighbors = 0
         for node in self._grand_coalition_set:
             # Compute k-neighborhood of each node with maximum range max_neighborhood_size
-            neighbors[node] = self._get_k_neighborhood(node, max_neighborhood_size)
+            neighbors[node] = self._get_k_neighborhood(node, self.max_neighborhood_size)
             # Compute maximum size of interactions in the neighborhood
-            max_interaction_size = min(len(neighbors[node]), max_interaction_size)
+            max_size_neighbors = max(max_size_neighbors,len(neighbors[node]))
+
+        # Cap max_interaction_size at largest neighborhood
+        max_interaction_size = min(max_size_neighbors, max_interaction_size)
+        for node in self._grand_coalition_set:
             # Collect all non-zero Möbius interactions up to order max_interaction_size
             # For these, game evaluations are required
             for interaction in powerset(neighbors[node], max_size=max_interaction_size):
@@ -188,7 +194,7 @@ class GraphSHAP:
         interactions = converter.moebius_to_shapley_interaction(order=order, index="k-SII")
         #interactions.sparsify(10e-9)
 
-        return final_moebius_coefficients, interactions
+        return copy.copy(final_moebius_coefficients), copy.copy(interactions)
 
     def _sii_weight(self, n, q, t, s):
         rslt = 0
@@ -229,3 +235,4 @@ class GraphSHAP:
             pos = coalition_lookup[tuple(sorted(set(T).union(set(L))))]
             rslt += (-1) ** (s - l) * masked_predictions[pos]
         return rslt
+

@@ -1,0 +1,1 @@
+from .graph_prediction import GCN, GIN
