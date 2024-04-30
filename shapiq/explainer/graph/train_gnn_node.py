@@ -15,122 +15,121 @@ TODO:
 
 Besides, later I will set up a hyperparameter search for the best model and dataset combination :-)
 """
-from pathlib import Path
-import os
 import torch
 import torch_geometric
-from torch_geometric.datasets import Planetoid
-from torch_geometric.loader import DataLoader
-import torch_geometric.nn.models as pyg_models
-import lightning as L
-from lightning.pytorch.callbacks import ModelCheckpoint
 
+torch.set_float32_matmul_precision('high')
 
-# Load dataset
-def dataset_node_classification(dataset_name: str = "Cora"):
-	"This loads the dataset for node classification with the standard splits"
-	dataset_path = Path(__file__).resolve().parents[3] / "data"  # Path to the data folder in main directory
-	dataset = Planetoid(root=dataset_path, name=dataset_name)
-	return dataset
+import logging
 
+logging.getLogger("lightning.pytorch.utilities.rank_zero").setLevel(logging.WARNING)
+logging.getLogger("lightning.pytorch.accelerators.cuda").setLevel(logging.WARNING)
 
-class NodeClassificationGNN(L.LightningModule):
-	"""Node Classification GNN.
-	Load from checkpoint if exists, otherwise trains it.
-	Args:
-		- dataset: PyG dataset
-		- model_name: str, name of the model (GCN, GAT, SAGE, GIN)
-		- num_layers: int, number of hidden layers
-	returns:
-		- model: PyG model
-		- train_loader: PyG DataLoader
-		- val_loader: PyG DataLoader
-		- test_loader: PyG DataLoader
-	"""
-
-	def __init__(self, model_name: str = "GCN", **model_kwargs):
-		super().__init__()
-		self.save_hyperparameters()
-		self.model = getattr(pyg_models, model_name)(**model_kwargs)
-		self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.1, weight_decay=2e-3)
-		self.loss = torch.nn.CrossEntropyLoss()
-
-	def forward(self, data):
-		"""Forward pass of the model. Returns the logits."""
-		out = self.model(data.x, data.edge_index)
-		return out
-
-	def training_step(self, batch, batch_idx):
-		mask = batch.train_mask  # Get the mask for the training nodes
-		out = self.forward(batch)
-		loss = self.loss(out[mask], batch.y[mask])
-		accuracy = (out[mask].argmax(dim=-1) == batch.y[mask]).sum().float() / mask.sum()
-		self.log("train_loss", loss)
-		self.log("train_accuracy", accuracy)
-		return loss
-
-	def validation_step(self, batch, batch_idx):
-		mask = batch.val_mask
-		out = self.forward(batch)
-		accuracy = (out[mask].argmax(dim=-1) == batch.y[mask]).sum().float() / mask.sum()
-		self.log("val_accuracy", accuracy)
-
-	def test_step(self, batch, batch_idx):
-		mask = batch.test_mask
-		out = self.forward(batch)
-		accuracy = (out[mask].argmax(dim=-1) == batch.y[mask]).sum().float() / mask.sum()
-		self.log("test_accuracy", accuracy)
-
-	def configure_optimizers(self):
-		return self.optimizer
-
-
-def get_node_classifier(dataset_name: str = "Cora", model_name: str = "GCN", num_layers: int = 3,
-						hidden_channels: int = 16, **model_kwargs):
-	"""Get the node classifier model, train it if it doesn't exist and return it with the data"""
-	dataset = dataset_node_classification(dataset_name)
-	data_loader = DataLoader(dataset, batch_size=1)  # There is only 1 graph
-
-	model_path = Path(__file__).resolve().parent / "ckpt" / f"{model_name}_{dataset_name}_{num_layers}.ckpt"
-
-	trainer = L.Trainer(max_epochs=200,
-						default_root_dir=model_path,
-						#callbacks=[ModelCheckpoint(save_weights_only=True, mode='max', monitor="val_accuracy")],
-						enable_progress_bar=False,
-						log_every_n_steps=1)
-
-	#if model_path.exists():
-	#	print("Model found. Loading...")
-	#	model = NodeClassificationGNN.load_from_checkpoint(model_path)
-	#else:
-	L.seed_everything(42)
-	model = NodeClassificationGNN(model_name=model_name, in_channels=dataset.num_node_features,
-								  out_channels=dataset.num_classes,
-								  num_layers=num_layers, hidden_channels=16, **model_kwargs)
-	print(f"Dataset \'{dataset_name}\': Model {model_name} with {num_layers=} not found. Training...")
-
-	trainer.fit(model, data_loader, data_loader)
-	model = NodeClassificationGNN.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-
-	# Test best model on the test set
-	batch = next(iter(data_loader))
-	batch = batch.to(model.device)
-	out = model(batch)
-	# Validation accuracy
-	val_acc = (out[batch.val_mask].argmax(dim=-1) == batch.y[batch.val_mask]).sum().float() / batch.val_mask.sum()
-	# Training accuracy
-	train_acc = (out[batch.train_mask].argmax(dim=-1) == batch.y[
-		batch.train_mask]).sum().float() / batch.train_mask.sum()
-	# Test accuracy
-	test_acc = (out[batch.test_mask].argmax(dim=-1) == batch.y[batch.test_mask]).sum().float() / batch.test_mask.sum()
-	print(f"Train Acc: {100 * train_acc:.3f}%, Val Acc: {100 * val_acc:.3f}%, , Test Acc: {100 * test_acc:.3f}%}")
-
-	return model, data_loader
-
+# import the NodeClassificationGNN class
+# import the dataset_node_classification function
+# import the get_node_classifier function
+from shapiq.explainer.graph.graph_models.node_prediction import get_node_classifier
 
 if __name__ == "__main__":
 	# Train a GNN for Node Classification
-	my_beautiful_gnn, data_loader = get_node_classifier(dataset_name="Cora", model_name="GCN", num_layers=2)
-	# Evaluate the model
-	my_beautiful_gnn.eval()
-	batch = next(iter(data_loader))  # Take the 1 graph of Cora
+	# How to use: just import the function get_node_classifier and use it with the desired parameters
+	# my_beautiful_gnn, data_loader = get_node_classifier(dataset_name="Cora", model_name="GCN", num_layers=2)
+
+	def train_sweep():
+		print("Starting training sweep...")
+		DATASET_NAMES = ["Cora"]
+		MODEL_TYPES = ["GCN", "GIN", "GAT"]
+		N_LAYERS = [2, 3]
+
+		for dataset_name in DATASET_NAMES:
+			for model_type in MODEL_TYPES:
+				for n_layers in N_LAYERS:
+					my_beautiful_gnn, data_loader = get_node_classifier(dataset_name=dataset_name,
+																		model_name=model_type,
+																		num_layers=n_layers)
+
+
+	train_sweep()
+
+
+	def experiments_on_masking_1():
+		"I want to test if the logits predictions are the same when masking the graph with 0 outside a 2-hop neighbourhood"
+		my_beautiful_gnn, data_loader = get_node_classifier(dataset_name="Cora", model_name="GCN", num_layers=2)
+		my_beautiful_gnn.eval()
+		with torch.no_grad():
+			# Get the baseline values
+			baseline_value = my_beautiful_gnn(data_loader.dataset[0])
+			# Get only the correct predictions
+			out = my_beautiful_gnn(data_loader.dataset[0])
+			pred = out.argmax(dim=1)
+			correct_samples_index = pred == data_loader.dataset[0].y
+			# Get the indexes of the correct samples
+			correct_samples_index = torch.where(correct_samples_index)[0]
+			# Loop over the correct samples
+			identical = 0
+			counter = 0
+			for node in correct_samples_index:
+				# Print a counter
+				print(f"Node {counter}/{len(correct_samples_index)}", end="\r")
+				counter += 1
+				# Get the 2-hop neighbourhood
+				subset, edge_index, mapping, edge_mask = torch_geometric.utils.k_hop_subgraph(node_idx=node.item(),
+																							  num_hops=2,
+																							  edge_index=
+																							  data_loader.dataset[0].edge_index)
+				# Set to zero all the nodes features that are not in subset
+				data_masked = data_loader.dataset[0].clone()
+				set_to_zero = ~torch.isin(torch.arange(data_masked.num_nodes), subset)
+				data_masked.x[set_to_zero] = 0
+				# Compute the prediction with the masked graph
+				pred_masked = my_beautiful_gnn(data_masked)
+				# Compare the prediction with the baseline value for the node
+				node_baseline = baseline_value[node]
+				node_masked = pred_masked[node]
+				if torch.allclose(node_baseline, node_masked):
+					identical += 1
+			# Finally
+			print(f"Identical predictions: {identical}/{len(correct_samples_index)}")  # It works!
+
+
+	@torch.no_grad()
+	def experiments_on_masking_2():
+		"I want to test if the logits predictions are the same when taking a subgraph of the graph"
+		my_beautiful_gnn, data_loader = get_node_classifier(dataset_name="Cora", model_name="GCN", num_layers=2)
+		my_beautiful_gnn.eval()
+		# Get the baseline values
+		baseline_value = my_beautiful_gnn(data_loader.dataset[0])
+		# Get only the correct predictions
+		out = my_beautiful_gnn(data_loader.dataset[0])
+		pred = out.argmax(dim=1)
+		correct_samples_index = pred == data_loader.dataset[0].y
+		# Get the indexes of the correct samples
+		correct_samples_index = torch.where(correct_samples_index)[0]
+		# Loop over the correct samples
+		identical = 0
+		counter = 0
+		for node in correct_samples_index:
+			# Print a counter
+			print(f"Node {counter}/{len(correct_samples_index)}", end="\r")
+			counter += 1
+			# Get the subgraph induced by the 2-hop neighbourhood
+			subset, edge_index, mapping, edge_mask = torch_geometric.utils.k_hop_subgraph(node_idx=node.item(),
+																						  num_hops=2,
+																						  edge_index=
+																						  data_loader.dataset[0].edge_index,
+																						  relabel_nodes=True)  # THIS IS IMPORTANT
+
+			# Get the subgraph
+			data_subgraph = data_loader.dataset[0].clone()
+			data_subgraph.x = data_subgraph.x[subset]
+			data_subgraph.y = data_subgraph.y[subset]
+			data_subgraph.edge_index = edge_index
+			# Compute the prediction with the masked graph
+			pred_subgraph = my_beautiful_gnn(data_subgraph)
+			# Compare the prediction with the baseline value for the node
+			node_baseline = baseline_value[node]
+			node_subgraph = pred_subgraph[mapping]
+			if torch.allclose(node_baseline, node_subgraph, atol=0.3):  # High tolerance!
+				identical += 1
+		# Finally
+		print(f"Identical predictions: {identical}/{len(correct_samples_index)}")  # ... not so good :-(
