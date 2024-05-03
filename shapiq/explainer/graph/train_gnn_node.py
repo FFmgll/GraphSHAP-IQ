@@ -6,11 +6,11 @@ TODO:
 - Citeseer
 - Pubmed
 (other possible datasets: Chameleon, Squirrel, Actor, Coauthor, CS, Physics)
+For node classification on transductive datasets, we will use the following:
+BA-Shapes (adapted to transductive setting)
 Models:
 - GCN
-TODO:
 - GAT
-- SAGE
 - GIN
 
 Besides, later I will set up a hyperparameter search for the best model and dataset combination :-)
@@ -38,16 +38,16 @@ if __name__ == "__main__":
 	# Here we train some models for Node Classification and store them in the ckpt/node_prediction directory
 	def train_sweep():
 		print("Starting training sweep...")
-		DATASET_NAMES = ["Cora"]
+		DATASET_NAMES = ["BAShapes"]
 		MODEL_TYPES = ["GCN"]
-		N_LAYERS = [2]
+		N_LAYERS = [3]
 
 		for dataset_name in DATASET_NAMES:
 			for model_type in MODEL_TYPES:
 				for n_layers in N_LAYERS:
-					my_beautiful_gnn, dataset, data_loader = get_node_classifier(dataset_name=dataset_name,
-																				model_name=model_type,
-																				num_layers=n_layers)
+					my_beautiful_gnn, dataset, data_loaders = get_node_classifier(dataset_name=dataset_name,
+																				 model_name=model_type,
+																				 num_layers=n_layers)
 
 
 	train_sweep()
@@ -77,7 +77,8 @@ if __name__ == "__main__":
 				subset, edge_index, mapping, edge_mask = torch_geometric.utils.k_hop_subgraph(node_idx=node.item(),
 																							  num_hops=2,
 																							  edge_index=
-																							  data_loader.dataset[0].edge_index)
+																							  data_loader.dataset[
+																								  0].edge_index)
 				# Set to zero all the nodes features that are not in subset
 				data_masked = data_loader.dataset[0].clone()
 				set_to_zero = ~torch.isin(torch.arange(data_masked.num_nodes), subset)
@@ -117,7 +118,8 @@ if __name__ == "__main__":
 			subset, edge_index, mapping, edge_mask = torch_geometric.utils.k_hop_subgraph(node_idx=node.item(),
 																						  num_hops=2,
 																						  edge_index=
-																						  data_loader.dataset[0].edge_index,
+																						  data_loader.dataset[
+																							  0].edge_index,
 																						  relabel_nodes=True)  # THIS IS IMPORTANT
 
 			# Get the subgraph
