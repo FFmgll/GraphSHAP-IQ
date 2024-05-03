@@ -33,20 +33,21 @@ from shapiq.explainer.graph.graph_models.node_prediction import get_node_classif
 if __name__ == "__main__":
 	# Train a GNN for Node Classification
 	# How to use: just import the function get_node_classifier and use it with the desired parameters
-	# my_beautiful_gnn, data_loader = get_node_classifier(dataset_name="Cora", model_name="GCN", num_layers=2)
+	# my_beautiful_gnn, dataset, data_loader = get_node_classifier(dataset_name="Cora", model_name="GCN", num_layers=2)
 
+	# Here we train some models for Node Classification and store them in the ckpt/node_prediction directory
 	def train_sweep():
 		print("Starting training sweep...")
 		DATASET_NAMES = ["Cora"]
-		MODEL_TYPES = ["GCN", "GIN", "GAT"]
-		N_LAYERS = [2, 3]
+		MODEL_TYPES = ["GCN"]
+		N_LAYERS = [2]
 
 		for dataset_name in DATASET_NAMES:
 			for model_type in MODEL_TYPES:
 				for n_layers in N_LAYERS:
-					my_beautiful_gnn, data_loader = get_node_classifier(dataset_name=dataset_name,
-																		model_name=model_type,
-																		num_layers=n_layers)
+					my_beautiful_gnn, dataset, data_loader = get_node_classifier(dataset_name=dataset_name,
+																				model_name=model_type,
+																				num_layers=n_layers)
 
 
 	train_sweep()
