@@ -12,6 +12,8 @@ from graphxai_local.datasets import (
 
 from shapiq.explainer.graph.graph_models import GCN, GIN
 
+from shapiq.explainer.graph.graph_datasets import CustomTUDataset
+
 
 def get_MUTAG_dataset(device):
     # Load dataset
@@ -28,6 +30,24 @@ def get_MUTAG_dataset(device):
         dataset[dataset.test_index], batch_size=len(dataset.test_index), shuffle=False
     )
     return train_loader, val_loader, test_loader, num_nodes_features, num_classes
+
+
+def get_TU_dataset(device,name):
+    # Load dataset
+    dataset = CustomTUDataset(root="shapiq/explainer/graph/graph_datasets", name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
+    dataset.graphs.data.to(device)
+    num_nodes_features = dataset.graphs.num_node_features
+    num_classes = dataset.graphs.num_classes
+
+    train_loader = DataLoader(dataset[dataset.train_index], batch_size=4, shuffle=True)
+    val_loader = DataLoader(
+        dataset[dataset.val_index], batch_size=len(dataset.val_index), shuffle=False
+    )
+    test_loader = DataLoader(
+        dataset[dataset.test_index], batch_size=len(dataset.test_index), shuffle=False
+    )
+    return train_loader, val_loader, test_loader, num_nodes_features, num_classes
+
 
 def train_and_store(model,train_loader, val_loader, test_loader, save_path):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
@@ -90,8 +110,10 @@ def train_and_store(model,train_loader, val_loader, test_loader, save_path):
 
 def train_gnn(dataset_name,model_type,n_layers, node_bias, graph_bias,enforce_retrain=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if dataset_name == "MUTAG":
-        train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_MUTAG_dataset(device)
+    #if dataset_name == "MUTAG":
+       #train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_MUTAG_dataset(device)
+    if dataset_name in ["AIDS","DHFR","COX2","BZR","MUTAG","BENZENE","PROTEINS","ENZYMES","Mutagenicity"]:
+        train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(device, dataset_name)
 
     if model_type == "GCN":
         model = GCN(in_channels=num_nodes_features, hidden_channels=64, out_channels=num_classes,n_layers=n_layers,graph_bias=graph_bias, node_bias=node_bias).to(device)
@@ -127,17 +149,3 @@ def train_gnn(dataset_name,model_type,n_layers, node_bias, graph_bias,enforce_re
 
     model.load_state_dict(torch.load(save_path))
     return model, model_id
-
-if __name__ == "__main__":
-    DATASET_NAMES = ["MUTAG"]
-    MODEL_TYPES = ["GCN","GIN"]
-    N_LAYERS = [2,3]
-    NODE_BIASES = [False,True]
-    GRAPH_BIASES = [False,True]
-
-    for dataset_name in DATASET_NAMES:
-        for model_type in MODEL_TYPES:
-            for n_layers in N_LAYERS:
-                for node_bias in NODE_BIASES:
-                    for graph_bias in GRAPH_BIASES:
-                        train_gnn(dataset_name=dataset_name, model_type=model_type, n_layers=n_layers, node_bias=node_bias, graph_bias=graph_bias,enforce_retrain=True)

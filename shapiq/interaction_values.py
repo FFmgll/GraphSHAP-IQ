@@ -138,9 +138,7 @@ class InteractionValues:
             f", estimated={self.estimated}, estimation_budget={self.estimation_budget},\n"
             f"    n_players={self.n_players}, baseline_value={self.baseline_value},\n"
         ) + "    values={\n"
-        for interaction in powerset(
-            set(range(self.n_players)), min_size=1, max_size=self.max_order
-        ):
+        for interaction in self.interaction_lookup:
             representation += f"        {interaction}: "
             interaction_value = str(round(self[interaction], 4))
             representation += f"{interaction_value},\n"

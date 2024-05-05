@@ -12,9 +12,7 @@ class GCN(torch.nn.Module):
         self.conv_layers[0] = GCNConv(in_channels, hidden_channels, bias=node_bias)
         for i in range(1,n_layers):
             self.conv_layers[i] = GCNConv(hidden_channels, hidden_channels, bias=node_bias)
-
         self.lin = torch.nn.Linear(hidden_channels, out_channels, bias=graph_bias)
-
     def forward(self, x, edge_index, batch):
         for i in range(self.n_layers):
             x = self.conv_layers[i](x, edge_index)
@@ -26,7 +24,6 @@ class GCN(torch.nn.Module):
                 x = x.relu()
 
         x = self.lin(x)
-
         return x
 
 
