@@ -21,7 +21,7 @@ import os
 
 def get_MUTAG_instances():
     # Load dataset
-    dataset = MUTAG(root="", seed=1234, split_sizes=(0.8, 0.1, 0.1))
+    dataset = MUTAG(root="shapiq/explainer/graph/graph_datasets", seed=1234, split_sizes=(0.8, 0.1, 0.1))
     dataset.graphs.data.to(device)
     loader = DataLoader(
         dataset, shuffle=False
@@ -34,7 +34,7 @@ def get_MUTAG_instances():
     return all_samples_to_explain
 
 def get_TU_instances(name):
-    dataset = CustomTUDataset(root="", name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
+    dataset = CustomTUDataset(root="shapiq/explainer/graph/graph_datasets", name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
     loader = DataLoader(dataset, shuffle=False)
     # Get all samples with < 15 nodes from test set
     all_samples_to_explain = []

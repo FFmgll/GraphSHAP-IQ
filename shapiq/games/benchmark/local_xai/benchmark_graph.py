@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable, Union
 import numpy as np
 import torch
@@ -41,10 +42,14 @@ class GraphGame(Game):
         class_id: np.ndarray,
         masking_mode: str = "feature-removal",
         normalize: bool = True,
+        baseline: Optional[np.ndarray] = None,
     ) -> None:
+        if baseline is None:
+            warnings.warn("Baseline is not provided, baseline will be initialized as zero...")
         self.model = model
         self.max_neighborhood_size = max_neighborhood_size
         self.x_graph = x_graph.clone()
+        self.baseline = baseline
         self.output_dim = 1
         self.edge_index = self.x_graph.edge_index.detach().numpy()
         # Set masking function
@@ -54,20 +59,19 @@ class GraphGame(Game):
         if self.masking_mode == "node-removal":
             self.masking = self.mask_nodes
         self.y_index = class_id
-        #Compute emptyset prediction
-        baseline_value = self.value_function(np.zeros(len(x_graph.x)))
+        # Compute emptyset prediction
+        normalization_value = self.value_function(np.zeros(len(x_graph.x)))
         # call the super constructor
         super().__init__(
-            n_players=len(x_graph.x), normalize=normalize, normalization_value=baseline_value
+            n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
         )
         self._grand_coalition_set = set(range(self.n_players))
-
 
     def _precompute_baseline_value(self, x_graph: Data, y_index: np.ndarray) -> float:
         # Mask all nodes for emptyset prediction
         x_graph_empty = self.masking(np.zeros(len(x_graph.x)))
         baseline_value = self.model(x_graph_empty.x, x_graph_empty.edge_index, x_graph_empty.batch)
-        return baseline_value.detach().numpy()[:,y_index]
+        return baseline_value.detach().numpy()[:, y_index]
 
     def mask_input(self, coalition: np.ndarray) -> Data:
         """The masking procedure for feature-removal. Masks all feature values of masked nodes.
@@ -78,7 +82,10 @@ class GraphGame(Game):
         Returns: The masked x_graph for the coalition as a graph tensor.
         """
         x_masked = self.x_graph.clone()
-        x_masked.x *= torch.tensor(coalition.reshape((-1, 1)), dtype=torch.float32)
+        if self.baseline is None:
+            x_masked.x *= torch.tensor(coalition.reshape((-1, 1)), dtype=torch.float32)
+        else:
+            x_masked.x = x_masked.x*torch.tensor(coalition.reshape((-1, 1)), dtype=torch.float32)+ self.baseline*torch.tensor((1-coalition).reshape((-1, 1)), dtype=torch.float32)
         return x_masked
 
     def mask_nodes(self, coalition: np.ndarray) -> Data:
@@ -161,6 +168,7 @@ class GraphNodeGame(Game):
         edge_index: The graph structure in sparse edge_index representation.
         baseline_value: The baseline value representing the prediction with an empty graph.
     """
+
     def __init__(
         self,
         model: Callable,
@@ -190,14 +198,13 @@ class GraphNodeGame(Game):
         if self.masking_mode == "feature-removal":
             self.masking = self.mask_input
 
-        #Compute emptyset prediction
+        # Compute emptyset prediction
         baseline_value = self.value_function(np.zeros(self.num_nodes))
         # call the super constructor
         super().__init__(
             n_players=self.num_nodes, normalize=normalize, normalization_value=baseline_value
         )
         self._grand_coalition_set = set(range(self.n_players))
-
 
     def mask_input(self, coalition: np.ndarray) -> Data:
         """The masking procedure for feature-removal. Masks all feature values of masked nodes.
@@ -248,19 +255,17 @@ class GraphNodeGame(Game):
             coalitions = coalitions.reshape(1, -1)
         n_coalitions = np.shape(coalitions)[0]
 
-        coalitions_worth = np.zeros((n_coalitions,self.num_nodes))
+        coalitions_worth = np.zeros((n_coalitions, self.num_nodes))
         for pos in zip(range(n_coalitions)):
             x_masked = self.masking(coalitions[pos])
-            masked_graph_prediction = self.model(x_masked)[np.arange(self.num_nodes), self.class_labels]
-            coalitions_worth[pos,:] = masked_graph_prediction.detach().numpy()
+            masked_graph_prediction = self.model(x_masked)[
+                np.arange(self.num_nodes), self.class_labels
+            ]
+            coalitions_worth[pos, :] = masked_graph_prediction.detach().numpy()
 
         if self.node_id is None:
             # Return all nodes
             return coalitions_worth
         else:
             # Return single node as vector
-            return coalitions_worth[:,self.node_id].reshape(-1)
-
-
-
-
+            return coalitions_worth[:, self.node_id].reshape(-1)

@@ -122,11 +122,8 @@ def train_gnn(dataset_name,model_type,n_layers, node_bias, graph_bias,enforce_re
                     graph_bias=graph_bias, node_bias=node_bias).to(device)
 
     model_id = "_".join([model_type,dataset_name,str(n_layers),str(node_bias),str(graph_bias)])
-    # Get the directory of the current script
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-
     # Construct the path to the target directory
-    target_dir = os.path.join(current_dir,"ckpt", "graph_prediction",model_type,dataset_name)
+    target_dir = os.path.join("shapiq","explainer","graph","ckpt", "graph_prediction",model_type,dataset_name)
 
     save_path = os.path.join(target_dir,model_id+".pth")
 
