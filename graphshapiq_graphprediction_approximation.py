@@ -112,12 +112,8 @@ def save_results(identifier, model_id, data_id, game, sse, max_neighborhood_size
     final_results["budget_with_efficiency"] = gshap_budget[True]
     final_results["budget_no_efficiency"] = gshap_budget[False]
 
-    timestamp = datetime.now()
-    timestamp_str = timestamp.strftime("%H_%M_%S")
-
     save_name = "_".join(
         [
-            timestamp_str,
             identifier,
             model_id,
             str(data_id),
@@ -125,7 +121,7 @@ def save_results(identifier, model_id, data_id, game, sse, max_neighborhood_size
             str(max_neighborhood_size),
         ]
     )
-    save_path = os.path.join("results", save_name + ".csv")
+    save_path = os.path.join("results/approximation_quality", save_name + ".csv")
     final_results.to_csv(save_path)
 
 
@@ -182,10 +178,10 @@ def explain_instances_with_gt(
                     )
                     gshap_budget[efficiency_mode][max_interaction_size] = gSHAP.last_n_model_calls
                     sse[approx_id_interaction][max_interaction_size] = np.sum(
-                        (gshap_interactions[0] - gt_interaction).values ** 2
+                        (gshap_interactions - gt_interaction).values ** 2
                     )
                     sse[approx_id_moebius][max_interaction_size] = np.sum(
-                        (gt_moebius - gshap_moebius[0]).values ** 2
+                        (gt_moebius - gshap_moebius).values ** 2
                     )
 
                 for approx_id, baseline in BASELINE_APPROXIMATORS.items():
@@ -227,7 +223,7 @@ def explain_instances(
             max_neighborhood_size=model.n_layers,
             masking_mode=masking_mode,
             normalize=True,
-            baseline=baseline
+            baseline=baseline,
         )
         # setup the explainer
         gSHAP = GraphSHAPIQ(game)
@@ -298,6 +294,7 @@ if __name__ == "__main__":
     NODE_BIASES = [True]  # [False,True]
     GRAPH_BIASES = [True]  # [False,True]
     EXPLAIN_WITH_GT = True
+    EXPLAIN_WITHOUT_GT = True
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -317,5 +314,5 @@ if __name__ == "__main__":
                         model.eval()
                         if EXPLAIN_WITH_GT:
                             explain_instances_with_gt(model_id, model, all_samples_to_explain)
-                        else:
+                        if EXPLAIN_WITHOUT_GT:
                             explain_instances(model_id, model, all_samples_to_explain)
