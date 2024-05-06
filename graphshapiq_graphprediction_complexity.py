@@ -46,9 +46,9 @@ def get_TU_instances(name):
 
 
 def get_explanation_instances(dataset_name):
-    if dataset_name == "MUTAG":
-        all_samples_to_explain = get_MUTAG_instances()
-    if dataset_name in ["PROTEINS","ENZYMES"]:
+    #if dataset_name == "MUTAG":
+    #    all_samples_to_explain = get_MUTAG_instances()
+    if dataset_name in ["AIDS","DHFR","COX2","BZR","PROTEINS", "ENZYMES", "MUTAG", "Mutagenicity"]:
         all_samples_to_explain = get_TU_instances(dataset_name)
     return all_samples_to_explain
 
@@ -89,12 +89,14 @@ if __name__ == "__main__":
     MODEL_TYPES = ["GCN"]
     N_LAYERS = [1,2,3,4]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    NODE_BIAS = True
+    GRAPH_BIAS = True
 
     for dataset_name in DATASET_NAMES:
         all_samples_to_explain = get_explanation_instances(dataset_name)
         for model_type in MODEL_TYPES:
             for n_layers in N_LAYERS:
-                model, model_id = train_gnn(dataset_name=dataset_name, model_type=model_type, n_layers=n_layers, node_bias=node_bias, graph_bias=graph_bias)
+                model, model_id = train_gnn(dataset_name=dataset_name, model_type=model_type, n_layers=n_layers, node_bias=NODE_BIAS, graph_bias=GRAPH_BIAS)
                 model.eval()
                 evaluate_complexity(model_id, model, all_samples_to_explain)
 
