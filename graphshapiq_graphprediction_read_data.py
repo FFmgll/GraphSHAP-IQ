@@ -32,6 +32,7 @@ if __name__ == "__main__":
             moebius[file_name] = results
 
 
+    sparsify_threshold = 10e-5
     INDEX_RANGE = np.arange(1,6)
     shapley_interactions = {}
 
@@ -44,4 +45,6 @@ if __name__ == "__main__":
         moebius_interactions = InteractionValues(n_players=n_players,baseline_value=0,interaction_lookup=interaction_lookup,values=data["gt"].values,min_order=0,max_order=n_players,index="Moebius")
         moebius_converter = MoebiusConverter(moebius_interactions)
         for order in INDEX_RANGE:
-            shapley_interactions[id][order] = moebius_converter.moebius_to_shapley_interaction(index="k-SII",order=order)
+            k_sii = moebius_converter.moebius_to_shapley_interaction(index="k-SII",order=order)
+            k_sii.sparsify(sparsify_threshold)
+            shapley_interactions[id][order] = k_sii
