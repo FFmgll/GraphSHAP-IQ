@@ -11,29 +11,13 @@ from datetime import datetime
 import torch
 import pandas as pd
 
-from shapiq import ExactComputer
 from shapiq.explainer.graph import GraphSHAPIQ
 from shapiq.games.benchmark.local_xai import GraphGame
-from shapiq.explainer.graph.graph_datasets import CustomTUDataset
+from shapiq.explainer.graph import get_explanation_instances
+
 import numpy as np
 import os
 
-def get_TU_instances(name):
-    dataset = CustomTUDataset(root="shapiq/explainer/graph/graph_datasets", name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
-    loader = DataLoader(dataset, shuffle=False)
-    # Get all samples with < 15 nodes from test set
-    all_samples_to_explain = []
-    for data in loader:
-        for i in range(data.num_graphs):
-            all_samples_to_explain.append(data[i])
-    return all_samples_to_explain
-
-
-
-def get_explanation_instances(dataset_name):
-    if dataset_name in ["AIDS","DHFR","COX2","BZR","PROTEINS", "ENZYMES", "MUTAG", "Mutagenicity"]:
-        all_samples_to_explain = get_TU_instances(dataset_name)
-    return all_samples_to_explain
 
 
 def evaluate_complexity(model_id, model, all_samples_to_explain,masking_mode="feature-removal"):

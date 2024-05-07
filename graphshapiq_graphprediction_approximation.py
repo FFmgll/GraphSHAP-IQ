@@ -1,23 +1,12 @@
 from shapiq.explainer.graph.train_gnn import train_gnn
-from graphxai_local.datasets.real_world.MUTAG import (
-    MUTAG,
-)  # renamed to avoid conflict with potential installs
-from pathlib import Path
-from torch_geometric.loader import DataLoader
-
-from datetime import datetime
-
 # import modules
 import torch
 import pandas as pd
 
 from shapiq import ExactComputer
-from shapiq.explainer.graph import GraphSHAPIQ
+from shapiq.explainer.graph import GraphSHAPIQ, _compute_baseline_value, get_explanation_instances
 from shapiq.games.benchmark.local_xai import GraphGame
-from shapiq.explainer.graph.graph_datasets import CustomTUDataset
-
 import numpy as np
-import matplotlib.pyplot as plt
 
 import os
 
@@ -28,39 +17,6 @@ from shapiq.approximator import (
     SVARMIQ,
     SHAPIQ,
 )
-
-
-
-def get_TU_instances(name):
-    dataset = CustomTUDataset(
-        root="shapiq/explainer/graph/graph_datasets",
-        name=name,
-        seed=1234,
-        split_sizes=(0.8, 0.1, 0.1),
-    )
-    loader = DataLoader(dataset, shuffle=False)
-    # Get all samples with < 15 nodes from test set
-    all_samples_to_explain = []
-    for data in loader:
-        for i in range(data.num_graphs):
-            # if data[i].num_nodes <= 60:
-            all_samples_to_explain.append(data[i])
-    return all_samples_to_explain
-
-
-def get_explanation_instances(dataset_name):
-    if dataset_name in [
-        "AIDS",
-        "DHFR",
-        "COX2",
-        "BZR",
-        "PROTEINS",
-        "ENZYMES",
-        "MUTAG",
-        "Mutagenicity",
-    ]:
-        all_samples_to_explain = get_TU_instances(dataset_name)
-    return all_samples_to_explain
 
 
 def save_results(identifier, model_id, data_id, game, sse, max_neighborhood_size, gshap_budget):
@@ -120,7 +76,7 @@ def explain_instances_with_gt(
 
     for data_id, x_graph in enumerate(all_samples_to_explain):
         if not stop_processing:
-            baseline = x_graph.x.mean(0)
+            baseline = _compute_baseline_value(x_graph)
             if x_graph.num_nodes <= 12:
                 # print(x_graph.num_nodes)
                 game = GraphGame(
@@ -204,8 +160,8 @@ def explain_instances(
     counter = 0
     print("Running without GT...", model_id)
     for data_id, x_graph in enumerate(all_samples_to_explain):
-        if not stop_processing and x_graph.num_nodes >= 12:
-            baseline = x_graph.x.mean(0)
+        if not stop_processing and x_graph.num_nodes >= 12 and x_graph.num_nodes <= 30:
+            baseline = _compute_baseline_value(x_graph)
             game = GraphGame(
                 model,
                 x_graph=x_graph,
@@ -288,7 +244,7 @@ if __name__ == "__main__":
     N_LAYERS = [1, 2, 3, 4]
     NODE_BIASES = [True]  # [False,True]
     GRAPH_BIASES = [True]  # [False,True]
-    EXPLAIN_WITH_GT = True
+    EXPLAIN_WITH_GT = False
     EXPLAIN_WITHOUT_GT = True
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

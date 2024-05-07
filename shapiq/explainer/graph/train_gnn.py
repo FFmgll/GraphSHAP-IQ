@@ -14,7 +14,6 @@ from shapiq.explainer.graph.graph_models import GCN, GIN
 
 from shapiq.explainer.graph.graph_datasets import CustomTUDataset
 
-
 def get_TU_dataset(device,name):
     # Load dataset
     dataset = CustomTUDataset(root="shapiq/explainer/graph/graph_datasets", name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))

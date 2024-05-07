@@ -102,11 +102,8 @@ class MoebiusConverter:
                 else:
                     transformed_dict[interaction] = base_interaction_value*bernoulli_numbers[len(base_interaction) - len(interaction)]
 
-        if len(np.shape(base_interaction_value)) > 0:
-            transformed_values = np.zeros((len(transformed_dict),len(base_interaction_value)))
-        else:
-            transformed_values = np.zeros(len(transformed_dict))
 
+        transformed_values = np.zeros(len(transformed_dict))
         transformed_lookup = {}
 
         for interaction_pos, (interaction, interaction_value) in enumerate(transformed_dict.items()):
