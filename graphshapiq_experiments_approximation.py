@@ -1,8 +1,6 @@
 """ This script runs the GraphSHAP-IQ approximation on different datasets and graphs."""
 
 from shapiq.explainer.graph.train_gnn import train_gnn
-from torch_geometric.loader import DataLoader
-
 # import modules
 import torch
 import pandas as pd
