@@ -110,8 +110,6 @@ def train_and_store(model,train_loader, val_loader, test_loader, save_path):
 
 def train_gnn(dataset_name,model_type,n_layers, node_bias, graph_bias,enforce_retrain=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #if dataset_name == "MUTAG":
-       #train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_MUTAG_dataset(device)
     if dataset_name in ["AIDS","DHFR","COX2","BZR","MUTAG","BENZENE","PROTEINS","ENZYMES","Mutagenicity"]:
         train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(device, dataset_name)
 

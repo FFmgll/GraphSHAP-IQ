@@ -17,13 +17,21 @@ def plot_approximation_quality(results, file_name, save_path_plots):
         "SVARMIQ",
     ]
     plt.figure()
-    n = file_name.split("_")[-2]
+    n_players = int(file_name.split("_")[-2])
     for approximator in APPROXIMATORS:
         plt.plot(
-            results["budget_with_efficiency"].values / 2 ** int(n) * 100,
+            results.index,
             np.log(results[approximator].values),
             label=approximator,
         )
+
+    plt.twiny()
+    for approximator in APPROXIMATORS:
+        plt.plot(results["budget_with_efficiency"]/2**n_players*100,
+            np.log(results[approximator].values),
+            label=approximator
+        )
+    plt.gca().set_ylim([-15, -5])
     plt.legend()
     plt.title(file_name)
     plt.savefig(os.path.join(save_path_plots, (file_name + ".png")))
@@ -64,7 +72,7 @@ def plot_complexity(results, file_name, save_path_plots):
         results_current_layer_exact = results_current_layer[
             results_current_layer["budget_estimated"] == False
         ]
-        max_nodes = results_current_layer["n_players"].max()+5
+        max_nodes = results_current_layer["n_players"].max() + 5
         min_nodes = results_current_layer["n_players"].min()
         plot_label_est = "GCN" + n_layers + " est"
         plot_label_exact = "GCN" + n_layers + " exact"
@@ -120,27 +128,39 @@ if __name__ == "__main__":
         "Mutagenicity",
     ]
     PLOT_APPROXIMATION_WITH_GT = False
-    PLOT_APPROXIMATION_NO_GT = False
-    PLOT_COMPLEXITY = True
+    PLOT_APPROXIMATION_NO_GT = True
+    PLOT_COMPLEXITY = False
 
-    for file_path in glob.glob(os.path.join(save_directory, "*.csv")):
-        results = pd.read_csv(file_path)
-        file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
-        if PLOT_COMPLEXITY and file_name.split("_")[0] == "complexity":
-            dataset_name = file_name.split("_")[2]
-            n_layers = file_name.split("_")[3]
-            if dataset_name in complexity_results and dataset_name in GRAPH_PREDICTION_MODELS:
-                complexity_results[dataset_name][n_layers] = results
-            else:
-                complexity_results[dataset_name] = {}
-                complexity_results[dataset_name][n_layers] = results
+    if PLOT_COMPLEXITY:
+        complexity_directory = os.path.join(save_directory, "complexity_analysis")
+        for file_path in glob.glob(os.path.join(complexity_directory, "*.csv")):
+            results = pd.read_csv(file_path)
+            file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
+            if file_name.split("_")[0] == "complexity":
+                dataset_name = file_name.split("_")[2]
+                n_layers = file_name.split("_")[3]
+                if dataset_name in complexity_results and dataset_name in GRAPH_PREDICTION_MODELS:
+                    complexity_results[dataset_name][n_layers] = results
+                else:
+                    complexity_results[dataset_name] = {}
+                    complexity_results[dataset_name][n_layers] = results
 
-        else:
-            if PLOT_APPROXIMATION_WITH_GT and file_name.split("_")[3] == "withGT":
+        for dataset_name in complexity_results:
+            if dataset_name in GRAPH_PREDICTION_MODELS:
+                plot_complexity(complexity_results[dataset_name], dataset_name, save_path_plots)
+
+    if PLOT_APPROXIMATION_NO_GT:
+        approximation_directory = os.path.join(save_directory, "approximation_without_gt")
+        for file_path in glob.glob(os.path.join(approximation_directory, "*.csv")):
+            results = pd.read_csv(file_path)
+            file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
+            if file_name.split("_")[0] == "noGT":
                 plot_approximation_quality(results, file_name, save_path_plots)
-            if PLOT_APPROXIMATION_NO_GT and file_name.split("_")[3] == "noGT":
-                plot_approximation_quality(results, file_name, save_path_plots)
 
-    for dataset_name in complexity_results:
-        if dataset_name in GRAPH_PREDICTION_MODELS:
-            plot_complexity(complexity_results[dataset_name], dataset_name, save_path_plots)
+    if PLOT_APPROXIMATION_WITH_GT:
+        approximation_directory = os.path.join(save_directory, "approximation_with_gt")
+        for file_path in glob.glob(os.path.join(approximation_directory, "*.csv")):
+            results = pd.read_csv(file_path)
+            file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
+            if file_name.split("_")[0] == "withGT":
+                plot_approximation_quality(results, file_name, save_path_plots)

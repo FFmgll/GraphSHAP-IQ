@@ -121,7 +121,10 @@ def save_results(identifier, model_id, data_id, game, sse, max_neighborhood_size
             str(max_neighborhood_size),
         ]
     )
-    save_path = os.path.join("results/approximation_quality", save_name + ".csv")
+    if identifier == "withGT":
+        save_path = os.path.join("results/approximation_with_gt", save_name + ".csv")
+    if identifier == "noGT":
+        save_path = os.path.join("results/approximation_without_gt", save_name + ".csv")
     final_results.to_csv(save_path)
 
 
@@ -136,70 +139,79 @@ def explain_instances_with_gt(
         "SVARMIQ": SVARMIQ,
     }
     EFFICIENCY_MODES = [True, False]
+    stop_processing = False
+    counter = 0
+    print("Running with GT ...", model_id)
 
     for data_id, x_graph in enumerate(all_samples_to_explain):
-        baseline = x_graph.x.mean(0)
-        if x_graph.num_nodes <= 12:
-            print(x_graph.num_nodes)
-            game = GraphGame(
-                model,
-                x_graph=x_graph,
-                class_id=x_graph.y.item(),
-                max_neighborhood_size=model.n_layers,
-                masking_mode=masking_mode,
-                normalize=True,
-                baseline=baseline,
-            )
-            # setup the explainer
-            gSHAP = GraphSHAPIQ(game)
+        if not stop_processing:
+            baseline = x_graph.x.mean(0)
+            if x_graph.num_nodes <= 12:
+                # print(x_graph.num_nodes)
+                game = GraphGame(
+                    model,
+                    x_graph=x_graph,
+                    class_id=x_graph.y.item(),
+                    max_neighborhood_size=model.n_layers,
+                    masking_mode=masking_mode,
+                    normalize=True,
+                    baseline=baseline,
+                )
+                # setup the explainer
+                gSHAP = GraphSHAPIQ(game)
 
-            exact_computer = ExactComputer(game.n_players, game)
-            gt_interaction = exact_computer.shapley_interaction(
-                index="k-SII", order=explanation_order
-            )
-            gt_moebius = exact_computer.moebius_transform()
+                exact_computer = ExactComputer(game.n_players, game)
+                gt_interaction = exact_computer.shapley_interaction(
+                    index="k-SII", order=explanation_order
+                )
+                gt_moebius = exact_computer.moebius_transform()
 
-            sse = {}
-            gshap_budget = {}
-            for efficiency_mode in EFFICIENCY_MODES:
-                approx_id_interaction = "GraphSHAPIQ_" + str(efficiency_mode) + "_interaction"
-                approx_id_moebius = "GraphSHAPIQ_" + str(efficiency_mode) + "_moebius"
+                sse = {}
+                gshap_budget = {}
+                for efficiency_mode in EFFICIENCY_MODES:
+                    approx_id_interaction = "GraphSHAPIQ_" + str(efficiency_mode) + "_interaction"
+                    approx_id_moebius = "GraphSHAPIQ_" + str(efficiency_mode) + "_moebius"
 
-                gshap_budget[efficiency_mode] = {}
+                    gshap_budget[efficiency_mode] = {}
 
-                sse[approx_id_interaction] = {}
-                sse[approx_id_moebius] = {}
-                for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
-                    # Compute the Moebius values for all subsets
-                    gshap_moebius, gshap_interactions = gSHAP.explain(
-                        max_interaction_size=max_interaction_size,
-                        order=explanation_order,
-                        efficiency_routine=efficiency_mode,
-                    )
-                    gshap_budget[efficiency_mode][max_interaction_size] = gSHAP.last_n_model_calls
-                    sse[approx_id_interaction][max_interaction_size] = np.sum(
-                        (gshap_interactions - gt_interaction).values ** 2
-                    )
-                    sse[approx_id_moebius][max_interaction_size] = np.sum(
-                        (gt_moebius - gshap_moebius).values ** 2
-                    )
-
-                for approx_id, baseline in BASELINE_APPROXIMATORS.items():
-                    baseline_approx = baseline(
-                        n=game.n_players, max_order=explanation_order, index="k-SII"
-                    )
-                    sse[approx_id] = {}
-                    for max_interaction_size, budget in gshap_budget[True].items():
-                        baseline_interactions = baseline_approx.approximate(
-                            game=game, budget=budget
+                    sse[approx_id_interaction] = {}
+                    sse[approx_id_moebius] = {}
+                    for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
+                        # Compute the Moebius values for all subsets
+                        gshap_moebius, gshap_interactions = gSHAP.explain(
+                            max_interaction_size=max_interaction_size,
+                            order=explanation_order,
+                            efficiency_routine=efficiency_mode,
                         )
-                        sse[approx_id][max_interaction_size] = np.sum(
-                            (gt_interaction - baseline_interactions).values ** 2
+                        gshap_budget[efficiency_mode][
+                            max_interaction_size
+                        ] = gSHAP.last_n_model_calls
+                        sse[approx_id_interaction][max_interaction_size] = np.sum(
+                            (gshap_interactions - gt_interaction).values ** 2
+                        )
+                        sse[approx_id_moebius][max_interaction_size] = np.sum(
+                            (gt_moebius - gshap_moebius).values ** 2
                         )
 
-            save_results(
-                "withGT", model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget
-            )
+                    for approx_id, baseline in BASELINE_APPROXIMATORS.items():
+                        baseline_approx = baseline(
+                            n=game.n_players, max_order=explanation_order, index="k-SII"
+                        )
+                        sse[approx_id] = {}
+                        for max_interaction_size, budget in gshap_budget[True].items():
+                            baseline_interactions = baseline_approx.approximate(
+                                game=game, budget=budget
+                            )
+                            sse[approx_id][max_interaction_size] = np.sum(
+                                (gt_interaction - baseline_interactions).values ** 2
+                            )
+
+                save_results(
+                    "withGT", model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget
+                )
+                counter += 1
+        if counter >= 5:
+            stop_processing = True
 
 
 def explain_instances(
@@ -213,82 +225,90 @@ def explain_instances(
         "SVARMIQ": SVARMIQ,
     }
     EFFICIENCY_MODES = [True, False]
-
+    stop_processing = False
+    counter = 0
+    print("Running without GT...", model_id)
     for data_id, x_graph in enumerate(all_samples_to_explain):
-        baseline = x_graph.x.mean(0)
-        game = GraphGame(
-            model,
-            x_graph=x_graph,
-            class_id=x_graph.y.item(),
-            max_neighborhood_size=model.n_layers,
-            masking_mode=masking_mode,
-            normalize=True,
-            baseline=baseline,
-        )
-        # setup the explainer
-        gSHAP = GraphSHAPIQ(game)
-        if gSHAP.total_budget <= 2**16:
-            print(x_graph.num_nodes, gSHAP.max_size_neighbors)
-
-            sse = {}
-            gshap_budget = {}
-            gshap_moebius = {}
-            gshap_interactions = {}
-
-            for efficiency_mode in EFFICIENCY_MODES:
-                approx_id_interaction = "GraphSHAPIQ_" + str(efficiency_mode) + "_interaction"
-                approx_id_moebius = "GraphSHAPIQ_" + str(efficiency_mode) + "_moebius"
-
-                gshap_budget[efficiency_mode] = {}
-
-                sse[approx_id_interaction] = {}
-                sse[approx_id_moebius] = {}
-                for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
-                    print("GSHAP running...", max_interaction_size)
-                    # Compute the Moebius values for all subsets
-                    (
-                        gshap_moebius[max_interaction_size],
-                        gshap_interactions[max_interaction_size],
-                    ) = gSHAP.explain(
-                        max_interaction_size=max_interaction_size,
-                        order=explanation_order,
-                        efficiency_routine=efficiency_mode,
-                    )
-                    gshap_budget[efficiency_mode][max_interaction_size] = gSHAP.last_n_model_calls
-
-                gt_interaction = gshap_interactions[gSHAP.max_size_neighbors]
-                gt_moebius = gshap_moebius[gSHAP.max_size_neighbors]
-
-                for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
-                    # Compute SSE
-                    sse[approx_id_interaction][max_interaction_size] = np.sum(
-                        (gshap_interactions[max_interaction_size] - gt_interaction).values ** 2
-                    )
-                    sse[approx_id_moebius][max_interaction_size] = np.sum(
-                        (gt_moebius - gshap_moebius[max_interaction_size]).values ** 2
-                    )
-
-                for approx_id, baseline in BASELINE_APPROXIMATORS.items():
-                    baseline_approx = baseline(
-                        n=game.n_players, max_order=explanation_order, index="k-SII"
-                    )
-                    sse[approx_id] = {}
-                    for max_interaction_size, budget in gshap_budget[True].items():
-                        print("Baseline " + approx_id + " ...", max_interaction_size)
-                        baseline_interactions = baseline_approx.approximate(
-                            game=game, budget=budget
-                        )
-                        sse[approx_id][max_interaction_size] = np.sum(
-                            (gt_interaction - baseline_interactions).values ** 2
-                        )
-
-            save_results(
-                "noGT", model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget
+        if not stop_processing and x_graph.num_nodes >= 12:
+            baseline = x_graph.x.mean(0)
+            game = GraphGame(
+                model,
+                x_graph=x_graph,
+                class_id=x_graph.y.item(),
+                max_neighborhood_size=model.n_layers,
+                masking_mode=masking_mode,
+                normalize=True,
+                baseline=baseline,
             )
+            # setup the explainer
+            gSHAP = GraphSHAPIQ(game)
+            if gSHAP.total_budget <= 2**12:
+                # print(x_graph.num_nodes, gSHAP.max_size_neighbors)
+
+                sse = {}
+                gshap_budget = {}
+                gshap_moebius = {}
+                gshap_interactions = {}
+
+                for efficiency_mode in EFFICIENCY_MODES:
+                    approx_id_interaction = "GraphSHAPIQ_" + str(efficiency_mode) + "_interaction"
+                    approx_id_moebius = "GraphSHAPIQ_" + str(efficiency_mode) + "_moebius"
+
+                    gshap_budget[efficiency_mode] = {}
+
+                    sse[approx_id_interaction] = {}
+                    sse[approx_id_moebius] = {}
+                    for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
+                        # print("GSHAP running...", max_interaction_size)
+                        # Compute the Moebius values for all subsets
+                        (
+                            gshap_moebius[max_interaction_size],
+                            gshap_interactions[max_interaction_size],
+                        ) = gSHAP.explain(
+                            max_interaction_size=max_interaction_size,
+                            order=explanation_order,
+                            efficiency_routine=efficiency_mode,
+                        )
+                        gshap_budget[efficiency_mode][
+                            max_interaction_size
+                        ] = gSHAP.last_n_model_calls
+
+                    gt_interaction = gshap_interactions[gSHAP.max_size_neighbors]
+                    gt_moebius = gshap_moebius[gSHAP.max_size_neighbors]
+
+                    for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
+                        # Compute SSE
+                        sse[approx_id_interaction][max_interaction_size] = np.sum(
+                            (gshap_interactions[max_interaction_size] - gt_interaction).values ** 2
+                        )
+                        sse[approx_id_moebius][max_interaction_size] = np.sum(
+                            (gt_moebius - gshap_moebius[max_interaction_size]).values ** 2
+                        )
+
+                    for approx_id, baseline in BASELINE_APPROXIMATORS.items():
+                        baseline_approx = baseline(
+                            n=game.n_players, max_order=explanation_order, index="k-SII"
+                        )
+                        sse[approx_id] = {}
+                        for max_interaction_size, budget in gshap_budget[True].items():
+                            # print("Baseline " + approx_id + " ...", max_interaction_size)
+                            baseline_interactions = baseline_approx.approximate(
+                                game=game, budget=budget
+                            )
+                            sse[approx_id][max_interaction_size] = np.sum(
+                                (gt_interaction - baseline_interactions).values ** 2
+                            )
+
+                save_results(
+                    "noGT", model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget
+                )
+                counter += 1
+        if counter >= 5:
+            stop_processing = True
 
 
 if __name__ == "__main__":
-    DATASET_NAMES = ["AIDS", "DHFR", "COX2", "BZR", "PROTEINS", "ENZYMES", "MUTAG", "Mutagenicity"]
+    DATASET_NAMES = ["PROTEINS", "ENZYMES", "MUTAG", "AIDS", "DHFR", "COX2", "BZR", "Mutagenicity"]
     MODEL_TYPES = ["GCN"]
     N_LAYERS = [1, 2, 3, 4]
     NODE_BIASES = [True]  # [False,True]
