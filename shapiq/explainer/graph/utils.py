@@ -3,6 +3,7 @@ from shapiq.explainer.graph.graph_datasets import CustomTUDataset
 
 
 def _compute_baseline_value(x_graph):
+    # This function computes the baseline value for the masked features, i.e. mean over nodes.
     return x_graph.x.mean(0)
 
 def get_TU_instances(name):
