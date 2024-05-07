@@ -32,8 +32,6 @@ def get_TU_instances(name):
 
 
 def get_explanation_instances(dataset_name):
-    # if dataset_name == "MUTAG":
-    #    all_samples_to_explain = get_MUTAG_instances()
     if dataset_name in [
         "AIDS",
         "DHFR",
