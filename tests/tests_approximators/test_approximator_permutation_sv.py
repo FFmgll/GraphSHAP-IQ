@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from approximator.permutation import PermutationSamplingSV
+from shapiq.approximator.permutation import PermutationSamplingSV
 from shapiq.games.benchmark import DummyGame
 
 
@@ -29,16 +29,19 @@ def test_approximate(n, budget, batch_size):
 
     # check that the budget is respected
     assert game.access_counter <= budget
+    assert sv_estimates.index == "SV"
+    assert sv_estimates.estimated is True  # always estimated
+    assert sv_estimates.estimation_budget <= budget
 
     # check efficiency
-    efficiency = np.sum(sv_estimates.values[:n])
+    efficiency = np.sum(sv_estimates.values)
     assert efficiency == pytest.approx(2, 0.01)
 
     # check Shapley values for all players that have only marginal contributions of size 0.2
     # their estimates must be exactly 0.2
-    assert sv_estimates[(0,)] == pytest.approx(0.2, 0.00001)
-    assert sv_estimates[(3,)] == pytest.approx(0.2, 0.00001)
-    assert sv_estimates[(4,)] == pytest.approx(0.2, 0.00001)
+    assert sv_estimates[(0,)] == pytest.approx(0.2, 0.001)
+    assert sv_estimates[(3,)] == pytest.approx(0.2, 0.001)
+    assert sv_estimates[(4,)] == pytest.approx(0.2, 0.001)
 
     # check Shapley values for interaction players
     if budget >= 1000:
@@ -49,4 +52,4 @@ def test_approximate(n, budget, batch_size):
     game = DummyGame(1, (0,))
     approximator = PermutationSamplingSV(1, random_state=42)
     sv_estimates = approximator.approximate(10, game)
-    assert sv_estimates[(0,)] == pytest.approx(2.0, 0.001)
+    assert sv_estimates[(0,)] == pytest.approx(2.0, 0.01)

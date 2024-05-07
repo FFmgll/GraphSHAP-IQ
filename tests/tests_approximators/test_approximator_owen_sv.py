@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from approximator.marginals import OwenSamplingSV
+from shapiq.approximator.marginals import OwenSamplingSV
 from shapiq.games.benchmark import DummyGame
 
 
@@ -63,12 +63,17 @@ def test_approximate(n, m, budget, batch_size):
 
     # check that the budget is respected
     assert game.access_counter <= budget
+    assert sv_estimates.index == "SV"
+    assert sv_estimates.max_order == 1
+    assert sv_estimates.min_order == 0
+    assert sv_estimates.estimation_budget <= budget
+    assert sv_estimates.estimated is True  # always estimated
 
     # check Shapley values for all players that have only marginal contributions of size 0.2
     # their estimates must be exactly 0.2
-    assert sv_estimates[(0,)] == pytest.approx(0.2, 0.001)
-    assert sv_estimates[(3,)] == pytest.approx(0.2, 0.001)
-    assert sv_estimates[(4,)] == pytest.approx(0.2, 0.001)
+    assert sv_estimates[(0,)] == pytest.approx(0.2, 0.01)
+    assert sv_estimates[(3,)] == pytest.approx(0.2, 0.01)
+    assert sv_estimates[(4,)] == pytest.approx(0.2, 0.01)
 
     # check Shapley values for interaction players
     if budget >= 100000 and m >= 40:

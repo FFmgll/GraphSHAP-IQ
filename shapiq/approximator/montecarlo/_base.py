@@ -6,14 +6,12 @@ import numpy as np
 from scipy.special import binom, factorial
 
 from shapiq.approximator._base import Approximator
-from shapiq.approximator.k_sii import KShapleyMixin
+from shapiq.indices import AVAILABLE_INDICES_MONTE_CARLO
 from shapiq.interaction_values import InteractionValues
 from shapiq.utils.sets import powerset
 
-AVAILABLE_INDICES_REGRESSION = {"k-SII", "SII", "STII", "FSII", "SV", "CHII", "BII"}
 
-
-class MonteCarlo(Approximator, KShapleyMixin):
+class MonteCarlo(Approximator):
     """This class is the base class for all MonteCarlo approximators, e.g. SHAP-IQ and SVARM-IQ.
 
     MonteCarlo approximators are based on a representation of the interaction index as a weighted
@@ -47,10 +45,10 @@ class MonteCarlo(Approximator, KShapleyMixin):
         pairing_trick: bool = False,
         sampling_weights: np.ndarray = None,
     ):
-        if index not in AVAILABLE_INDICES_REGRESSION:
+        if index not in AVAILABLE_INDICES_MONTE_CARLO:
             raise ValueError(
                 f"Index {index} not available for Regression Approximator. Choose from "
-                f"{AVAILABLE_INDICES_REGRESSION}."
+                f"{AVAILABLE_INDICES_MONTE_CARLO}."
             )
         super().__init__(
             n,
@@ -97,21 +95,10 @@ class MonteCarlo(Approximator, KShapleyMixin):
             index_approximation=index_approximation,
         )
 
-        estimated_indicator = True
-        if np.shape(coalitions_matrix)[0] >= 2**self.n:
-            # If budget exceeds number of coalitions, set estimated to False
-            estimated_indicator = False
-
-        if self.index == "k-SII":
-            # If index is k-SII then SII values have been approximated, now aggregate to k-SII
-            baseline_value = shapley_interactions_values[0]
-            shapley_interactions_values = self.transforms_sii_to_ksii(shapley_interactions_values)
-            if self.min_order == 0:
-                # Reset baseline value after transformation
-                shapley_interactions_values[0] = baseline_value
+        baseline_value = float(game_values[self._sampler.empty_coalition_index])
 
         return self._finalize_result(
-            result=shapley_interactions_values, estimated=estimated_indicator, budget=budget
+            result=shapley_interactions_values, baseline_value=baseline_value, budget=budget
         )
 
     def monte_carlo_routine(
@@ -175,7 +162,7 @@ class MonteCarlo(Approximator, KShapleyMixin):
 
         # manually set emptyset interaction to baseline
         if self.min_order == 0:
-            shapley_interaction_values[0] = empty_coalition_value
+            shapley_interaction_values[self.interaction_lookup[tuple()]] = empty_coalition_value
 
         return shapley_interaction_values
 
@@ -191,6 +178,8 @@ class MonteCarlo(Approximator, KShapleyMixin):
         """
         sampling_adjustment_weights = np.ones(self._sampler.n_coalitions)
         interaction_size = len(interaction)
+        interaction_binary = np.zeros(self.n, dtype=int)
+        interaction_binary[list(interaction)] = 1
         # Stratify by intersection, but not by coalition size
         for intersection in powerset(interaction):
             # Stratify by intersection of coalition and interaction
@@ -198,7 +187,9 @@ class MonteCarlo(Approximator, KShapleyMixin):
             intersection_binary = np.zeros(self.n, dtype=int)
             intersection_binary[list(intersection)] = 1
             # Compute current stratum
-            in_stratum = np.prod(self._sampler.coalitions_matrix == intersection_binary, axis=1)
+            in_stratum = np.prod(
+                self._sampler.coalitions_matrix * interaction_binary == intersection_binary, axis=1
+            ).astype(bool)
             # Flag all coalitions that belong to the stratum and are sampled
             in_stratum_and_sampled = in_stratum * self._sampler.is_coalition_sampled
             # Compute probabilities for a sample to be placed in this stratum
@@ -276,6 +267,8 @@ class MonteCarlo(Approximator, KShapleyMixin):
         """
         sampling_adjustment_weights = np.ones(self._sampler.n_coalitions)
         interaction_size = len(interaction)
+        interaction_binary = np.zeros(self.n, dtype=int)
+        interaction_binary[list(interaction)] = 1
         size_strata = np.unique(self._sampler.coalitions_size)
         for intersection in powerset(interaction):
             # stratify by intersection for interaction and coalition
@@ -284,8 +277,8 @@ class MonteCarlo(Approximator, KShapleyMixin):
             intersection_binary[list(intersection)] = 1
             # Compute current intersection stratum
             in_intersection_stratum = np.prod(
-                self._sampler.coalitions_matrix == intersection_binary, axis=1
-            )
+                self._sampler.coalitions_matrix * interaction_binary == intersection_binary, axis=1
+            ).astype(bool)
             for size_stratum in size_strata:
                 # compute current intersection-coalition-size stratum
                 in_stratum = in_intersection_stratum * (
@@ -299,8 +292,8 @@ class MonteCarlo(Approximator, KShapleyMixin):
                 # coalitions of size coalition_size
                 stratum_probabilities[in_stratum_and_sampled] = binom(
                     self.n - interaction_size,
-                    self._sampler.coalitions_size[in_stratum_and_sampled] - intersection_size,
-                ) / binom(self.n, self._sampler.coalitions_size[in_stratum_and_sampled])
+                    size_stratum - intersection_size,
+                )
                 # Get sampled coalitions per stratum
                 stratum_n_samples = np.sum(self._sampler.coalitions_counter[in_stratum_and_sampled])
                 n_samples_helper = np.array([1, stratum_n_samples])
@@ -309,10 +302,7 @@ class MonteCarlo(Approximator, KShapleyMixin):
                 sampling_adjustment_weights[in_stratum] = (
                     self._sampler.coalitions_counter[in_stratum]
                     * stratum_probabilities[in_stratum]
-                    / (
-                        coalitions_n_samples[in_stratum]
-                        * self._sampler.coalitions_in_size_probability[in_stratum]
-                    )
+                    / (coalitions_n_samples[in_stratum])
                 )
         return sampling_adjustment_weights
 

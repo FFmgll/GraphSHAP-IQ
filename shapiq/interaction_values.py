@@ -2,42 +2,16 @@
 scores."""
 
 import copy
+import os
+import pickle
 from dataclasses import dataclass
 from typing import Optional, Union
+from warnings import warn
 
 import numpy as np
 
-from shapiq.utils.sets import generate_interaction_lookup, powerset
-
-AVAILABLE_INDICES = {
-    "JointSV",
-    "SGV",
-    "BGV",
-    "CHGV",
-    "CHII",
-    "BII",
-    "kADD-SHAP",
-    "k-SII",
-    "SII",
-    "STII",
-    "FSII",
-    "SV",
-    "BV",
-    "BZF",
-    "Moebius",
-}
-
-# indices that generalize the SV become the SV for max_order = 1
-INDICES_GENERALIZING_SV = {
-    "SII",
-    "FSI",
-    "FSII",
-    "STI",
-    "STII",
-    "kADD-SHAP",
-    "JointSV",
-    "SGV",
-}
+from .indices import ALL_AVAILABLE_INDICES, index_generalizes_bv, index_generalizes_sv
+from .utils.sets import count_interactions, generate_interaction_lookup, powerset
 
 
 @dataclass
@@ -49,8 +23,8 @@ class InteractionValues:
         index: The interaction index estimated. Available indices are 'SII', 'kSII', 'STII', and
             'FSII'.
         max_order: The order of the approximation.
-        min_order: The minimum order of the approximation.
         n_players: The number of players.
+        min_order: The minimum order of the approximation. Defaults to 0.
         interaction_lookup: A dictionary that maps interactions to their index in the values
             vector. If `interaction_lookup` is not provided, it is computed from the `n_players`,
             `min_order`, and `max_order` parameters. Defaults to `None`.
@@ -65,30 +39,28 @@ class InteractionValues:
     values: np.ndarray[float]
     index: str
     max_order: int
-    min_order: int
     n_players: int
+    min_order: int
+    baseline_value: float
     interaction_lookup: dict[tuple[int, ...], int] = None
     estimated: bool = True
     estimation_budget: Optional[int] = None
-    baseline_value: Optional[float] = None
 
     def __post_init__(self) -> None:
         """Checks if the index is valid."""
-        if self.index not in AVAILABLE_INDICES:
-            raise ValueError(
-                f"Index {self.index} is not valid. " f"Available indices are {AVAILABLE_INDICES}."
+        if self.index not in ALL_AVAILABLE_INDICES:
+            warn(
+                UserWarning(
+                    f"Index {self.index} is not a valid index as defined in "
+                    f"{ALL_AVAILABLE_INDICES}. This might lead to unexpected behavior."
+                )
             )
 
-        # set BV if order is 1
-        if self.index == "BII" and self.max_order == 1:
-            self.index = "BV"
-
-        # set index to SV if order is 1 and index generalizes SV
+        # set BV or SV if max_order is 1
         if self.max_order == 1:
-            index_to_check = self.index
-            if index_to_check.startswith("k-"):  # remove potential aggregation of index 'k-'
-                index_to_check = index_to_check[2:]
-            if index_to_check in INDICES_GENERALIZING_SV:
+            if index_generalizes_bv(self.index):
+                self.index = "BV"
+            if index_generalizes_sv(self.index):
                 self.index = "SV"
 
         # populate interaction_lookup and reverse_interaction_lookup
@@ -97,12 +69,8 @@ class InteractionValues:
                 self.n_players, self.min_order, self.max_order
             )
 
-        # set baseline value if not provided
-        if self.baseline_value is None:
-            try:
-                self.baseline_value = float(self.values[self.interaction_lookup[tuple()]])
-            except KeyError:
-                raise ValueError("Baseline value is not provided and cannot be computed.")
+        if not isinstance(self.baseline_value, (int, float)):
+            raise TypeError("Baseline value must be provided as a number.")
 
     @property
     def dict_values(self) -> dict[tuple[int, ...], float]:
@@ -130,25 +98,97 @@ class InteractionValues:
         self.values = new_values
         self.interaction_lookup = new_interaction_lookup
 
+    def get_top_k_interactions(self, k: int) -> "InteractionValues":
+        """Returns the top k interactions.
+
+        Args:
+            k: The number of top interactions to return.
+
+        Returns:
+            The top k interactions as an InteractionValues object.
+        """
+        top_k_indices = np.argsort(np.abs(self.values))[::-1][:k]
+        new_values = np.zeros(k, dtype=float)
+        new_interaction_lookup = {}
+        for interaction_pos, interaction in enumerate(self.interaction_lookup):
+            if interaction_pos in top_k_indices:
+                new_position = len(new_interaction_lookup)
+                new_values[new_position] = self[interaction_pos]
+                new_interaction_lookup[interaction] = new_position
+        return InteractionValues(
+            values=new_values,
+            index=self.index,
+            max_order=self.max_order,
+            n_players=self.n_players,
+            min_order=self.min_order,
+            interaction_lookup=new_interaction_lookup,
+            estimated=self.estimated,
+            estimation_budget=self.estimation_budget,
+            baseline_value=self.baseline_value,
+        )
+
+    def get_top_k(
+        self, k: int, as_interaction_values: bool = True
+    ) -> Union["InteractionValues", tuple[dict, list[tuple]]]:
+        """Returns the top k interactions.
+
+        Args:
+            k: The number of top interactions to return.
+            as_interaction_values: Whether to return the top k interactions as an InteractionValues
+                object. Defaults to `False`.
+
+        Returns:
+            The top k interactions as a dictionary and a sorted list of tuples.
+
+        Examples:
+            >>> interaction_values = InteractionValues(
+            ...     values=np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6]),
+            ...     interaction_lookup={(0,): 0, (1,): 1, (2,): 2, (0, 1): 3, (0, 2): 4, (1, 2): 5},
+            ...     index="SII",
+            ...     max_order=2,
+            ...     n_players=3,
+            ...     min_order=1,
+            ...     baseline_value=0.0,
+            ... )
+            >>> top_k_interactions, sorted_top_k_interactions = interaction_values.get_top_k(2, False)
+            >>> top_k_interactions
+            {(0, 2): 0.5, (1, 0): 0.6}
+            >>> sorted_top_k_interactions
+            [((1, 0), 0.6), ((0, 2), 0.5)]
+        """
+        if as_interaction_values:
+            return self.get_top_k_interactions(k)
+        top_k_indices = np.argsort(np.abs(self.values))[::-1][:k]
+        top_k_interactions = {}
+        for interaction, index in self.interaction_lookup.items():
+            if index in top_k_indices:
+                top_k_interactions[interaction] = self.values[index]
+        sorted_top_k_interactions = []
+        for interaction in sorted(top_k_interactions, key=top_k_interactions.get, reverse=True):
+            sorted_top_k_interactions.append((interaction, top_k_interactions[interaction]))
+        return top_k_interactions, sorted_top_k_interactions
+
     def __repr__(self) -> str:
         """Returns the representation of the InteractionValues object."""
         representation = "InteractionValues(\n"
         representation += (
             f"    index={self.index}, max_order={self.max_order}, min_order={self.min_order}"
             f", estimated={self.estimated}, estimation_budget={self.estimation_budget},\n"
-            f"    n_players={self.n_players}, baseline_value={self.baseline_value},\n"
-        ) + "    values={\n"
-        for interaction in self.interaction_lookup:
-            representation += f"        {interaction}: "
-            interaction_value = str(round(self[interaction], 4))
-            representation += f"{interaction_value},\n"
-        representation = representation[:-2]  # remove last "," and add closing bracket
-        representation += "\n    }\n)"
+            f"    n_players={self.n_players}, baseline_value={self.baseline_value}\n)"
+        )
         return representation
 
     def __str__(self) -> str:
         """Returns the string representation of the InteractionValues object."""
-        return self.__repr__()
+        representation = self.__repr__()
+        representation = representation[:-2]  # remove the last "\n)" and add values
+        _, sorted_top_10_interactions = self.get_top_k(10, False)  # get top 10 interactions
+        # add values to string representation
+        representation += ",\n    Top 10 interactions:\n"
+        for interaction, value in sorted_top_10_interactions:
+            representation += f"        {interaction}: {value}\n"
+        representation += ")"
+        return representation
 
     def __len__(self) -> int:
         """Returns the length of the InteractionValues object."""
@@ -377,3 +417,120 @@ class InteractionValues:
                 values[perm] = self[interaction]
 
         return values
+
+    def get_n_order(self, order: int) -> "InteractionValues":
+        """Returns the interaction values of a specific order.
+
+        Args:
+            order: The order of the interactions to return.
+
+        Returns:
+            The interaction values of the specified order.
+        """
+        new_values = np.zeros(
+            count_interactions(n=self.n_players, max_order=order, min_order=order), dtype=float
+        )
+        new_interaction_lookup = {}
+        for i, interaction in enumerate(
+            powerset(range(self.n_players), min_size=order, max_size=order)
+        ):
+            new_values[i] = self[interaction]
+            new_interaction_lookup[interaction] = len(new_interaction_lookup)
+
+        return InteractionValues(
+            values=new_values,
+            index=self.index,
+            max_order=order,
+            n_players=self.n_players,
+            min_order=order,
+            interaction_lookup=new_interaction_lookup,
+            estimated=self.estimated,
+            estimation_budget=self.estimation_budget,
+            baseline_value=self.baseline_value,
+        )
+
+    def save(self, path: str) -> None:
+        """Save the InteractionValues object to a file.
+
+        Args:
+            path: The path to save the InteractionValues object to.
+        """
+        # check if the directory exists
+        directory = os.path.dirname(path)
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory)
+            except FileNotFoundError:  # no directory
+                pass
+
+        with open(path, "wb") as file:
+            pickle.dump(self, file)
+
+    @staticmethod
+    def load_interaction_values(path: str) -> "InteractionValues":
+        """Load an InteractionValues object from a file.
+
+        Args:
+            path: The path to load the InteractionValues object from.
+
+        Returns:
+            The loaded InteractionValues object.
+        """
+        with open(path, "rb") as file:
+            return pickle.load(file)
+
+    @classmethod
+    def load(cls, path: str) -> "InteractionValues":
+        """Load an InteractionValues object from a file.
+
+        Args:
+            path: The path to load the InteractionValues object from.
+
+        Returns:
+            The loaded InteractionValues object.
+        """
+        with open(path, "rb") as file:
+            return pickle.load(file)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "InteractionValues":
+        """Create an InteractionValues object from a dictionary.
+
+        Args:
+            data: The dictionary containing the data to create the InteractionValues object from.
+
+        Returns:
+            The InteractionValues object created from the dictionary.
+        """
+        return cls(
+            values=data["values"],
+            index=data["index"],
+            max_order=data["max_order"],
+            n_players=data["n_players"],
+            min_order=data["min_order"],
+            interaction_lookup=data["interaction_lookup"],
+            estimated=data["estimated"],
+            estimation_budget=data["estimation_budget"],
+            baseline_value=data["baseline_value"],
+        )
+
+    def to_dict(self) -> dict:
+        """Convert the InteractionValues object to a dictionary.
+
+        Returns:
+            The InteractionValues object as a dictionary.
+        """
+        return {
+            "values": self.values,
+            "index": self.index,
+            "max_order": self.max_order,
+            "n_players": self.n_players,
+            "min_order": self.min_order,
+            "interaction_lookup": self.interaction_lookup,
+            "estimated": self.estimated,
+            "estimation_budget": self.estimation_budget,
+            "baseline_value": self.baseline_value,
+        }
+
+
+# Path: shapiq/interaction_values.py

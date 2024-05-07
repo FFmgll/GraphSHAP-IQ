@@ -8,8 +8,6 @@ import numpy as np
 from shapiq.approximator._base import Approximator
 from shapiq.interaction_values import InteractionValues
 
-AVAILABLE_INDICES_SHAPIQ = {"SV"}
-
 
 class OwenSamplingSV(Approximator):
     """The Owen Sampling algorithm estimates the Shapley values (SV) by sampling random marginal contributions
@@ -21,33 +19,23 @@ class OwenSamplingSV(Approximator):
     Args:
         n: The number of players.
         random_state: The random state to use for the permutation sampling. Defaults to `None`.
-        M: Number of anchor points at which the integral is to be palpated.
+        interpolation_points: Number of anchor points at which the integral is to be palpated.
 
     Attributes:
         n: The number of players.
-        N: The set of players (starting from 0 to n - 1).
-        N_arr: The array of players (starting from 0 to n).
+        _grand_coalition_array: The array of players (starting from 0 to n).
         iteration_cost: The cost of a single iteration of the approximator.
-
-    Examples:
-        >>> from shapiq.approximator import StratifiedSamplingSV
-        >>> from shapiq.games import DummyGame
-        >>> game = DummyGame(5, (1, 2))
-        >>> approximator = OwenSamplingSV(game.n_players, 10, random_state=42)
-        >>> sv_estimates = approximator.approximate(100, game)
-        >>> print(sv_estimates.values)
-        [0.2 0.7 0.7 0.2 0.2]
     """
 
     def __init__(
         self,
         n: int,
-        M: int,
+        interpolation_points: int = 10,
         random_state: Optional[int] = None,
     ) -> None:
         super().__init__(n, max_order=1, index="SV", top_order=False, random_state=random_state)
-        self.iteration_cost: int = 2 * n * M
-        self.M = M
+        self.iteration_cost: int = 2 * n * interpolation_points
+        self.interpolation_points = interpolation_points
 
     def approximate(
         self, budget: int, game: Callable[[np.ndarray], np.ndarray], batch_size: Optional[int] = 5
@@ -66,14 +54,17 @@ class OwenSamplingSV(Approximator):
         used_budget = 0
         batch_size = 1 if batch_size is None else batch_size
 
+        empty_value = float(game(np.zeros(self.n, dtype=bool)))
+        used_budget += 1
+
         # compute the number of iterations and size of the last batch (can be smaller than original)
         n_iterations, last_batch_size = self._calc_iteration_count(
-            budget, batch_size, self.iteration_cost
+            budget - used_budget, batch_size, self.iteration_cost
         )
 
-        anchors = self.get_anchor_points(self.M)
-        estimates = np.zeros((self.n, self.M), dtype=float)
-        counts = np.zeros((self.n, self.M), dtype=int)
+        anchors = self.get_anchor_points(self.interpolation_points)
+        estimates = np.zeros((self.n, self.interpolation_points), dtype=float)
+        counts = np.zeros((self.n, self.interpolation_points), dtype=int)
 
         # main sampling loop going through all anchor points of all players with each segment
         for iteration in range(1, n_iterations + 1):
@@ -109,7 +100,7 @@ class OwenSamplingSV(Approximator):
             # iterate through each segment
             for segment in range(n_segments):
                 for player in range(self.n):
-                    for m in range(self.M):
+                    for m in range(self.interpolation_points):
                         # calculate the marginal contribution and update the anchor estimate
                         marginal_con = (
                             game_values[coalition_index + 1] - game_values[coalition_index]
@@ -123,7 +114,17 @@ class OwenSamplingSV(Approximator):
         result = np.sum(estimates, axis=1)
         non_zeros = np.count_nonzero(counts, axis=1)
         result = np.divide(result, non_zeros, out=result, where=non_zeros != 0)
-        return self._finalize_result(result, budget=used_budget, estimated=True)
+
+        # create vector of interaction values with correct length and order
+        result_to_finalize = self._init_result(dtype=float)
+        result_to_finalize[self._interaction_lookup[()]] = empty_value
+        for player in range(self.n):
+            idx = self._interaction_lookup[(player,)]
+            result_to_finalize[idx] = result[player]
+
+        return self._finalize_result(
+            result_to_finalize, baseline_value=empty_value, budget=used_budget, estimated=True
+        )
 
     def get_anchor_points(self, m: int):
         if m <= 0:

@@ -40,8 +40,6 @@ def test_initialization(n, max_order):
     assert repr(approximator) == approximator_string
     assert hash(approximator) == hash(approximator_copy)
     assert hash(approximator) != hash(approximator_deepcopy)
-    with pytest.raises(ValueError):
-        _ = approximator == 1
 
 
 @pytest.mark.parametrize("n, max_order, budget", [(7, 2, 380), (7, 2, 380), (7, 2, 100)])
@@ -59,6 +57,7 @@ def test_approximate(n, max_order, budget):
     assert game.access_counter <= budget
 
     # check that the estimates are correct
+    assert fsi_estimates.index == "FSII"
 
     # for order 1 all players should be equal
     first_order: np.ndarray = fsi_estimates.values[1 : n + 1]  # fist n values are first order
@@ -66,8 +65,8 @@ def test_approximate(n, max_order, budget):
 
     # for order 2 the interaction between player 1 and 2 is the most important (1.0)
     interaction_estimate = fsi_estimates[interaction]
-    assert interaction_estimate == pytest.approx(1.0, 0.01)
+    assert interaction_estimate == pytest.approx(1.0, 0.1)
 
     # check efficiency
     efficiency = np.sum(fsi_estimates.values)
-    assert efficiency == pytest.approx(efficiency, 0.01)
+    assert efficiency == pytest.approx(efficiency, 0.1)

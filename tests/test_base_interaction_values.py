@@ -1,6 +1,7 @@
 """This test module contains all tests regarding the InteractionValues dataclass."""
 
 from copy import copy, deepcopy
+import os
 
 import numpy as np
 import pytest
@@ -70,6 +71,7 @@ def test_initialization(index, n, min_order, max_order, estimation_budget, estim
     # check the string representations (not semantics)
     assert isinstance(str(interaction_values), str)
     assert isinstance(repr(interaction_values), str)
+    assert repr(interaction_values) != str(interaction_values)
 
     # check equality
     interaction_values_copy = copy(interaction_values)
@@ -108,19 +110,6 @@ def test_initialization(index, n, min_order, max_order, estimation_budget, estim
     assert interaction_values.baseline_value == baseline_value
     # expected behavior of interactions is 0 for emptyset
     assert interaction_values[()] == 0
-
-    with pytest.raises(ValueError):
-        InteractionValues(
-            values=values,
-            index=index,
-            n_players=n,
-            min_order=min_order,
-            max_order=max_order,
-            interaction_lookup=interaction_lookup,
-            estimation_budget=estimation_budget,
-            estimated=estimated,
-            baseline_value=None,
-        )
 
 
 def test_add():
@@ -386,3 +375,144 @@ def test_sparsify():
     assert interaction_values[(4,)] == values[4]  # not removed
     assert interaction_values[(6,)] == values[6]  # not removed
     assert interaction_values[(0,)] == values[0]  # not removed
+
+
+def test_top_k():
+    """Tests the top-k selection of the InteractionValues dataclass."""
+
+    # parameters
+    values = np.array([1, 2, 3, 4, 5, 6, 8, 7, 9, 10])
+    n_players = 10
+    interaction_lookup = {(i,): i for i in range(len(values))}
+    original_length = len(values)
+
+    # create InteractionValues object
+    interaction_values = InteractionValues(
+        values=values,
+        index="SV",
+        n_players=n_players,
+        min_order=1,
+        max_order=1,
+        interaction_lookup=interaction_lookup,
+        baseline_value=0.0,
+    )
+
+    # test before top-k
+    assert len(interaction_values.values) == original_length
+    assert np.all(interaction_values.values == values)
+    for i in range(n_players):
+        assert interaction_values[(i,)] == values[i]
+
+    print(interaction_values)
+
+    # top-k
+    k = 3
+    top_k_interaction, sorted_top_k_interactions = interaction_values.get_top_k(
+        k=k, as_interaction_values=False
+    )
+
+    assert len(top_k_interaction) == len(sorted_top_k_interactions) == k
+    assert sorted_top_k_interactions[0] == ((9,), 10)
+    assert sorted_top_k_interactions[1] == ((8,), 9)
+    assert sorted_top_k_interactions[2] == ((6,), 8)
+
+    assert (9,) in top_k_interaction
+    assert (8,) in top_k_interaction
+    assert (6,) in top_k_interaction
+
+    # test with k > len(values)
+    k = 20
+    top_k_interaction, sorted_top_k_interactions = interaction_values.get_top_k(
+        k=k, as_interaction_values=False
+    )
+    assert len(top_k_interaction) == len(sorted_top_k_interactions) == original_length
+
+    # test with k = 0
+    k = 0
+    top_k_interaction, sorted_top_k_interactions = interaction_values.get_top_k(
+        k=k, as_interaction_values=False
+    )
+    assert len(top_k_interaction) == len(sorted_top_k_interactions) == 0
+
+
+def test_from_dict():
+    """Tests the from_dict method of the InteractionValues dataclass."""
+
+    # parameters
+    values = np.array([1, 2, 3, 4, 5, 6, 8, 7, 9, 10])
+    n_players = 10
+    interaction_lookup = {(i,): i for i in range(len(values))}
+
+    # create InteractionValues object
+    interaction_values = InteractionValues(
+        values=values,
+        index="SV",
+        n_players=n_players,
+        min_order=1,
+        max_order=1,
+        interaction_lookup=interaction_lookup,
+        baseline_value=0.0,
+    )
+
+    # create dict
+    interaction_values_dict = interaction_values.to_dict()
+    assert np.equal(interaction_values_dict["values"], values).all()
+    assert interaction_values_dict["index"] == "SV"
+    assert interaction_values_dict["n_players"] == n_players
+    assert interaction_values_dict["min_order"] == 1
+    assert interaction_values_dict["max_order"] == 1
+    assert interaction_values_dict["interaction_lookup"] == interaction_lookup
+    assert interaction_values_dict["baseline_value"] == 0.0
+
+    # create InteractionValues object from dict
+    interaction_values_from_dict = InteractionValues.from_dict(interaction_values_dict)
+
+    assert interaction_values_from_dict == interaction_values
+
+
+def test_save_and_load():
+    """Tests the save and load functions of the InteractionValues dataclass."""
+
+    # parameters
+    values = np.array([1, 2, 3, 4, 5, 6, 8, 7, 9, 10])
+    n_players = 10
+    interaction_lookup = {(i,): i for i in range(len(values))}
+    original_length = len(values)
+
+    # create InteractionValues object
+    interaction_values = InteractionValues(
+        values=values,
+        index="SV",
+        n_players=n_players,
+        min_order=1,
+        max_order=1,
+        interaction_lookup=interaction_lookup,
+        baseline_value=0.0,
+    )
+
+    # save and load
+    path = "test_interaction_values.pkl"
+    interaction_values.save(path)
+
+    # see if file exists
+    assert os.path.exists(path)
+
+    # test cls load
+    loaded_interaction_values = InteractionValues.load(path)
+    assert len(loaded_interaction_values.values) == original_length
+    assert np.all(loaded_interaction_values.values == values)
+    for i in range(n_players):
+        assert loaded_interaction_values[(i,)] == values[i]
+
+    # test function load
+    loaded_interaction_values = InteractionValues.load_interaction_values(path)
+    assert len(loaded_interaction_values.values) == original_length
+    assert np.all(loaded_interaction_values.values == values)
+    for i in range(n_players):
+        assert loaded_interaction_values[(i,)] == values[i]
+
+    # remove file
+    os.remove(path)
+
+    # test if file is removed
+    assert not os.path.exists(path)

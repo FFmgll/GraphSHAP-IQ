@@ -4,8 +4,8 @@ from typing import Callable
 import numpy as np
 from scipy.special import bernoulli, binom
 
-from shapiq.utils import powerset
-from shapiq.interaction_values import InteractionValues
+from .interaction_values import InteractionValues
+from .utils.sets import powerset
 
 ALL_AVAILABLE_CONCEPTS: dict[str, str] = {
     # Base Interactions
@@ -34,9 +34,11 @@ class MoebiusConverter:
         n_interactions: A pre-computed array containing the number of interactions up to the size of the index, e.g. n_interactions[4] is the number of interactions up to size 4.
     """
 
-    def __init__(self, moebius_coefficients: InteractionValues):
+    def __init__(self, N: set, moebius_coefficients: InteractionValues):
+        self.N = N
+        self.n = len(N)
         self.moebius_coefficients: InteractionValues = moebius_coefficients
-        self.n = self.moebius_coefficients.n_players
+        self.n_interactions = self._get_n_interactions()
         self._computed: dict = {}
         # setup callable mapping from index to computation
         self._index_mapping: dict[str, Callable[[], InteractionValues]] = {
@@ -77,6 +79,20 @@ class MoebiusConverter:
         else:
             raise ValueError(f"Index {index} not supported.")
 
+    def _get_n_interactions(self):
+        """Pre-computes an array that contains the number of interactions up to the size of the index.
+
+        Args:
+
+        Returns:
+            A numpy array containing the number of interactions up to the size of the index, e.g. n_interactions[4] is the number of interactions up to size 4.
+        """
+        n_interactions = np.zeros(self.n + 1, dtype=int)
+        n_interaction = 0
+        for i in range(self.n + 1):
+            n_interaction += int(binom(self.n, i))
+            n_interactions[i] = n_interaction
+        return n_interactions
 
     def base_aggregation(self, base_interactions: InteractionValues, order: int):
         """Transform Base Interactions into Interactions satisfying efficiency, e.g. SII to k-SII
@@ -88,45 +104,10 @@ class MoebiusConverter:
         Returns:
             InteractionValues object containing transformed base_interactions
         """
-        transformed_dict = {}
-        # Lookup Bernoulli numbers
-        bernoulli_numbers = bernoulli(order)
-        # Initialize emptyset baseline value
-        transformed_dict[tuple()] = base_interactions.baseline_value
+        from .aggregation import aggregate_interaction_values
 
-        for base_interaction, base_interaction_pos in base_interactions.interaction_lookup.items():
-            base_interaction_value = base_interactions.values[base_interaction_pos]
-            for interaction in powerset(base_interaction, min_size=1,max_size=order):
-                if interaction in transformed_dict:
-                    transformed_dict[interaction] += base_interaction_value*bernoulli_numbers[len(base_interaction) - len(interaction)]
-                else:
-                    transformed_dict[interaction] = base_interaction_value*bernoulli_numbers[len(base_interaction) - len(interaction)]
-
-
-        transformed_values = np.zeros(len(transformed_dict))
-        transformed_lookup = {}
-
-        for interaction_pos, (interaction, interaction_value) in enumerate(transformed_dict.items()):
-            transformed_lookup[interaction] = interaction_pos
-            transformed_values[interaction_pos] = interaction_value
-
-
-        transformed_index = base_interactions.index
-        if transformed_index not in ["SV", "BV"]:
-            transformed_index = "k-" + transformed_index
-
-        transformed_interactions = InteractionValues(
-            values=transformed_values,
-            index=transformed_index,
-            min_order=0,
-            max_order=order,
-            interaction_lookup=transformed_lookup,
-            n_players=base_interactions.n_players,
-        )
-
-        self._computed[transformed_index] = transformed_interactions
-
-        return copy.copy(transformed_interactions)
+        aggregated_interactions = aggregate_interaction_values(base_interactions, order)
+        return copy.copy(aggregated_interactions)
 
     def get_moebius_distribution_weight(
         self, moebius_size: int, interaction_size: int, order: int, index: str
@@ -202,13 +183,12 @@ class MoebiusConverter:
         base_interaction_dict = {}
         # Pre-compute weights
         distribution_weights = np.zeros((self.n + 1, order + 1))
-
         for moebius_size in range(1, self.n + 1):
             for interaction_size in range(1, min(order, moebius_size) + 1):
-                distribution_weights[
-                    moebius_size, interaction_size
-                ] = self.get_moebius_distribution_weight(
-                    moebius_size, interaction_size, order, index
+                distribution_weights[moebius_size, interaction_size] = (
+                    self.get_moebius_distribution_weight(
+                        moebius_size, interaction_size, order, index
+                    )
                 )
 
         for moebius_set, moebius_val in zip(
@@ -217,7 +197,7 @@ class MoebiusConverter:
         ):
             moebius_size = len(moebius_set)
             # For higher-order Möbius sets (size > order) distribute the value among all contained interactions
-            for interaction in powerset(moebius_set, min_size=1, max_size=order):
+            for interaction in powerset(moebius_set, min_size=0, max_size=order):
                 val_distributed = distribution_weights[moebius_size, len(interaction)]
                 # Check if Möbius value is distributed onto this interaction
                 if interaction in base_interaction_dict:
@@ -225,14 +205,11 @@ class MoebiusConverter:
                 else:
                     base_interaction_dict[interaction] = moebius_val * val_distributed
 
-        if len(np.shape(moebius_val)) > 0:
-            base_interaction_values = np.zeros((len(base_interaction_dict),np.shape(moebius_val)[-1]))
-        else:
-            base_interaction_values = np.zeros(len(base_interaction_dict))
+        base_interaction_values = np.zeros(len(base_interaction_dict))
         base_interaction_lookup = {}
 
-        for i, (interaction, interaction_value) in enumerate(base_interaction_dict.items()):
-            base_interaction_values[i] = interaction_value
+        for i, interaction in enumerate(base_interaction_dict):
+            base_interaction_values[i] = base_interaction_dict[interaction]
             base_interaction_lookup[interaction] = i
 
         base_interactions = InteractionValues(
@@ -267,10 +244,10 @@ class MoebiusConverter:
 
         for moebius_size in range(1, self.n + 1):
             for interaction_size in range(1, min(order, moebius_size) + 1):
-                distribution_weights[
-                    moebius_size, interaction_size
-                ] = self.get_moebius_distribution_weight(
-                    moebius_size, interaction_size, order, index
+                distribution_weights[moebius_size, interaction_size] = (
+                    self.get_moebius_distribution_weight(
+                        moebius_size, interaction_size, order, index
+                    )
                 )
 
         for moebius_set, moebius_val in zip(
@@ -309,6 +286,7 @@ class MoebiusConverter:
             min_order=0,
             max_order=order,
             n_players=self.n,
+            baseline_value=self.moebius_coefficients[tuple()],
         )
         return stii
 
@@ -331,10 +309,10 @@ class MoebiusConverter:
         distribution_weights = np.zeros((self.n + 1, order + 1))
         for moebius_size in range(1, self.n + 1):
             for interaction_size in range(1, min(order, moebius_size) + 1):
-                distribution_weights[
-                    moebius_size, interaction_size
-                ] = self.get_moebius_distribution_weight(
-                    moebius_size, interaction_size, order, index
+                distribution_weights[moebius_size, interaction_size] = (
+                    self.get_moebius_distribution_weight(
+                        moebius_size, interaction_size, order, index
+                    )
                 )
 
         for moebius_set, moebius_val in zip(
@@ -366,6 +344,7 @@ class MoebiusConverter:
             min_order=0,
             max_order=order,
             n_players=self.n,
+            baseline_value=self.moebius_coefficients[tuple()],
         )
         return fsii
 
