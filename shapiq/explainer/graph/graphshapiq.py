@@ -6,7 +6,7 @@ import numpy as np
 import copy
 from shapiq.utils import powerset
 from shapiq.interaction_values import InteractionValues
-from shapiq.approximator.moebius_converter import MoebiusConverter
+from shapiq.moebius_converter import MoebiusConverter
 
 
 class GraphSHAPIQ:
