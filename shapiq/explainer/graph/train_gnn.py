@@ -15,23 +15,6 @@ from shapiq.explainer.graph.graph_models import GCN, GIN
 from shapiq.explainer.graph.graph_datasets import CustomTUDataset
 
 
-def get_MUTAG_dataset(device):
-    # Load dataset
-    dataset = MUTAG(root="", seed=1234, split_sizes=(0.8, 0.1, 0.1))
-    dataset.graphs.data.to(device)
-    num_nodes_features = dataset.graphs.num_node_features
-    num_classes = dataset.graphs.num_classes
-
-    train_loader = DataLoader(dataset[dataset.train_index], batch_size=4, shuffle=True)
-    val_loader = DataLoader(
-        dataset[dataset.val_index], batch_size=len(dataset.val_index), shuffle=False
-    )
-    test_loader = DataLoader(
-        dataset[dataset.test_index], batch_size=len(dataset.test_index), shuffle=False
-    )
-    return train_loader, val_loader, test_loader, num_nodes_features, num_classes
-
-
 def get_TU_dataset(device,name):
     # Load dataset
     dataset = CustomTUDataset(root="shapiq/explainer/graph/graph_datasets", name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))

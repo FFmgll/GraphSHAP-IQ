@@ -30,29 +30,6 @@ from shapiq.approximator import (
 )
 
 
-def get_MUTAG_instances():
-    # Load dataset
-    dataset = MUTAG(
-        root="shapiq/explainer/graph/graph_datasets", seed=1234, split_sizes=(0.8, 0.1, 0.1)
-    )
-    dataset.graphs.data.to(device)
-    loader = DataLoader(dataset, shuffle=False)
-
-    # Get the accurate samples on the test set (we explain only true positives for now)
-    correct_samples = []
-    # for data in test_loader:  # Only one loop (#num_batches = 1)
-    # out = model(data.x, data.edge_index, data.batch)
-    # pred = out.argmax(dim=1)
-
-    # Get all samples with < 15 nodes from test set
-    all_samples_to_explain = []
-    for data in loader:
-        for i in range(data.num_graphs):
-            # if data[i].num_nodes <= 12:
-            all_samples_to_explain.append(data[i])
-
-    return all_samples_to_explain
-
 
 def get_TU_instances(name):
     dataset = CustomTUDataset(
