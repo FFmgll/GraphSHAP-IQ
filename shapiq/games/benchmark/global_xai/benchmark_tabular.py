@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from .._setup import BenchmarkSetup
+from .._setup import GameBenchmarkSetup
 from .base import GlobalExplanation
 
 
@@ -18,10 +18,10 @@ class AdultCensus(GlobalExplanation):
             Defaults to 10.
         n_samples_empty: The number of samples to use for the empty subset estimation. Defaults to
             200.
-        random_state: The random state to use for the imputer. Defaults to `None`.
         normalize: A flag to normalize the game values. If `True`, then the game values are
             normalized and centered to be zero for the empty set of features. Defaults to `True`.
         verbose: A flag to print the validation score of the model if trained. Defaults to `True`.
+        random_state: The random state to use for the imputer. Defaults to 42.
     """
 
     def __init__(
@@ -31,16 +31,17 @@ class AdultCensus(GlobalExplanation):
         loss_function: str = "accuracy_score",
         n_samples_eval: int = 10,
         n_samples_empty: int = 200,
-        random_state: Optional[int] = None,
         normalize: bool = True,
         verbose: bool = True,
+        random_state: Optional[int] = 42,
     ) -> None:
 
-        setup = BenchmarkSetup(
+        setup = GameBenchmarkSetup(
             dataset_name="adult_census",
             model_name=model_name,
             loss_function=loss_function,
             verbose=verbose,
+            random_state=random_state
         )
 
         # call the super constructor
@@ -67,10 +68,10 @@ class BikeSharing(GlobalExplanation):
             Defaults to 10.
         n_samples_empty: The number of samples to use for the empty subset estimation. Defaults to
             200.
-        random_state: The random state to use for the imputer. Defaults to `None`.
         normalize: A flag to normalize the game values. If `True`, then the game values are
             normalized and centered to be zero for the empty set of features. Defaults to `True`.
         verbose: A flag to print the validation score of the model if trained. Defaults to `True`.
+        random_state: The random state to use for the imputer. Defaults to 42.
     """
 
     def __init__(
@@ -80,16 +81,17 @@ class BikeSharing(GlobalExplanation):
         loss_function: str = "mean_absolute_error",
         n_samples_eval: int = 10,
         n_samples_empty: int = 200,
-        random_state: Optional[int] = None,
         normalize: bool = True,
         verbose: bool = True,
+        random_state: Optional[int] = 42,
     ) -> None:
 
-        setup = BenchmarkSetup(
+        setup = GameBenchmarkSetup(
             dataset_name="bike_sharing",
             model_name=model_name,
             loss_function=loss_function,
             verbose=verbose,
+            random_state=random_state
         )
 
         # call the super constructor
@@ -129,16 +131,17 @@ class CaliforniaHousing(GlobalExplanation):
         loss_function: str = "mean_absolute_error",
         n_samples_eval: int = 10,
         n_samples_empty: int = 200,
-        random_state: Optional[int] = None,
         normalize: bool = True,
         verbose: bool = True,
+        random_state: Optional[int] = 42,
     ) -> None:
 
-        setup = BenchmarkSetup(
+        setup = GameBenchmarkSetup(
             dataset_name="california_housing",
             model_name=model_name,
             loss_function=loss_function,
             verbose=verbose,
+            random_state=random_state
         )
 
         # call the super constructor

@@ -7,6 +7,8 @@ import numpy as np
 from shapiq.games.base import Game
 from shapiq.games.imputer import MarginalImputer
 
+from .._config import get_x_explain
+
 
 class LocalExplanation(Game):
     """The LocalExplanation game class.
@@ -25,13 +27,14 @@ class LocalExplanation(Game):
         model: The model to explain as a callable function expecting data points as input and
             returning the model's predictions. The input should be a 2d matrix of shape
             (n_samples, n_features) and the output a 1d matrix of shape (n_samples).
-        random_state: The random state to use for the imputer. Defaults to `None`.
         normalize: A flag to normalize the game values. If `True`, then the game values are
             normalized and centered to be zero for the empty set of features. Defaults to `True`.
+        random_state: The random state to use for the imputer. Defaults to 42.
 
     Attributes:
         x: The data point to explain.
-        empty_prediction: The model's prediction on an empty data point (all features missing).
+        empty_prediction_value: The output of the model on an empty data point (all features
+            missing).
 
     Examples:
         >>> from sklearn.tree import DecisionTreeRegressor
@@ -66,12 +69,12 @@ class LocalExplanation(Game):
         model: Callable[[np.ndarray], np.ndarray],
         x: Union[np.ndarray, int] = None,
         imputer: Optional[MarginalImputer] = None,
-        random_state: Optional[int] = None,
         normalize: bool = True,
+        random_state: Optional[int] = 42,
     ) -> None:
 
         # get x_explain
-        self.x = x if x is not None else _get_x_explain(x, data)
+        self.x = get_x_explain(x, data)
 
         # init the imputer which serves as the workhorse of this Game
         self._imputer = imputer
@@ -84,13 +87,13 @@ class LocalExplanation(Game):
                 normalize=False,
             )
 
-        self.empty_prediction: float = self._imputer.empty_prediction
+        self.empty_prediction_value: float = self._imputer.empty_prediction
 
         # init the base game
         super().__init__(
             data.shape[1],
             normalize=normalize,
-            normalization_value=self._imputer.empty_prediction,
+            normalization_value=self.empty_prediction_value,
         )
 
     def value_function(self, coalitions: np.ndarray) -> np.ndarray:
@@ -103,22 +106,3 @@ class LocalExplanation(Game):
             The output of the model on feature subsets.
         """
         return self._imputer(coalitions)
-
-
-def _get_x_explain(x: Optional[Union[np.ndarray, int]], x_set: np.ndarray) -> np.ndarray:
-    """Returns the data point to explain given the input.
-
-    Args:
-        x: The data point to explain. Can be an index of the background data or a 1d matrix of shape
-            (n_features).
-        x_set: The data set to select the data point from. Should be a 2d matrix of shape
-            (n_samples, n_features).
-
-    Returns:
-        The data point to explain as a numpy array.
-    """
-    if x is None:
-        x = x_set[np.random.randint(0, x_set.shape[0])]
-    if isinstance(x, int):
-        x = x_set[x]
-    return x

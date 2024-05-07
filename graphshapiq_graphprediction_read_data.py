@@ -3,7 +3,7 @@ import glob
 import pandas as pd
 import numpy as np
 
-from shapiq.approximator.moebius_converter import MoebiusConverter
+from shapiq.moebius_converter import MoebiusConverter
 from shapiq.interaction_values import InteractionValues
 
 if __name__ == "__main__":
