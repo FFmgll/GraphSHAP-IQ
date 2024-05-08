@@ -1,13 +1,12 @@
 """ This module stores all model architectures for graph prediction tasks."""
 
+from collections import OrderedDict
+
 import torch
 import torch_geometric
-from torch.nn import Module, ReLU, Dropout, Identity
-from torch_geometric.nn import global_mean_pool
-from torch_geometric.nn import Sequential, Linear, JumpingKnowledge, GCNConv, GINConv
+from torch.nn import Dropout, Module, ReLU
+from torch_geometric.nn import GCNConv, GINConv, JumpingKnowledge, Linear, Sequential, global_mean_pool
 from torch_geometric.nn.norm import BatchNorm
-
-from collections import OrderedDict
 
 
 class GCN(Module):
@@ -18,7 +17,12 @@ class GCN(Module):
 		self.hidden_channels = hidden_channels
 		self.out_channels = out_channels
 		self.n_layers = n_layers
-		self.dropout = 0.5 if dropout else 0
+		self.node_bias = node_bias
+		self.graph_bias = graph_bias
+		self.dropout = dropout
+		self.p = 0.5 if dropout else 0
+		self.batch_norm = batch_norm
+		self.jumping_knowledge = jumping_knowledge
 
 		# Build model architecture
 		self.layers = OrderedDict()
@@ -26,15 +30,17 @@ class GCN(Module):
 		assert n_layers > 0, "Number of layers must be greater than 0"
 		for i in range(n_layers):
 			if i == 0:
-				self.layers[f"conv_{i}"] = (GCNConv(in_channels, hidden_channels, bias=node_bias), f"x, edge_index -> x{i}")
+				self.layers[f"conv_{i}"] = (
+				GCNConv(in_channels, hidden_channels, bias=node_bias), f"x, edge_index -> x{i}")
 			else:
-				self.layers[f"conv_{i}"] = (GCNConv(hidden_channels, hidden_channels, bias=node_bias), f"x{i-1}, edge_index -> x{i}")
+				self.layers[f"conv_{i}"] = (
+				GCNConv(hidden_channels, hidden_channels, bias=node_bias), f"x{i - 1}, edge_index -> x{i}")
 
 			if batch_norm:
 				self.layers[f"batch_norm_{i}"] = BatchNorm(hidden_channels)
 
 			self.layers[f"relu_{i}"] = ReLU()
-			self.layers[f"dropout_{i}"] = Dropout(p=self.dropout)
+			self.layers[f"dropout_{i}"] = Dropout(p=self.p)
 
 		if jumping_knowledge:
 			self.layers["concat"] = (lambda *x: [*x], f"{', '.join(self.intermediate_outputs)} -> x")
@@ -64,7 +70,6 @@ class GCN(Module):
 		return x
 
 
-
 class GIN(torch.nn.Module):
 	def __init__(self, in_channels, hidden_channels, out_channels, n_layers, node_bias=True, graph_bias=True):
 		super().__init__()
@@ -87,13 +92,15 @@ class GIN(torch.nn.Module):
 			else:
 				x = x.relu()
 
-		#x = F.dropout(x, p=0.5, training=self.training)
+		# x = F.dropout(x, p=0.5, training=self.training)
 		x = self.lin(x)
 
 		return x
 
+
 if __name__ == "__main__":
-	model = GCN(128, 64, 2, 3, node_bias=True, graph_bias=True, dropout=False, batch_norm=False, jumping_knowledge=False)
+	model = GCN(128, 64, 2, 3, node_bias=True, graph_bias=True, dropout=False, batch_norm=False,
+	            jumping_knowledge=False)
 	x = torch.randn(100, 128)
 	edge_index = torch.randint(100, size=(2, 20))
 	data = torch_geometric.data.Data(x=x, edge_index=edge_index)
