@@ -41,3 +41,17 @@ def get_explanation_instances(dataset_name):
         all_samples_to_explain = get_tu_instances(dataset_name)
         return all_samples_to_explain
     raise ValueError("Dataset not supported.")
+
+# Helper container with all the stored best configurations
+_best_hyperparameters = {
+        "GCN": {
+                "AIDS": {},
+                "DHFR": {},
+                "COX2": {},
+                "BZR": {},
+                "PROTEINS": {},
+                "ENZYMES": {},
+                "MUTAG": {},
+                "Mutagenicity": {"n_layers": {"3": {"hidden": 128}}},
+        },
+        }
