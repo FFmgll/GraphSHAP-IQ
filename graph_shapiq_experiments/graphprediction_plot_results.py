@@ -1,9 +1,14 @@
+"""This module can be used to plot approximation qualities."""
+
 import os
-import pandas as pd
 import glob
+
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
+
+
+SAVE_DIRECTORY = os.path.join("..", "results")
 
 
 def plot_approximation_quality(results, file_name, save_path_plots):
@@ -27,9 +32,10 @@ def plot_approximation_quality(results, file_name, save_path_plots):
 
     plt.twiny()
     for approximator in APPROXIMATORS:
-        plt.plot(results["budget_with_efficiency"]/2**n_players*100,
+        plt.plot(
+            results["budget_with_efficiency"] / 2**n_players * 100,
             np.log(results[approximator].values),
-            label=approximator
+            label=approximator,
         )
     plt.gca().set_ylim([-15, -5])
     plt.legend()
@@ -113,8 +119,7 @@ def plot_complexity(results, file_name, save_path_plots):
 
 
 if __name__ == "__main__":
-    save_directory = "results"
-    save_path_plots = os.path.join(save_directory, "plots")
+    save_path_plots = os.path.join(SAVE_DIRECTORY, "plots")
     complexity_results = {}
 
     GRAPH_PREDICTION_MODELS = [
@@ -132,7 +137,7 @@ if __name__ == "__main__":
     PLOT_COMPLEXITY = False
 
     if PLOT_COMPLEXITY:
-        complexity_directory = os.path.join(save_directory, "complexity_analysis")
+        complexity_directory = os.path.join(SAVE_DIRECTORY, "complexity_analysis")
         for file_path in glob.glob(os.path.join(complexity_directory, "*.csv")):
             results = pd.read_csv(file_path)
             file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
@@ -150,7 +155,7 @@ if __name__ == "__main__":
                 plot_complexity(complexity_results[dataset_name], dataset_name, save_path_plots)
 
     if PLOT_APPROXIMATION_NO_GT:
-        approximation_directory = os.path.join(save_directory, "approximation_without_gt")
+        approximation_directory = os.path.join(SAVE_DIRECTORY, "approximation_without_gt")
         for file_path in glob.glob(os.path.join(approximation_directory, "*.csv")):
             results = pd.read_csv(file_path)
             file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
@@ -158,7 +163,7 @@ if __name__ == "__main__":
                 plot_approximation_quality(results, file_name, save_path_plots)
 
     if PLOT_APPROXIMATION_WITH_GT:
-        approximation_directory = os.path.join(save_directory, "approximation_with_gt")
+        approximation_directory = os.path.join(SAVE_DIRECTORY, "approximation_with_gt")
         for file_path in glob.glob(os.path.join(approximation_directory, "*.csv")):
             results = pd.read_csv(file_path)
             file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv

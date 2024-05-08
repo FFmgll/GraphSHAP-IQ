@@ -1,15 +1,19 @@
-""" This script runs the GraphSHAP-IQ approximation on different datasets and graphs."""
+"""This script runs the GraphSHAP-IQ approximation on different datasets and graphs."""
 
-from shapiq.explainer.graph.train_gnn import train_gnn
-# import modules
+import os
+
 import torch
 import pandas as pd
 import numpy as np
-import os
 
+from shapiq.explainer.graph.train_gnn import train_gnn
 from shapiq.explainer.graph import GraphSHAPIQ
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.explainer.graph import _compute_baseline_value, get_explanation_instances
+
+
+SAVE_DIR = os.path.join("..", "results", "approximation")
+
 
 def save_results(model_id, data_id, game, sse, max_neighborhood_size, gshap_budget):
     """
@@ -43,7 +47,7 @@ def save_results(model_id, data_id, game, sse, max_neighborhood_size, gshap_budg
         ]
     )
 
-    save_path = os.path.join("results/approximation", save_name + ".csv")
+    save_path = os.path.join(SAVE_DIR, save_name + ".csv")
     final_results.to_csv(save_path)
 
 
@@ -96,9 +100,7 @@ def explain_instances(
                         order=explanation_order,
                         efficiency_routine=efficiency_mode,
                     )
-                    gshap_budget[
-                        max_interaction_size
-                    ] = gSHAP.last_n_model_calls
+                    gshap_budget[max_interaction_size] = gSHAP.last_n_model_calls
 
                 # Set ground-truth to
                 gt_interaction = gshap_interactions[gSHAP.max_size_neighbors]
@@ -113,21 +115,19 @@ def explain_instances(
                         (gt_moebius - gshap_moebius[max_interaction_size]).values ** 2
                     )
 
-                save_results(
-                    model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget
-                )
+                save_results(model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget)
                 counter += 1
         if counter >= 20:
             stop_processing = True
 
 
 if __name__ == "__main__":
-    DATASET_NAMES = [ "MUTAG","PROTEINS", "ENZYMES", "AIDS", "DHFR", "COX2", "BZR", "Mutagenicity"]
+    DATASET_NAMES = ["MUTAG", "PROTEINS", "ENZYMES", "AIDS", "DHFR", "COX2", "BZR", "Mutagenicity"]
     MODEL_TYPES = ["GCN"]
     N_LAYERS = [1, 2, 3, 4]
     NODE_BIASES = [True]  # [False,True]
     GRAPH_BIASES = [True]  # [False,True]
-    EFFICIENCY_MODES = [True] # [False,True]
+    EFFICIENCY_MODES = [True]  # [False,True]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     for dataset_name in DATASET_NAMES:
@@ -143,9 +143,11 @@ if __name__ == "__main__":
                                 n_layers=n_layers,
                                 node_bias=node_bias,
                                 graph_bias=graph_bias,
+                                dropout=False,
+                                batch_norm=False,
+                                jumping_knowledge=False,
                             )
                             model.eval()
-                            explain_instances(model_id,
-                                              model,
-                                              all_samples_to_explain,
-                                              efficiency_mode)
+                            explain_instances(
+                                model_id, model, all_samples_to_explain, efficiency_mode
+                            )

@@ -18,6 +18,10 @@ torch.set_default_device(device)
 torch.manual_seed(1234)
 torch.cuda.manual_seed_all(1234)
 
+# Path to store the models
+MODEL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ckpt", "graph_prediction")
+DATASET_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "graph_datasets")
+
 
 class EarlyStopper:
 	def __init__(self, patience=1, min_delta=0):
@@ -38,22 +42,22 @@ class EarlyStopper:
 
 
 def get_TU_dataset(device, name):
-	"""Get the TU dataset by name"""
-	# Load dataset
-	dataset_path = Path("shapiq/explainer/graph/graph_datasets").resolve()
-	dataset_path.mkdir(parents=True, exist_ok=True)
-	dataset = CustomTUDataset(root=dataset_path, name=name, seed=1234,
-							  split_sizes=(0.8, 0.1, 0.1), device=device)
+    """Get the TU dataset by name"""
+    # Load dataset
+    if not os.path.exists(DATASET_PATH):
+        os.makedirs(DATASET_PATH)
+    dataset = CustomTUDataset(
+        root=DATASET_PATH, name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1), device=device
+    )
 
-	num_nodes_features = dataset.graphs.num_node_features
-	num_classes = dataset.graphs.num_classes
+    num_nodes_features = dataset.graphs.num_node_features
+    num_classes = dataset.graphs.num_classes
 
-	train_loader = DataLoader(dataset[dataset.train_index], batch_size=32, shuffle=True,
-							  generator=torch.Generator(device))
+	train_loader = DataLoader(dataset[dataset.train_index], batch_size=32, shuffle=True, generator=torch.Generator(device))
 	val_loader = DataLoader(dataset[dataset.val_index], batch_size=32, shuffle=False)
 	test_loader = DataLoader(dataset[dataset.test_index], batch_size=32, shuffle=False)
 
-	return train_loader, val_loader, test_loader, num_nodes_features, num_classes
+    return train_loader, val_loader, test_loader, num_nodes_features, num_classes
 
 
 def train_and_store(model, train_loader, val_loader, test_loader, save_path):
@@ -70,19 +74,17 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 	log_dir.mkdir(parents=True, exist_ok=True)
 	writer = SummaryWriter(log_dir=log_dir)
 
-	# Train and test functions
-	def train(graph_model):
-		graph_model.train()
-		for data in train_loader:
-			data = data.to(device)
-			# Iterate in batches over the training dataset.
-			out = graph_model(
-					data.x, data.edge_index, data.batch
-					)  # Perform a single forward pass.
-			loss = criterion(out, data.y)  # Compute the loss.
-			loss.backward()  # Derive gradients.
-			optimizer.step()  # Update parameters based on gradients.
-			optimizer.zero_grad()  # Clear gradients.
+    # Train and test functions
+    def train(graph_model):
+        graph_model.train()
+        for data in train_loader:
+            data = data.to(device)
+            # Iterate in batches over the training dataset.
+            out = graph_model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+            loss = criterion(out, data.y)  # Compute the loss.
+            loss.backward()  # Derive gradients.
+            optimizer.step()  # Update parameters based on gradients.
+            optimizer.zero_grad()  # Clear gradients.
 
 	def test(loader, graph_model):
 		graph_model.eval()
@@ -153,9 +155,6 @@ def train_gnn(dataset_name, model_type, n_layers, node_bias, graph_bias, hidden,
 	else:
 		raise Exception("Model not found")
 
-	# Compile model with torch if on linux
-	if os.name == 'posix':
-		model = torch.compile(model)
 
 	model_id = "_".join([model_type, dataset_name, str(n_layers), str(node_bias), str(graph_bias), str(hidden),
 						 str(dropout), str(batch_norm), str(jumping_knowledge)])
