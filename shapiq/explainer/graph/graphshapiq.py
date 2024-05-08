@@ -184,7 +184,7 @@ class GraphSHAPIQ:
         max_interaction_size: int,
         order: int,
         efficiency_routine: bool = True,
-    ):
+    ) -> tuple[InteractionValues, InteractionValues]:
 
         # Cap max_interaction_size
         max_interaction_size = min(self.max_size_neighbors, max_interaction_size)

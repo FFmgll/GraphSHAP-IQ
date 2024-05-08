@@ -10,17 +10,21 @@ from typing import Optional
 class GraphGame(Game):
     """The GraphGame game class.
 
-    The `GraphGame` game is a game that performs local explanation on a torch Graph Neural Network based on the graph nodes.
-    The game evaluates deploys a graph-specific removal technique for the model's prediction on node subsets.
-    The GraphGame may be used for node prediction or graph prediction, which should be included in the model
+    The `GraphGame` game is a game that performs local explanation on a torch Graph Neural Network
+    based on the graph nodes. The game evaluates deploys a graph-specific removal technique for the
+    model's prediction on node subsets. The GraphGame may be used for node prediction or graph
+    prediction, which should be included in the model
 
     Args:
         x: The graph to explain. Should be a torch tensor representing a graph.
-        model: The torch graph neural network to explain as a callable function expecting data points as input and
-            returning the model's predictions. The input should be a torch tensor representing a graph or batch of graphs.
+        model: The torch graph neural network to explain as a callable function expecting data
+            points as input and returning the model's predictions. The input should be a torch tensor
+            representing a graph or batch of graphs.
         masking_mode: Masking technique implemented for node-removal.
-        normalize: If True, then each prediction is normalized by the baseline prediction, where all nodes are masked.
+        normalize: If True, then each prediction is normalized by the baseline prediction, where all
+            nodes are masked.
         class_id: The position of the response to explain, e.g. the class
+        instance_id: The instance id of the game (e.g. the index of the graph in the dataset).
 
     Attributes:
         x_graph: The graph to explain. Should be a torch tensor representing a graph.
@@ -32,6 +36,7 @@ class GraphGame(Game):
         N: The set of nodes.
         edge_index: The graph structure in sparse edge_index representation.
         baseline_value: The baseline value representing the prediction with an empty graph.
+        game_id: The instance id of the game (e.g. the index of the graph in the dataset).
     """
 
     def __init__(
@@ -43,6 +48,7 @@ class GraphGame(Game):
         masking_mode: str = "feature-removal",
         normalize: bool = True,
         baseline: Optional[np.ndarray] = None,
+        instance_id: Optional[int] = None,
     ) -> None:
         if baseline is None:
             warnings.warn("Baseline is not provided, baseline will be initialized as zero...")
@@ -66,6 +72,8 @@ class GraphGame(Game):
             n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
         )
         self._grand_coalition_set = set(range(self.n_players))
+        if instance_id is not None:
+            self.game_id = instance_id
 
     def _precompute_baseline_value(self, x_graph: Data, y_index: np.ndarray) -> float:
         # Mask all nodes for emptyset prediction
@@ -85,7 +93,9 @@ class GraphGame(Game):
         if self.baseline is None:
             x_masked.x *= torch.tensor(coalition.reshape((-1, 1)), dtype=torch.float32)
         else:
-            x_masked.x = x_masked.x*torch.tensor(coalition.reshape((-1, 1)), dtype=torch.float32)+ self.baseline*torch.tensor((1-coalition).reshape((-1, 1)), dtype=torch.float32)
+            x_masked.x = x_masked.x * torch.tensor(
+                coalition.reshape((-1, 1)), dtype=torch.float32
+            ) + self.baseline * torch.tensor((1 - coalition).reshape((-1, 1)), dtype=torch.float32)
         return x_masked
 
     def mask_nodes(self, coalition: np.ndarray) -> Data:

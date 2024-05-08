@@ -1,23 +1,31 @@
 """This script runs the GraphSHAP-IQ approximation on different datasets and graphs."""
 
+import copy
 import os
+from typing import Optional
+import multiprocessing as mp
 
 import torch
-import pandas as pd
-import numpy as np
 
-from shapiq.explainer.graph.train_gnn import train_gnn
-from shapiq.explainer.graph import GraphSHAPIQ
+from tqdm.auto import tqdm
+
+from shapiq import InteractionValues
 from shapiq.games.benchmark.local_xai import GraphGame
-from shapiq.explainer.graph import _compute_baseline_value, get_explanation_instances
+from shapiq.explainer.graph import (
+    GraphSHAPIQ,
+    _compute_baseline_value,
+    get_explanation_instances,
+    load_graph_model,
+)
 
 
-SAVE_DIR = os.path.join("..", "results", "approximation")
+STORAGE_DIR = os.path.join("..", "results", "approximation", "graphshapiq")
 
 
-def save_results(model_id, data_id, game, sse, max_neighborhood_size, gshap_budget):
-    """
-    Naming convention for results file are the following attributes separated by underscore:
+def save_interaction_value(interaction_values: InteractionValues, game: GraphGame) -> None:
+    """Save the interaction values to a file.
+
+    The naming convention for the file is the following attributes separated by underscore:
         - Type of model, e.g. GCN, GIN
         - Dataset name, e.g. MUTAG
         - Number of Graph Convolutions, e.g. 2 graph conv layers
@@ -26,128 +34,130 @@ def save_results(model_id, data_id, game, sse, max_neighborhood_size, gshap_budg
         - Data ID: a technical identifier of the explained instance
         - Number of players, i.e. number of nodes in the graph
         - Largest neighborhood size as integer
+
+
+    Args:
+        interaction_values: The interaction values to save.
+        game: The game for which the interaction values were computed.
     """
-    for i, approx_id in enumerate(sse.keys()):
-        tmp = pd.DataFrame(
-            index=sse[approx_id].keys(), data=sse[approx_id].values(), columns=[approx_id]
-        )
-        if i == 0:
-            final_results = tmp
-        else:
-            final_results = final_results.join(tmp)
-
-    final_results["budget"] = gshap_budget
-
     save_name = "_".join(
         [
-            model_id,
-            str(data_id),
+            str(MODEL_ID),
+            str(DATASET_NAME),
+            str(N_LAYERS),
+            str(GRAPH_BIAS),
+            str(NODE_BIAS),
+            str(game.game_id),
             str(game.n_players),
-            str(max_neighborhood_size),
+            str(game.max_neighborhood_size),
         ]
     )
+    save_path = os.path.join(STORAGE_DIR, save_name)
+    interaction_values.save(save_path)
 
-    save_path = os.path.join(SAVE_DIR, save_name + ".csv")
-    final_results.to_csv(save_path)
 
+def run_graph_shapiq_approximations(
+    games: list[GraphGame],
+    efficiency: bool = True,
+    n_jobs: int = 1,
+) -> None:
+    """Run the GraphSHAP-IQ approximation on a list of games and save the results.
 
-def explain_instances(
-    model_id,
-    model,
-    all_samples_to_explain,
-    efficiency_mode,
-    explanation_order=2,
-    masking_mode="feature-removal",
-):
-    # Stop processing after counter reaches a certain limit, see below
-    stop_processing = False
-    counter = 0
-    print("Running without GT...", model_id)
-    for data_id, x_graph in enumerate(all_samples_to_explain):
-        if not stop_processing:
-            baseline = _compute_baseline_value(x_graph)
-            game = GraphGame(
-                model,
-                x_graph=x_graph,
-                class_id=x_graph.y.item(),
-                max_neighborhood_size=model.n_layers,
-                masking_mode=masking_mode,
-                normalize=True,
-                baseline=baseline,
+    Args:
+        games: The games to run the approximation on.
+        efficiency: Whether to use the efficiency routine for the approximation (True) or not
+            (False).
+        n_jobs: The number of parallel jobs to run.
+    """
+
+    # run the approximation
+    parameter_space = [(game, efficiency) for game in games]
+    with mp.Pool(n_jobs) as pool:
+        results: list[dict[int, InteractionValues]] = list(
+            tqdm(
+                pool.imap_unordered(run_graph_shapiq_approximation, parameter_space),
+                total=len(parameter_space),
+                desc="Running GraphSHAP-IQ:",
+                unit=" experiments",
             )
-            # setup the explainer
-            gSHAP = GraphSHAPIQ(game)
-            if gSHAP.total_budget <= 2**12 and gSHAP.max_size_neighbors <= 12:
-                # print(x_graph.num_nodes, gSHAP.max_size_neighbors)
+        )
 
-                sse = {}
-                gshap_moebius = {}
-                gshap_interactions = {}
-                gshap_budget = {}
+    # save the resulting InteractionValues
+    for moebius_values, game in zip(results, games):
+        for size, values in moebius_values.items():
+            save_interaction_value(values, game)
 
-                approx_id_interaction = "GraphSHAPIQ_" + str(efficiency_mode) + "_interaction"
-                approx_id_moebius = "GraphSHAPIQ_" + str(efficiency_mode) + "_moebius"
 
-                sse[approx_id_interaction] = {}
-                sse[approx_id_moebius] = {}
-                for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
-                    # Compute the Moebius values for all subsets
-                    (
-                        gshap_moebius[max_interaction_size],
-                        gshap_interactions[max_interaction_size],
-                    ) = gSHAP.explain(
-                        max_interaction_size=max_interaction_size,
-                        order=explanation_order,
-                        efficiency_routine=efficiency_mode,
-                    )
-                    gshap_budget[max_interaction_size] = gSHAP.last_n_model_calls
+def run_graph_shapiq_approximation(
+    game: GraphGame, efficiency: bool = True, neighbourhood_size: Optional[list[int]] = None
+) -> dict[int, InteractionValues]:
+    """Run the GraphSHAP-IQ approximation on a given game for the specified neighbourhood sizes.
 
-                # Set ground-truth to
-                gt_interaction = gshap_interactions[gSHAP.max_size_neighbors]
-                gt_moebius = gshap_moebius[gSHAP.max_size_neighbors]
+    Args:
+        game: The game to run the approximation on.
+        efficiency: Whether to use the efficiency routine for the approximation (True) or not
+            (False).
+        neighbourhood_size: The maximum neighbourhood sizes to consider for the approximation.
+            Defaults to `None`, which uses all neighbourhood sizes up to the maximum neighbourhood
+            size of the game.
 
-                for max_interaction_size in range(1, gSHAP.max_size_neighbors + 1):
-                    # Compute SSE
-                    sse[approx_id_interaction][max_interaction_size] = np.sum(
-                        (gshap_interactions[max_interaction_size] - gt_interaction).values ** 2
-                    )
-                    sse[approx_id_moebius][max_interaction_size] = np.sum(
-                        (gt_moebius - gshap_moebius[max_interaction_size]).values ** 2
-                    )
+    Returns:
+        A dictionary mapping the neighbourhood sizes to the approximated möbius values with that
+            neighbourhood size.
+    """
+    approximated_values = {}
+    if neighbourhood_size is None:
+        neighbourhood_size = list(range(1, game.max_neighborhood_size + 1))
 
-                save_results(model_id, data_id, game, sse, gSHAP.max_size_neighbors, gshap_budget)
-                counter += 1
-        if counter >= 20:
-            stop_processing = True
+    max_order = game.n_players
+    approximator = GraphSHAPIQ(game)
+
+    for size in neighbourhood_size:
+        moebius, _ = approximator.explain(
+            max_interaction_size=size,
+            order=max_order,
+            efficiency_routine=efficiency,
+        )
+        budget_used = approximator.last_n_model_calls
+        moebius.estimation_budget = budget_used
+        moebius.estimated = True if size < game.max_neighborhood_size else False
+        moebius.sparsify(threshold=1e-5)
+        approximated_values[size] = copy.deepcopy(moebius)
+
+    return approximated_values
 
 
 if __name__ == "__main__":
-    DATASET_NAMES = ["MUTAG", "PROTEINS", "ENZYMES", "AIDS", "DHFR", "COX2", "BZR", "Mutagenicity"]
-    MODEL_TYPES = ["GCN"]
-    N_LAYERS = [1, 2, 3, 4]
-    NODE_BIASES = [True]  # [False,True]
-    GRAPH_BIASES = [True]  # [False,True]
-    EFFICIENCY_MODES = [True]  # [False,True]
+
+    MODEL_ID = "GCN"  # one of GCN GIN
+    DATASET_NAME = "MUTAG"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
+    N_LAYERS = 2  # one of 1 2 3 4
+    NODE_BIAS = True  # one of True False
+    GRAPH_BIAS = True  # one of True False
+    EFFICIENCY_MODE = True  # one of True False
+
+    # see whether a GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    for dataset_name in DATASET_NAMES:
-        all_samples_to_explain = get_explanation_instances(dataset_name)
-        for model_type in MODEL_TYPES:
-            for n_layers in N_LAYERS:
-                for efficiency_mode in EFFICIENCY_MODES:
-                    for node_bias in NODE_BIASES:
-                        for graph_bias in GRAPH_BIASES:
-                            model, model_id = train_gnn(
-                                dataset_name=dataset_name,
-                                model_type=model_type,
-                                n_layers=n_layers,
-                                node_bias=node_bias,
-                                graph_bias=graph_bias,
-                                dropout=False,
-                                batch_norm=False,
-                                jumping_knowledge=False,
-                            )
-                            model.eval()
-                            explain_instances(
-                                model_id, model, all_samples_to_explain, efficiency_mode
-                            )
+    # get the model for the approximation
+    model = load_graph_model(MODEL_ID, DATASET_NAME, N_LAYERS, NODE_BIAS, GRAPH_BIAS, device=device)
+
+    # set the games up for the approximation
+    games_to_run = []
+    explanation_instances = get_explanation_instances(DATASET_NAME)
+    for data_id, x_graph in enumerate(explanation_instances.items()):
+        baseline = _compute_baseline_value(x_graph)
+        game_to_run = GraphGame(
+            model,
+            x_graph=x_graph,
+            class_id=x_graph.y.item(),
+            max_neighborhood_size=model.n_layers,
+            masking_mode="feature-removal",
+            normalize=True,
+            baseline=baseline,
+            instance_id=int(data_id),
+        )
+        games_to_run.append(game_to_run)
+
+    # run the approximation
+    run_graph_shapiq_approximations(games_to_run, efficiency=EFFICIENCY_MODE, n_jobs=1)
