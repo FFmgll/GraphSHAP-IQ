@@ -159,23 +159,6 @@ def plot_complexity_by_node_degree(plot_dataset, dataset, scatter=False, plot_by
                 marker="s",
                 label=plot_label,
             )
-        else:
-            # Plot the median as line plot
-            ax.plot(
-                plot_medians.index,
-                plot_medians,
-                color=plot_color,
-                linestyle="-",
-                label=plot_label,
-            )
-            # Plot the band around median using Q1 and Q3
-            ax.fill_between(
-                plot_medians.index,
-                plot_q1,
-                plot_q3,
-                alpha=0.2,
-                color=plot_color,
-            )
 
     # Axis customization
     min_x = plot_dataset[plot_by].min()
@@ -273,9 +256,10 @@ if __name__ == "__main__":
         "log10_gSHAP_budget"
     ].std()
 
+
     for dataset in DATASETS:
         plot_dataset = df[df["dataset_name"] == dataset]
-        plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
-        #plot_complexity_by_node_degree(
-        #    plot_dataset, dataset, scatter=True, plot_by="num_edges"
-        #)
+        #plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
+        plot_complexity_by_node_degree(
+            plot_dataset, dataset, scatter=True, plot_by="graph_density"
+        )
