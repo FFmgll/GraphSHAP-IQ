@@ -1,5 +1,5 @@
-"""This module contains the class MutagPlotter, which is used to plot the graphs of the Mutag
-dataset with the Shapley values and k-SII values."""
+"""This module contains the class MutagPlotter, which is used to quickly plot graphs and boxplots
+given instances of the MUTAG dataset."""
 
 import networkx as nx
 from torch_geometric.utils import to_networkx
