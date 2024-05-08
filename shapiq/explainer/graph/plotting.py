@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 ATOM_NAMES = ["C", "N", "O", "F", "I", "Cl", "Br"]
-RED = "#ff0d57"  # for positive attributions
-BLUE = "#1e88e5"  # for negative attributions
-LINE_COLOR = "#cccccc"  # for the color of the edges
 
 
 def plot_graph(graph_instance, masked_nodes, save_path, random_state=None) -> None:
