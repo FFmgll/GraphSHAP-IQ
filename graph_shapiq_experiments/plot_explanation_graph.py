@@ -25,6 +25,9 @@ from shapiq.plot.explanation_graph import explanation_graph_plot
 from shapiq.moebius_converter import MoebiusConverter
 
 RESULTS_DIR = os.path.join("..", "results", "single_gt_instances")
+PLOT_DIR = os.path.join("..", "results", "explanation_graphs")
+if not os.path.exists(PLOT_DIR):
+    os.makedirs(PLOT_DIR)
 
 
 def load_file_into_interaction_values(path: str) -> InteractionValues:
@@ -87,15 +90,40 @@ if __name__ == "__main__":
     explanation_instances = get_explanation_instances(dataset_name)
     graph_instance = explanation_instances[data_id]
 
+    mutag_atom_names = ["C", "N", "O", "F", "I", "Cl", "Br"]
+    # make one-hot encoding of the atom types into labels
+    graph_labels = {
+        node_id: mutag_atom_names[np.argmax(atom)]
+        for node_id, atom in enumerate(graph_instance.x.numpy())
+    }
+
     graph = to_networkx(graph_instance, to_undirected=True)
 
-    fig, ax = explanation_graph_plot(
-        edges=graph,
+    _ = explanation_graph_plot(
+        graph=graph,
         interaction_values=k_sii_values,
         plot_explanation=True,
         n_interactions=10,
-        size_factor=2,
-        compactness=75,
+        size_factor=5,
+        compactness=25,
         random_seed=4,
+        label_mapping=graph_labels,
     )
+    plt.savefig(os.path.join(PLOT_DIR, f"{results_file}_graph_explanation.pdf"))
+    plt.tight_layout()
+    plt.show()
+
+    # get the og graph
+    _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=k_sii_values,
+        plot_explanation=False,
+        n_interactions=10,
+        size_factor=5,
+        compactness=25,
+        random_seed=4,
+        label_mapping=graph_labels,
+    )
+    plt.savefig(os.path.join(PLOT_DIR, f"{results_file}_graph.pdf"))
+    plt.tight_layout()
     plt.show()
