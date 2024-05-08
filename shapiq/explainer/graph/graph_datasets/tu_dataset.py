@@ -28,4 +28,4 @@ class CustomTUDataset(GraphDataset):
 
 		# self.__make_explanations()
 
-		super().__init__(name=name, seed=seed, split_sizes=split_sizes, device=device)
+		super().__init__(name=name, seed=seed, split_sizes=split_sizes)
