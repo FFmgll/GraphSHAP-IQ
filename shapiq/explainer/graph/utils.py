@@ -52,6 +52,10 @@ _best_hyperparameters = {
                 "PROTEINS": {},
                 "ENZYMES": {},
                 "MUTAG": {},
-                "Mutagenicity": {"n_layers": {"3": {"hidden": 128}}},
+                "Mutagenicity": {"n_layers": {
+                        "1": {"hidden": 128},
+                        "2": {"hidden": 128},
+                        "3": {"hidden": 128},
+                        "4": {"hidden": 64}}},
         },
         }

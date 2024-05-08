@@ -141,7 +141,7 @@ def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=Tru
 	else:
 		raise Exception("Dataset not found")
 
-	if hidden:
+	if hidden == True:
 		# Load best hyperparameters
 		hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)]["hidden"]
 
