@@ -15,7 +15,7 @@ if __name__ == "__main__":
     plotter = MutagPlotter()
     explanation_instances = get_explanation_instances("MUTAG")
 
-    save_path = os.path.join("results", "illustration")
+    save_path = os.path.join("..", "results", "illustration")
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
