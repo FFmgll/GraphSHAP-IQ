@@ -103,7 +103,7 @@ class GraphSHAPIQ:
             max_order=self.n_players,
             n_players=self.n_players,
             index="Moebius",
-            baseline_value=0,  # TODO: Fabian, adjust this
+            baseline_value=float(moebius_values[moebius_lookup[tuple()]]),
         )
 
         return moebius_coefficients
