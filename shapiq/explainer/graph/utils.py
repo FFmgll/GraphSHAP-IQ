@@ -42,9 +42,23 @@ def load_graph_model(
     graph_bias: bool,
     device: torch.device,
 ) -> Any:
-    """Loads a pre-trained graph model from disk with the given configuration."""
-    # TODO: Paolo, please implement this function. You can use the MODEL_DIR variable to locate the models.
-    raise NotImplementedError("This function is not implemented yet.")
+    """Loads a pre-trained graph model from disk with the given configuration.
+
+    Args:
+        # TODO: Paolo, please name args and potentially change the signature.
+
+    Returns:
+        The loaded model.
+
+    Raises:
+        FileNotFoundError: If the model file is not found.
+    """
+    try:
+        # load the model
+        # TODO: Paolo, please implement this function. You can use the MODEL_DIR variable to locate the models.
+        raise NotImplementedError("This function is not implemented yet.")
+    except FileNotFoundError as error:
+        raise FileNotFoundError("Model not found. Are you sure you trained the model?") from error
 
 
 def get_explanation_instances(dataset_name):
