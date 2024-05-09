@@ -164,10 +164,34 @@ def get_explanation_instances(dataset_name):
 # Helper container with all the stored best configurations
 _best_hyperparameters = {
     "GCN": {
-        "AIDS": {},
-        "DHFR": {},
-        "COX2": {},
-        "BZR": {},
+        "AIDS": {
+            "n_layers": {
+                "1": {"hidden": 128},
+                "2": {"hidden": 128},
+                "3": {"hidden": 128},
+                "4": {"hidden": 128}}
+                },
+        "DHFR": {
+            "n_layers": {
+                "1": {"hidden": 64},
+                "2": {"hidden": 128},
+                "3": {"hidden": 32},
+                "4": {"hidden": 64}}
+                },
+        "COX2": {
+            "n_layers": {
+                "1": {"hidden": 128},
+                "2": {"hidden": 128},
+                "3": {"hidden": 128},
+                "4": {"hidden": 128}}
+                },
+        "BZR": {
+            "n_layers": {
+                "1": {"hidden": 128},
+                "2": {"hidden": 32},
+                "3": {"hidden": 64},
+                "4": {"hidden": 64}},
+                },
         "PROTEINS": {},
         "ENZYMES": {},
         "MUTAG": {},
@@ -176,8 +200,7 @@ _best_hyperparameters = {
                 "1": {"hidden": 128},
                 "2": {"hidden": 128},
                 "3": {"hidden": 128},
-                "4": {"hidden": 64},
-            }
-        },
-    },
-}
+                "4": {"hidden": 64}}
+                        },
+            },
+    "GIN": {}}
