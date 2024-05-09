@@ -130,17 +130,16 @@ def run_graph_shapiq_approximation(
 if __name__ == "__main__":
 
     MODEL_ID = "GCN"  # one of GCN GIN
-    DATASET_NAME = "MUTAG"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
+    DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     N_LAYERS = 2  # one of 1 2 3 4
-    NODE_BIAS = True  # one of True False
-    GRAPH_BIAS = True  # one of True False
+
     EFFICIENCY_MODE = True  # one of True False
 
     # see whether a GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # get the model for the approximation
-    model = load_graph_model(MODEL_ID, DATASET_NAME, N_LAYERS, NODE_BIAS, GRAPH_BIAS, device=device)
+    model = load_graph_model(MODEL_ID, DATASET_NAME, N_LAYERS, device=device)
 
     # set the games up for the approximation
     games_to_run = []

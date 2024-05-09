@@ -14,8 +14,7 @@ from graphxai_local.datasets import (
 	MUTAG,
 )
 from shapiq.explainer.graph.graph_datasets import CustomTUDataset
-from shapiq.explainer.graph.graph_models import GCN, GIN
-from shapiq.explainer.graph.utils import _best_hyperparameters
+from shapiq.explainer.graph.utils import MODEL_DIR, load_graph_model_architecture
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #torch.set_default_device(device)
@@ -55,6 +54,7 @@ def get_TU_dataset(device, name):
 
 	num_nodes_features = dataset.graphs.num_node_features
 	num_classes = dataset.graphs.num_classes
+	# TODO: Consider using stratified sampling for multi-class classification
 
 	train_loader = DataLoader(dataset[dataset.train_index], batch_size=32, shuffle=True)
 	val_loader = DataLoader(dataset[dataset.val_index], batch_size=32, shuffle=False)
@@ -137,36 +137,15 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=True, hidden=True, dropout=True, batch_norm=True, jumping_knowledge=True,
 			  enforce_retrain=False):
 	if dataset_name in ["AIDS", "DHFR", "COX2", "BZR", "MUTAG", "BENZENE", "PROTEINS", "ENZYMES", "Mutagenicity"]:
-		train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(device, dataset_name)
+		train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(device,
+																								dataset_name)
 	else:
 		raise Exception("Dataset not found")
 
-	if hidden == True:
-		# Load best hyperparameters
-		hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)]["hidden"]
-
-	if model_type == "GCN":
-		model = GCN(in_channels=num_nodes_features,
-					hidden_channels=hidden,
-					out_channels=num_classes,
-					n_layers=n_layers,
-					node_bias=node_bias,
-					graph_bias=graph_bias,
-					dropout=dropout,
-					batch_norm=batch_norm,
-					jumping_knowledge=jumping_knowledge).to(device)
-		model.node_model.to(device)
-	elif model_type == "GIN":
-		model = GIN(in_channels=num_nodes_features, hidden_channels=64, out_channels=num_classes, n_layers=n_layers,
-					graph_bias=graph_bias, node_bias=node_bias).to(device)
-		pass  # TODO: Implement GIN (or general GNN) model + GAT
-	else:
-		raise Exception("Model not found")
-
-	model_id = "_".join([model_type, dataset_name, str(n_layers), str(node_bias), str(graph_bias), str(hidden),
-						 str(dropout), str(batch_norm), str(jumping_knowledge)])
+	model, model_id = load_graph_model_architecture(model_type, dataset_name, n_layers, hidden, node_bias, graph_bias, dropout,
+										  batch_norm, jumping_knowledge, device)
 	# Construct the path to the target directory
-	target_dir = Path("shapiq", "explainer", "graph", "ckpt", "graph_prediction", model_type, dataset_name).resolve()
+	target_dir = Path(MODEL_DIR, model_type, dataset_name).resolve()
 	save_path = Path(target_dir, model_id + ".pth").resolve()
 
 	# Check if the directory exists, if not, create it
@@ -182,4 +161,4 @@ def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=Tru
 	return model, model_id
 
 if __name__ == "__main__":
-	train_gnn("Mutagenicity", "GCN", 3)
+	model, model_id = train_gnn("Mutagenicity", "GCN", 1)
