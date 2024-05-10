@@ -43,7 +43,7 @@ class GraphGame(Game):
 
     def __init__(
         self,
-        model: Callable,
+        model: torch.nn.Module,
         x_graph: Data,
         max_neighborhood_size: int,
         *,
@@ -56,6 +56,7 @@ class GraphGame(Game):
         if baseline is None:
             warnings.warn("Baseline is not provided, baseline will be initialized as zero...")
         self.model = model
+        self.model.eval()
         self.max_neighborhood_size = max_neighborhood_size
         self.x_graph = x_graph.clone()
         self.baseline = baseline
