@@ -52,7 +52,23 @@ if __name__ == '__main__':
     sample = next(iter(ds_test))
     # Call the model prediction.shape: [BatchSize, 1]
     with torch.no_grad():
-        predicted_chlorination = model(sample.x, sample.edge_index, sample.edge_features, sample.batch)
+        predicted_chlorination = model(
+            sample.x, sample.edge_index, sample.edge_features, sample.batch
+        )
     # Loss computation
     test_loss = F.l1_loss(sample.label, predicted_chlorination).cpu().numpy().item()
     print(f'Model achieves {test_loss:.4f} MAE on the test set.')
+
+    # To access node positions and plot a graph:
+    import networkx as nx
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    pos = ds_test.dataset.node_pos
+    edge_index = ds_test.dataset.edge_index
+    G = nx.Graph(edge_index.T.tolist())
+    n_nodes = G.number_of_nodes()
+    # To draw the graph: (Here node color corresponds to chlorine values of the 5th sample in the batch)
+    X = next(iter(ds_test))['x'].reshape(-1).cpu().numpy()
+    nx.draw(G, pos=pos, node_color=plt.cm.viridis(X[5*n_nodes:6*n_nodes])[G.nodes])
+    plt.savefig('water_quality_test_plot.pdf')
