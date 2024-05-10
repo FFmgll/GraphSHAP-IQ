@@ -110,8 +110,8 @@ if __name__ == "__main__":
                 }
             )
 
+    # create a DataFrame from the results
     results_df = pd.DataFrame(results)
-    results_df.to_csv("results.csv", index=False)
 
     # plot the results as a scatter plot for each approximator for the desired metric
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
