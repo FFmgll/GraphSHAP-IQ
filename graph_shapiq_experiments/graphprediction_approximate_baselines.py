@@ -22,6 +22,7 @@ from utils_approximation import (
     GRAPHSHAPIQ_APPROXIMATION_DIR,
     BASELINES_DIR,
     save_interaction_value,
+    is_file_computed,
 )
 
 
@@ -63,26 +64,32 @@ def run_approximators_on_graph_games(
         game_budget_steps: The list of budget steps to run the approximators on for each game.
     """
     parameter_space = []
+    total_budget = 0
     for game_index, game in enumerate(games_to_run):
         for approx_name in APPROXIMATORS_TO_RUN:
             for budget in game_budget_steps[game_index]:
-                parameter_space.append((game, approx_name, budget))
+                for iteration in range(1, ITERATIONS + 1):
+                    total_budget += budget
+                    parameter_space.append((game, approx_name, budget, iteration))
 
-    for game, approx_name, budget in tqdm(parameter_space, desc="Running the approximations"):
-        interaction_values = run_baseline(game, approx_name, budget)
-        save_dir = os.path.join(BASELINES_DIR, approx_name)
-        # save the resulting InteractionValues
-        save_interaction_value(
-            interaction_values=interaction_values,
-            game=game,
-            model_id=MODEL_ID,
-            dataset_name=DATASET_NAME,
-            n_layers=N_LAYERS,
-            save_exact=False,
-            directory=save_dir,
-            max_neighborhood_size=interaction_values.estimation_budget,
-            efficiency=False,
-        )
+    with tqdm(total=total_budget, desc="Running the baseline approximations") as pbar:
+        for game, approx_name, budget, iteration in parameter_space:
+            interaction_values = run_baseline(game, approx_name, budget)
+            save_dir = os.path.join(BASELINES_DIR, approx_name)
+            # save the resulting InteractionValues
+            save_interaction_value(
+                interaction_values=interaction_values,
+                game=game,
+                model_id=MODEL_ID,
+                dataset_name=DATASET_NAME,
+                n_layers=N_LAYERS,
+                save_exact=False,
+                directory=save_dir,
+                max_neighborhood_size=interaction_values.estimation_budget,
+                efficiency=False,
+                iteration=iteration,
+            )
+            pbar.update(budget)
 
 
 if __name__ == "__main__":
@@ -90,9 +97,10 @@ if __name__ == "__main__":
     # game setup
     DATASET_NAME = "Mutagenicity"
     MODEL_ID = "GCN"
-    N_LAYERS = 1
+    N_LAYERS = 2
 
-    MAX_GAMES = 1
+    MAX_GAMES = 3
+    ITERATIONS = 2
 
     INDEX = "k-SII"
     MAX_ORDER = 2
@@ -107,6 +115,11 @@ if __name__ == "__main__":
     exact_values, file_names = load_exact_values_from_disk(
         model_id=MODEL_ID, dataset_name=DATASET_NAME, n_layers=N_LAYERS
     )
+
+    # drop the file names that are already computed
+    file_names = [
+        file_name for file_name in file_names if not is_file_computed(file_name, BASELINES_DIR)
+    ]
 
     # get the games from the file names
     games = get_games_from_file_names(file_names)

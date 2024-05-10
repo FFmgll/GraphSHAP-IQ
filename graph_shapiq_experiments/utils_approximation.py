@@ -18,7 +18,7 @@ KERNELSHAPIQ_DIR = os.path.join(BASELINES_DIR, "KernelSHAPIQ")
 SVARMIQ_DIR = os.path.join(BASELINES_DIR, "SVARMIQ")
 PERMUTATION_DIR = os.path.join(BASELINES_DIR, "PermutationSamplingSII")
 EXACT_DIR = os.path.join("..", "results", "approximation", "exact")
-GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "graphshapiq")
+GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "GraphSHAPIQ")
 
 os.makedirs(BASELINES_DIR, exist_ok=True)
 os.makedirs(KERNELSHAPIQ_DIR, exist_ok=True)
@@ -39,6 +39,8 @@ def parse_file_name(file_name: str) -> dict[str, str]:
         - Number of players, i.e. number of nodes in the graph
         - Maximum neighbourhood size as integer
         - Efficiency routine used for the approximation as boolean
+        - Estimation budget as an integer
+        - Iteration number as integer
 
     Args:
         file_name: The file name of the interaction values.
@@ -46,6 +48,8 @@ def parse_file_name(file_name: str) -> dict[str, str]:
     Returns:
         The dictionary of attributes.
     """
+    if ".interaction_values" in file_name:
+        file_name = file_name.replace(".interaction_values", "")
     parts = file_name.split("_")
     return {
         "model_id": str(parts[0]),
@@ -55,6 +59,8 @@ def parse_file_name(file_name: str) -> dict[str, str]:
         "n_players": int(parts[4]),
         "max_neighborhood_size": int(parts[5]),
         "efficiency": bool(parts[6]),
+        "budget": int(parts[7]),
+        "iteration": int(parts[8]) if len(parts) == 9 else 1,
     }
 
 
@@ -66,6 +72,8 @@ def create_file_name(
     n_players: int,
     max_neighborhood_size: int,
     efficiency: bool,
+    budget: int,
+    iteration: int = 1,
 ) -> str:
     """Create the file name for the interaction values.
 
@@ -77,6 +85,8 @@ def create_file_name(
         - Number of players, i.e. number of nodes in the graph
         - Maximum neighbourhood size as integer
         - Efficiency routine used for the approximation as boolean
+        - Estimation budget as an integer
+        - Iteration number as integer
 
     Args:
         model_id: The model ID.
@@ -87,6 +97,8 @@ def create_file_name(
         max_neighborhood_size: The maximum neighbourhood size.
         efficiency: Whether the efficiency routine was used for the approximation (True) or not
             (False).
+        budget: The estimation budget.
+        iteration: The iteration number. Default is 1.
 
     Returns:
         The file name of the interaction values.
@@ -101,6 +113,8 @@ def create_file_name(
                 str(n_players),
                 str(max_neighborhood_size),
                 str(efficiency),
+                str(budget),
+                str(iteration),
             ]
         )
         + ".interaction_values"
@@ -118,18 +132,9 @@ def save_interaction_value(
     efficiency: bool,
     directory: str = GRAPHSHAPIQ_APPROXIMATION_DIR,
     save_exact: bool = False,
+    iteration: int = 1,
 ) -> None:
     """Save the interaction values to a file.
-
-    The naming convention for the file is the following attributes separated by underscore:
-        - Type of model, e.g. GCN, GIN
-        - Dataset name, e.g. MUTAG
-        - Number of Graph Convolutions, e.g. 2 graph conv layers
-        - Data ID: a technical identifier of the explained instance
-        - Number of players, i.e. number of nodes in the graph
-        - Maximum neighbourhood size as integer
-        - Efficiency routine used for the approximation as boolean
-
 
     Args:
         interaction_values: The interaction values to save.
@@ -145,6 +150,7 @@ def save_interaction_value(
             GRAPHSHAPIQ_APPROXIMATION_DIR.
         save_exact: Whether to save the exact values as well. Default is False. Set to True if you
             evaluate with GraphSHAP-IQ.
+        iteration: The iteration number. Default is None.
     """
     save_name = create_file_name(
         model_id,
@@ -154,6 +160,8 @@ def save_interaction_value(
         game.n_players,
         max_neighborhood_size,
         efficiency,
+        interaction_values.estimation_budget,
+        iteration,
     )
     save_path = os.path.join(directory, save_name)
     interaction_values.save(save_path)
@@ -232,19 +240,45 @@ def load_approximation_values_from_disk(
 
 
 def is_game_computed(
-    model_type: str, dataset_name: str, n_layers: int, data_id: int, efficiency: bool
+    model_type: str,
+    dataset_name: str,
+    n_layers: int,
+    data_id: int,
+    directory: str = GRAPHSHAPIQ_APPROXIMATION_DIR,
 ) -> bool:
     """Check whether the game has already been computed."""
-    all_files = os.listdir(GRAPHSHAPIQ_APPROXIMATION_DIR)
-    for file in all_files:
-        split_file = file.split(".")[0].split("_")
-        if (
-            split_file[0] == model_type
-            and split_file[1] == dataset_name
-            and split_file[2] == str(n_layers)
-            and split_file[3] == str(data_id)
-            and split_file[6] == str(efficiency)
-        ):
+    all_files = os.listdir(directory)
+    file_part = f"{model_type}_{dataset_name}_{n_layers}_{data_id}"
+    for file_name in all_files:
+        if file_part in file_name:
+            return True
+    return False
+
+
+def is_file_computed(file_name: str, directory: str) -> bool:
+    """Check whether the interaction values have already been computed."""
+    if directory == BASELINES_DIR:
+        # check in all baseline directories
+        all_directories = [
+            KERNELSHAPIQ_DIR,
+            SVARMIQ_DIR,
+            PERMUTATION_DIR,
+        ]
+        for directory in all_directories:
+            if is_file_computed(file_name, directory):
+                return True
+    attributes = parse_file_name(file_name)
+    file_part = "_".join(
+        [
+            attributes["model_id"],
+            attributes["dataset_name"],
+            str(attributes["n_layers"]),
+            str(attributes["data_id"]),
+        ]
+    )
+    all_files = os.listdir(directory)
+    for file_name in all_files:
+        if file_part in file_name:
             return True
     return False
 
@@ -309,3 +343,82 @@ def get_games_from_file_names(interaction_values_names: list[str]) -> list[Graph
         games_to_run.append(game_to_run)
 
     return games_to_run
+
+
+def load_all_interaction_values(
+    model_id: str,
+    dataset_name: str,
+    n_layers: int,
+    efficiency: Optional[bool] = None,
+) -> dict[str, dict[str, InteractionValues]]:
+    """Loads all interaction values from disk that match the given model ID, dataset name number
+    of layers and in case of GraphSHAP-IQ the efficiency routine.
+
+    Args:
+        model_id: The model ID.
+        dataset_name: The dataset name.
+        n_layers: The number of layers.
+        efficiency: Whether the efficiency routine was used for the approximation (True) or not
+            (False). Default is True.
+
+    Returns:
+        The dictionary of interaction values mapping from the approximation method to a dictionary
+        mapping from the data ID to the list of interaction values.
+    """
+    interaction_values = {}
+    directories = [
+        EXACT_DIR,
+        KERNELSHAPIQ_DIR,
+        SVARMIQ_DIR,
+        PERMUTATION_DIR,
+        GRAPHSHAPIQ_APPROXIMATION_DIR,
+    ]
+
+    for directory in directories:
+        approx_method = directory.split(os.sep)[-1]
+        interaction_values[approx_method] = {}
+        all_files = os.listdir(directory)
+        for file_name in all_files:
+            if not file_name.endswith(".interaction_values"):
+                continue
+
+            # parse the file name
+            attributes = parse_file_name(file_name)
+
+            # check if the model ID and dataset name match
+            if (
+                model_id != attributes["model_id"]
+                or dataset_name != attributes["dataset_name"]
+                and n_layers != attributes["n_layers"]
+            ):
+                continue
+
+            # check if the efficiency routine matches
+            if (
+                directory == GRAPHSHAPIQ_APPROXIMATION_DIR
+                and efficiency is not None
+                and efficiency != attributes["efficiency"]
+            ):
+                continue
+
+            file_identifier = "_".join(
+                [
+                    str(attributes["model_id"]),
+                    str(attributes["dataset_name"]),
+                    str(attributes["n_layers"]),
+                    str(attributes["data_id"]),
+                    str(attributes["n_players"]),
+                    str(attributes["budget"]),
+                    str(attributes["iteration"]),
+                ]
+            )
+            values = InteractionValues.load(os.path.join(directory, file_name))
+            interaction_values[approx_method][file_identifier] = values
+
+    return interaction_values
+
+
+class BudgetError(Exception):
+    """Exception raised when the total budget is too high for the approximation."""
+
+    pass

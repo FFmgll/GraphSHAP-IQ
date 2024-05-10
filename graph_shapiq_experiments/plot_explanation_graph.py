@@ -23,6 +23,7 @@ from shapiq.explainer.graph import get_explanation_instances
 from shapiq.interaction_values import InteractionValues
 from shapiq.plot.explanation_graph import explanation_graph_plot
 from shapiq.moebius_converter import MoebiusConverter
+from utils_approximation import EXACT_DIR, parse_file_name
 
 RESULTS_DIR = os.path.join("..", "results", "single_gt_instances")
 PLOT_DIR = os.path.join("..", "results", "explanation_graphs")
@@ -30,62 +31,22 @@ if not os.path.exists(PLOT_DIR):
     os.makedirs(PLOT_DIR)
 
 
-def load_file_into_interaction_values(path: str) -> InteractionValues:
-    """Load the interaction values from a file."""
-    df = pd.read_csv(path)
-    # rename first col from "" to "set"
-    df = df.rename(columns={df.columns[0]: "set"})
-
-    values = []
-    lookup = {}
-    n_players = 0
-    for i, row in df.iterrows():
-        val = float(row["gt"])
-        coalition = row["set"]
-        if coalition == "()":
-            coalition = tuple()
-        else:
-            coalition = coalition.replace("(", "").replace(")", "")
-            coalition_members = coalition.split(",")
-            coalition_transformed = []
-            for member in coalition_members:
-                if member == "" or member == " " or member == ",":
-                    continue
-                try:
-                    member = int(member)
-                except ValueError:
-                    member = member
-                coalition_transformed.append(member)
-            coalition = tuple(coalition_transformed)
-        lookup[coalition] = len(values) - 1
-        values.append(val)
-        n_players = max(n_players, max(coalition, default=0))
-    values = np.array(values)
-    n_players += 1
-
-    example_values = InteractionValues(
-        n_players=n_players,
-        values=values,
-        index="Moebius",
-        interaction_lookup=lookup,
-        baseline_value=float(values[lookup[tuple()]]),
-        min_order=0,
-        max_order=n_players,
-    )
-    return example_values
-
-
 if __name__ == "__main__":
 
-    results_file = "gtmoebius_GCN_MUTAG_3_True_True_4_11_11.csv"
+    # file_name = "GCN_Mutagenicity_2_0_16_10_True.interaction_values"
+    file_name = "GCN_Mutagenicity_2_2_14_12_True_4288.interaction_values"
+    plot_name = file_name.replace(".interaction_values", ".pdf")
+    path_to_file = os.path.join(EXACT_DIR, file_name)
 
-    interaction_values = load_file_into_interaction_values(os.path.join(RESULTS_DIR, results_file))
-    converter = MoebiusConverter(moebius_coefficients=interaction_values)
-    k_sii_values = converter(index="k-SII", order=interaction_values.n_players)
+    moebius_values = InteractionValues.load(path_to_file)
+
+    converter = MoebiusConverter(moebius_coefficients=moebius_values)
+    k_sii_values = converter(index="k-SII", order=moebius_values.n_players)
     print(k_sii_values)
 
-    dataset_name = results_file.split("_")[2]
-    data_id = int(results_file.split("_")[6])
+    attributes = parse_file_name(file_name)
+    dataset_name = attributes["dataset_name"]
+    data_id = attributes["data_id"]
 
     explanation_instances = get_explanation_instances(dataset_name)
     graph_instance = explanation_instances[data_id]
@@ -110,7 +71,7 @@ if __name__ == "__main__":
         label_mapping=graph_labels,
         cubic_scaling=True,
     )
-    plt.savefig(os.path.join(PLOT_DIR, f"{results_file}_graph_explanation.pdf"))
+    plt.savefig(os.path.join(PLOT_DIR, f"{plot_name}_graph_explanation.pdf"))
     plt.tight_layout()
     plt.show()
 
@@ -125,6 +86,6 @@ if __name__ == "__main__":
         random_seed=4,
         label_mapping=graph_labels,
     )
-    plt.savefig(os.path.join(PLOT_DIR, f"{results_file}_graph.pdf"))
+    plt.savefig(os.path.join(PLOT_DIR, f"{plot_name}_graph.pdf"))
     plt.tight_layout()
     plt.show()

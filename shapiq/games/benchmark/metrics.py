@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import kendalltau
 
 from ...interaction_values import InteractionValues
-from ...utils.sets import powerset
+from ...utils.sets import powerset, count_interactions
 
 __all__ = [
     "compute_mse",
@@ -46,7 +46,26 @@ def compute_mse(ground_truth: InteractionValues, estimated: InteractionValues) -
     """
     difference = ground_truth - estimated
     diff_values = _remove_empty_value(difference).values
-    return float(np.mean(diff_values**2))
+    sum_of_squares = np.sum(diff_values**2)
+    n_values = count_interactions(
+        ground_truth.n_players, ground_truth.max_order, ground_truth.min_order
+    )
+    return sum_of_squares / n_values
+
+
+def compute_sse(ground_truth: InteractionValues, estimated: InteractionValues) -> float:
+    """Compute the sum of squared errors between two interaction values.
+
+    Args:
+        ground_truth: The ground truth interaction values.
+        estimated: The estimated interaction values.
+
+    Returns:
+        The sum of squared errors between the ground truth and estimated interaction values.
+    """
+    difference = ground_truth - estimated
+    diff_values = _remove_empty_value(difference).values
+    return np.sum(diff_values**2)
 
 
 def compute_mae(ground_truth: InteractionValues, estimated: InteractionValues) -> float:
@@ -61,7 +80,11 @@ def compute_mae(ground_truth: InteractionValues, estimated: InteractionValues) -
     """
     difference = ground_truth - estimated
     diff_values = _remove_empty_value(difference).values
-    return float(np.mean(np.abs(diff_values)))
+    sum_of_abs = np.sum(np.abs(diff_values))
+    n_values = count_interactions(
+        ground_truth.n_players, ground_truth.max_order, ground_truth.min_order
+    )
+    return sum_of_abs / n_values
 
 
 def compute_kendall_tau(
@@ -147,5 +170,6 @@ def get_all_metrics(
         order_indicator + "KendallTau": compute_kendall_tau(ground_truth, estimated),
         order_indicator + "KendallTau@10": compute_kendall_tau(ground_truth, estimated, k=10),
         order_indicator + "KendallTau@50": compute_kendall_tau(ground_truth, estimated, k=50),
+        order_indicator + "SSE": compute_sse(ground_truth, estimated),
     }
     return metrics
