@@ -184,10 +184,10 @@ class MoebiusConverter:
         distribution_weights = np.zeros((self.n + 1, order + 1))
         for moebius_size in range(1, self.n + 1):
             for interaction_size in range(1, min(order, moebius_size) + 1):
-                distribution_weights[moebius_size, interaction_size] = (
-                    self.get_moebius_distribution_weight(
-                        moebius_size, interaction_size, order, index
-                    )
+                distribution_weights[
+                    moebius_size, interaction_size
+                ] = self.get_moebius_distribution_weight(
+                    moebius_size, interaction_size, order, index
                 )
 
         for moebius_set, moebius_val in zip(
@@ -219,6 +219,8 @@ class MoebiusConverter:
             max_order=order,
             n_players=self.n,
             baseline_value=self.moebius_coefficients[tuple()],
+            estimation_budget=self.moebius_coefficients.estimation_budget,
+            estimated=self.moebius_coefficients.estimated,
         )
 
         return base_interactions
@@ -243,10 +245,10 @@ class MoebiusConverter:
 
         for moebius_size in range(1, self.n + 1):
             for interaction_size in range(1, min(order, moebius_size) + 1):
-                distribution_weights[moebius_size, interaction_size] = (
-                    self.get_moebius_distribution_weight(
-                        moebius_size, interaction_size, order, index
-                    )
+                distribution_weights[
+                    moebius_size, interaction_size
+                ] = self.get_moebius_distribution_weight(
+                    moebius_size, interaction_size, order, index
                 )
 
         for moebius_set, moebius_val in zip(
@@ -286,6 +288,8 @@ class MoebiusConverter:
             max_order=order,
             n_players=self.n,
             baseline_value=self.moebius_coefficients[tuple()],
+            estimation_budget=self.moebius_coefficients.estimation_budget,
+            estimated=self.moebius_coefficients.estimated,
         )
         return stii
 
@@ -308,10 +312,10 @@ class MoebiusConverter:
         distribution_weights = np.zeros((self.n + 1, order + 1))
         for moebius_size in range(1, self.n + 1):
             for interaction_size in range(1, min(order, moebius_size) + 1):
-                distribution_weights[moebius_size, interaction_size] = (
-                    self.get_moebius_distribution_weight(
-                        moebius_size, interaction_size, order, index
-                    )
+                distribution_weights[
+                    moebius_size, interaction_size
+                ] = self.get_moebius_distribution_weight(
+                    moebius_size, interaction_size, order, index
                 )
 
         for moebius_set, moebius_val in zip(
@@ -344,6 +348,8 @@ class MoebiusConverter:
             max_order=order,
             n_players=self.n,
             baseline_value=self.moebius_coefficients[tuple()],
+            estimation_budget=self.moebius_coefficients.estimation_budget,
+            estimated=self.moebius_coefficients.estimated,
         )
         return fsii
 

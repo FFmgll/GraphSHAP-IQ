@@ -7,7 +7,12 @@ import torch
 
 from tqdm.auto import tqdm
 
-from utils_approximation import is_game_computed, save_interaction_value
+from utils_approximation import (
+    is_game_computed,
+    save_interaction_value,
+    BudgetError,
+    GRAPHSHAPIQ_APPROXIMATION_DIR,
+)
 
 from shapiq import InteractionValues
 from shapiq.games.benchmark.local_xai import GraphGame
@@ -33,9 +38,13 @@ def run_graph_shapiq_approximations(
 
     # run the approximation
     for game in tqdm(games, desc="Running the GraphSHAP-IQ approximation"):
-        moebius_values: dict[int, InteractionValues] = run_graph_shapiq_approximation(
-            game, efficiency=efficiency
-        )
+        try:
+            moebius_values: dict[int, InteractionValues] = run_graph_shapiq_approximation(
+                game, efficiency=efficiency
+            )
+        except BudgetError as e:
+            print(e)
+            continue
         # save the resulting InteractionValues
         for size, values in moebius_values.items():
             save_interaction_value(
@@ -63,11 +72,20 @@ def run_graph_shapiq_approximation(
     Returns:
         A dictionary mapping the neighbourhood sizes to the approximated möbius values with that
             neighbourhood size.
+
+    Raises:
+        BudgetError: If the total budget is too high.
     """
     approximated_values = {}
 
     max_order = game.n_players
     approximator = GraphSHAPIQ(game)
+    total_budget = approximator.total_budget
+    if total_budget > MAX_BUDGET:
+        raise BudgetError(
+            f"The total budget of {total_budget} is too high for game id {game.game_id}."
+            f" The maximum budget is {MAX_BUDGET}."
+        )
 
     interaction_sizes = list(range(1, approximator.max_size_neighbors + 1))
 
@@ -89,12 +107,15 @@ def run_graph_shapiq_approximation(
 if __name__ == "__main__":
 
     # run setup
-    N_GAMES = 2
-    MAX_N_PLAYERS = 20
+    N_GAMES = 1
+    MAX_N_PLAYERS = 12
+    MIN_N_PLAYERS = 1
+
+    MAX_BUDGET = 10_000
 
     MODEL_ID = "GCN"  # one of GCN GIN
     DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
-    N_LAYERS = 1  # one of 1 2 3 4
+    N_LAYERS = 2  # one of 1 2 3 4
     EFFICIENCY_MODE = True  # one of True False
 
     # see whether a GPU is available
@@ -107,7 +128,9 @@ if __name__ == "__main__":
     games_to_run = []
     explanation_instances = get_explanation_instances(DATASET_NAME)
     for data_id, x_graph in enumerate(explanation_instances):
-        if is_game_computed(MODEL_ID, DATASET_NAME, N_LAYERS, data_id, EFFICIENCY_MODE):
+        if is_game_computed(
+            MODEL_ID, DATASET_NAME, N_LAYERS, data_id, directory=GRAPHSHAPIQ_APPROXIMATION_DIR
+        ):
             continue
         baseline = _compute_baseline_value(x_graph)
         game_to_run = GraphGame(
@@ -120,12 +143,13 @@ if __name__ == "__main__":
             baseline=baseline,
             instance_id=int(data_id),
         )
-        if game_to_run.n_players <= MAX_N_PLAYERS:
+        if MIN_N_PLAYERS <= game_to_run.n_players <= MAX_N_PLAYERS:
             games_to_run.append(game_to_run)
         if len(games_to_run) >= N_GAMES:
             break
 
     print(f"Running the GraphSHAP-IQ approximation on {len(games_to_run)} games.")
+    print(f"Game_ids: {[game.game_id for game in games_to_run]}")
 
     # run the approximation
     run_graph_shapiq_approximations(games_to_run, efficiency=EFFICIENCY_MODE)
