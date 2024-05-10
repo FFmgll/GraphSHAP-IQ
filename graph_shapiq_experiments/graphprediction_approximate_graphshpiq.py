@@ -3,7 +3,6 @@
 import copy
 import os
 from typing import Optional
-import multiprocessing as mp
 
 import torch
 
@@ -22,36 +21,48 @@ from shapiq.explainer.graph import (
 STORAGE_DIR = os.path.join("..", "results", "approximation", "graphshapiq")
 
 
-def save_interaction_value(interaction_values: InteractionValues, game: GraphGame) -> None:
+def save_interaction_value(
+    interaction_values: InteractionValues,
+    game: GraphGame,
+    max_neighborhood_size: int,
+    efficiency: bool,
+) -> None:
     """Save the interaction values to a file.
 
     The naming convention for the file is the following attributes separated by underscore:
         - Type of model, e.g. GCN, GIN
         - Dataset name, e.g. MUTAG
         - Number of Graph Convolutions, e.g. 2 graph conv layers
-        - Graph bias, e.g. True, if the linear layer after global pooling has a bias
-        - Node bias, e.g. True, if the convolution layers have a bias
         - Data ID: a technical identifier of the explained instance
         - Number of players, i.e. number of nodes in the graph
-        - Largest neighborhood size as integer
+        - Maximum neighbourhood size as integer
+        - Efficiency routine used for the approximation as boolean
 
 
     Args:
         interaction_values: The interaction values to save.
         game: The game for which the interaction values were computed.
+        max_neighborhood_size: The maximum neighbourhood size for which the interaction values were
+            computed.
+        efficiency: Whether the efficiency routine was used for the approximation (True) or not
+            (False).
     """
-    save_name = "_".join(
-        [
-            str(MODEL_ID),
-            str(DATASET_NAME),
-            str(N_LAYERS),
-            str(GRAPH_BIAS),
-            str(NODE_BIAS),
-            str(game.game_id),
-            str(game.n_players),
-            str(game.max_neighborhood_size),
-        ]
+    save_name = (
+        "_".join(
+            [
+                str(MODEL_ID),
+                str(DATASET_NAME),
+                str(N_LAYERS),
+                str(game.game_id),
+                str(game.n_players),
+                str(max_neighborhood_size),
+                str(efficiency),
+            ]
+        )
+        + ".interaction_values"
     )
+    if not os.path.exists(STORAGE_DIR):
+        os.makedirs(STORAGE_DIR)
     save_path = os.path.join(STORAGE_DIR, save_name)
     interaction_values.save(save_path)
 
@@ -59,7 +70,6 @@ def save_interaction_value(interaction_values: InteractionValues, game: GraphGam
 def run_graph_shapiq_approximations(
     games: list[GraphGame],
     efficiency: bool = True,
-    n_jobs: int = 1,
 ) -> None:
     """Run the GraphSHAP-IQ approximation on a list of games and save the results.
 
@@ -67,25 +77,17 @@ def run_graph_shapiq_approximations(
         games: The games to run the approximation on.
         efficiency: Whether to use the efficiency routine for the approximation (True) or not
             (False).
-        n_jobs: The number of parallel jobs to run.
     """
 
     # run the approximation
-    parameter_space = [(game, efficiency) for game in games]
-    with mp.Pool(n_jobs) as pool:
-        results: list[dict[int, InteractionValues]] = list(
-            tqdm(
-                pool.imap_unordered(run_graph_shapiq_approximation, parameter_space),
-                total=len(parameter_space),
-                desc="Running GraphSHAP-IQ:",
-                unit=" experiments",
-            )
-        )
+    results: list[dict[int, InteractionValues]] = []
+    for game in tqdm(games, desc="Running the GraphSHAP-IQ approximation"):
+        results.append(run_graph_shapiq_approximation(game, efficiency=efficiency))
 
     # save the resulting InteractionValues
     for moebius_values, game in zip(results, games):
         for size, values in moebius_values.items():
-            save_interaction_value(values, game)
+            save_interaction_value(values, game, size, efficiency)
 
 
 def run_graph_shapiq_approximation(
@@ -127,12 +129,33 @@ def run_graph_shapiq_approximation(
     return approximated_values
 
 
+def is_game_computed(
+    model_type: str, dataset_name: str, n_layers: int, data_id: int, efficiency: bool
+) -> bool:
+    """Check whether the game has already been computed."""
+    all_files = os.listdir(STORAGE_DIR)
+    for file in all_files:
+        split_file = file.split(".")[0].split("_")
+        if (
+            split_file[0] == model_type
+            and split_file[1] == dataset_name
+            and split_file[2] == str(n_layers)
+            and split_file[3] == str(data_id)
+            and split_file[6] == str(efficiency)
+        ):
+            return True
+    return False
+
+
 if __name__ == "__main__":
+
+    # run setup
+    N_GAMES = 1000
+    MAX_N_PLAYERS = 16
 
     MODEL_ID = "GCN"  # one of GCN GIN
     DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
-    N_LAYERS = 2  # one of 1 2 3 4
-
+    N_LAYERS = 3  # one of 1 2 3 4
     EFFICIENCY_MODE = True  # one of True False
 
     # see whether a GPU is available
@@ -144,7 +167,9 @@ if __name__ == "__main__":
     # set the games up for the approximation
     games_to_run = []
     explanation_instances = get_explanation_instances(DATASET_NAME)
-    for data_id, x_graph in enumerate(explanation_instances.items()):
+    for data_id, x_graph in enumerate(explanation_instances):
+        if is_game_computed(MODEL_ID, DATASET_NAME, N_LAYERS, data_id, EFFICIENCY_MODE):
+            continue
         baseline = _compute_baseline_value(x_graph)
         game_to_run = GraphGame(
             model,
@@ -156,7 +181,12 @@ if __name__ == "__main__":
             baseline=baseline,
             instance_id=int(data_id),
         )
-        games_to_run.append(game_to_run)
+        if game_to_run.n_players <= MAX_N_PLAYERS:
+            games_to_run.append(game_to_run)
+        if len(games_to_run) >= N_GAMES:
+            break
+
+    print(f"Running the GraphSHAP-IQ approximation on {len(games_to_run)} games.")
 
     # run the approximation
-    run_graph_shapiq_approximations(games_to_run, efficiency=EFFICIENCY_MODE, n_jobs=1)
+    run_graph_shapiq_approximations(games_to_run, efficiency=EFFICIENCY_MODE)
