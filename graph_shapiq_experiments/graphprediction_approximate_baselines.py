@@ -1,22 +1,13 @@
 """This module runs basline approximation methods on the same settings as the GraphSHAP-IQ
 approximations."""
 
-import copy
-import multiprocessing as mp
 import os
-from typing import Optional
 
-from tqdm.auto import tqdm
 import torch
+from tqdm.auto import tqdm
 
-from shapiq.explainer.graph import (
-    _compute_baseline_value,
-    get_explanation_instances,
-    load_graph_model,
-)
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.interaction_values import InteractionValues
-from shapiq.games.benchmark.run import run_benchmark, save_results
 from shapiq.approximator import (
     KernelSHAPIQ,
     SHAPIQ,
@@ -24,9 +15,14 @@ from shapiq.approximator import (
     InconsistentKernelSHAPIQ,
     PermutationSamplingSII,
 )
-
-# TODO fix the MSE and other metrics in benchmark to work with potentially None values by dividing by the number of n_interactions.
-STORAGE_DIR = os.path.join("..", "results", "approximation", "graphshapiq")
+from utils_approximation import (
+    load_exact_values_from_disk,
+    get_games_from_file_names,
+    load_approximation_values_from_disk,
+    GRAPHSHAPIQ_APPROXIMATION_DIR,
+    BASELINES_DIR,
+    save_interaction_value,
+)
 
 
 def run_baseline(game: GraphGame, approx_name: str, budget: int) -> InteractionValues:
@@ -58,47 +54,78 @@ def run_baseline(game: GraphGame, approx_name: str, budget: int) -> InteractionV
 
 
 def run_approximators_on_graph_games(
-    games: list[GraphGame], budget_steps: list[list[int]], n_jobs: int = 1
+    games_to_run: list[GraphGame], game_budget_steps: list[list[int]]
 ) -> None:
     """Run the approximators on the graph games.
 
     Args:
-        games: The list of graph games to run the approximators on.
-        budget_steps: The list of budget steps to run the approximators on for each game.
-        n_jobs: The number of parallel jobs to run. Defaults to 1.
+        games_to_run: The list of graph games to run the approximators on.
+        game_budget_steps: The list of budget steps to run the approximators on for each game.
     """
     parameter_space = []
-    for game_index, game in enumerate(games):
+    for game_index, game in enumerate(games_to_run):
         for approx_name in APPROXIMATORS_TO_RUN:
-            for budget in budget_steps[game_index]:
+            for budget in game_budget_steps[game_index]:
                 parameter_space.append((game, approx_name, budget))
 
-    with mp.Pool(n_jobs) as pool:
-        results = list(
-            tqdm(
-                pool.imap_unordered(run_baseline, parameter_space),
-                total=len(parameter_space),
-                desc="Running benchmark:",
-                unit=" experiments",
-            )
+    for game, approx_name, budget in tqdm(parameter_space, desc="Running the approximations"):
+        interaction_values = run_baseline(game, approx_name, budget)
+        save_dir = os.path.join(BASELINES_DIR, approx_name)
+        # save the resulting InteractionValues
+        save_interaction_value(
+            interaction_values=interaction_values,
+            game=game,
+            model_id=MODEL_ID,
+            dataset_name=DATASET_NAME,
+            n_layers=N_LAYERS,
+            save_exact=False,
+            directory=save_dir,
+            max_neighborhood_size=interaction_values.estimation_budget,
+            efficiency=False,
         )
-
-    # TODO: finish the implementation of this function
 
 
 if __name__ == "__main__":
+
+    # game setup
+    DATASET_NAME = "Mutagenicity"
+    MODEL_ID = "GCN"
+    N_LAYERS = 1
+
+    MAX_GAMES = 1
 
     INDEX = "k-SII"
     MAX_ORDER = 2
 
     APPROXIMATORS_TO_RUN = [
         KernelSHAPIQ.__name__,
-        InconsistentKernelSHAPIQ.__name__,
-        SHAPIQ.__name__,
         SVARMIQ.__name__,
         PermutationSamplingSII.__name__,
     ]
 
-    # TODO load the games and derive the budget steps from the games
+    # get the games from the available exact interaction_values
+    exact_values, file_names = load_exact_values_from_disk(
+        model_id=MODEL_ID, dataset_name=DATASET_NAME, n_layers=N_LAYERS
+    )
 
-    run_approximators_on_graph_games(games_to_run, budget_steps, n_jobs=6)
+    # get the games from the file names
+    games = get_games_from_file_names(file_names)
+    games, file_names = games[:MAX_GAMES], file_names[:MAX_GAMES]
+
+    # get the budget steps for each game
+    budget_steps = []
+    for file_name in file_names:
+        graph_shap_iq_approximations = load_approximation_values_from_disk(
+            exact_file_name=file_name, directory=GRAPHSHAPIQ_APPROXIMATION_DIR
+        )
+        budget_per_game = []
+        for approximation in graph_shap_iq_approximations:
+            budget_step = approximation.estimation_budget
+            if budget_step not in budget_steps:
+                budget_per_game.append(budget_step)
+        budget_steps.append(budget_per_game)
+
+    print(f"Running the baseline approximations for {len(games)} games.")
+
+    # run the approximators on the graph games
+    run_approximators_on_graph_games(games, budget_steps)
