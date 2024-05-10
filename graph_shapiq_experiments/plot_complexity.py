@@ -11,6 +11,13 @@ def logarithmic_function(x, a, b):
     return a * np.log(x) + b
 
 
+def budget_label():
+    return "GraphSHAP-IQ Model Calls (in log 10)"
+
+def node_label():
+    return "Number of Graph Nodes (n)"
+
+
 def plot_trend_curve(x_values, values, color, type="lin"):
     if type == "log":
         popt, pcov = curve_fit(logarithmic_function, x_values, values)
@@ -42,7 +49,7 @@ def plot_naive_budget(node_range):
         linestyle="--",
         linewidth=1,
         color="black",
-        label="Naive Budget",
+        label="All Model Calls",
     )
 
 
@@ -60,27 +67,27 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
     for n_layers in LAYERS:
         # Values to plot
         plot_dataset_layer = plot_dataset[plot_dataset["n_layers"] == n_layers]
-        plot_medians = medians[dataset, "GCN", n_layers, :]
-        plot_q1 = q1[dataset, "GCN", n_layers, :]
-        plot_q3 = q3[dataset, "GCN", n_layers, :]
+        plot_medians = medians[dataset, n_layers, :]
+        plot_q1 = q1[dataset, n_layers, :]
+        plot_q3 = q3[dataset, n_layers, :]
         # Labels for legend and colors
         plot_color = COLORS[n_layers]
-        plot_label = n_layers + " conv. layers"
+        plot_label = n_layers + "-Layer GNN"
         # Fit and plot the logarithmic trend curve
 
         if scatter:
-            plot_trend_curve(plot_medians.index,plot_medians, plot_color, type="log")
+            plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
             # Plot the median as line plot
             ax.scatter(
                 plot_dataset_layer["n_players"],
-                plot_dataset_layer["log10_gSHAP_budget_capped"],
+                plot_dataset_layer["log10_budget"],
                 color=plot_color,
                 s=5,
                 marker="s",
                 label=plot_label,
             )
         else:
-            plot_trend_curve(plot_medians.index,plot_medians, plot_color, type="log")
+            plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
             # Plot the median as line plot
             ax.plot(
                 plot_medians.index,
@@ -100,82 +107,64 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
 
     # Axis customization
     min_x = plot_dataset["n_players"].min()
-    max_x = min(plot_dataset["n_players"].max(), 100)
-    node_range = np.arange(min_x - min_x % 5, max_x, 5)
+    max_x = min(plot_dataset["n_players"].max(), 150)
+    node_range = np.arange(min_x - min_x % 5, max_x, max_x//10)
     plot_naive_budget(node_range)
     plt.xlim(min_x, max_x)
-    plt.ylim(1, 10)
+    plt.ylim(1, 8.5)
     plt.xticks(node_range)
     plt.yticks([2, 3, 4, 5, 6, 7, 8], ["100", "1k", "10k", "100k", "1m", "10m", "100m"])
     # Title and descriptions
-    plt.ylabel("GraphSHAP-IQ Budget (in log10)")
-    plt.xlabel("Number of Graph Nodes (n)")
+    plt.ylabel(budget_label())
+    plt.xlabel(node_label())
     ax.legend()
-    plt.title(dataset)
+    plt.title("Exact Shapley Explanations on "+dataset)
     plt.grid(True, linestyle=":")
     plt.tight_layout()
     if scatter:
-        plt.savefig(os.path.join(save_path_plots, dataset + "_by_layers_scatter.png"))
+        plt.savefig(os.path.join(save_path_plots, "complexity_by_layers_"+dataset + ".png"))
     else:
-        plt.savefig(os.path.join(save_path_plots, dataset + "_by_layers_median_q1_q3.png"))
+        plt.savefig(os.path.join(save_path_plots, "complexity_by_layers_"+ dataset + "_median_q1_q3.png"))
     plt.show()
 
 
-def plot_complexity_by_node_degree(plot_dataset, dataset, scatter=False, plot_by="avg_node_degree"):
-    COLORS = {
-        "1": COLOR_LIST[0],
-        "2": COLOR_LIST[1],
-        "3": COLOR_LIST[2],
-        "4": COLOR_LIST[3],
-    }
+def plot_complexity_by_statistic(
+    save_id, plot_dataset, statistic, title, clabel, min_x, max_x, min_v, max_v, min_y, max_y, cmap
+):
     plt.rcParams.update(params)
 
     # Plot dataset
     fig, ax = plt.subplots()
-    for n_layers in LAYERS:
-        # Values to plot
-        plot_dataset_layer = plot_dataset[plot_dataset["n_layers"] == n_layers]
-        plot_medians = medians[dataset, "GCN", n_layers, :]
-        plot_q1 = q1[dataset, "GCN", n_layers, :]
-        plot_q3 = q3[dataset, "GCN", n_layers, :]
-        # Labels for legend and colors
-        plot_color = COLORS[n_layers]
-        plot_label = n_layers + " conv. layers"
-        # Fit and plot the logarithmic trend curve
-
-        if scatter:
-            plot_trend_curve(
-                plot_dataset_layer[plot_by],
-                plot_dataset_layer["log10_gSHAP_budget_capped"],
-                plot_color,
-                type="lin",
-            )
-            # Plot the median as line plot
-            ax.scatter(
-                plot_dataset_layer[plot_by],
-                plot_dataset_layer["log10_gSHAP_budget_capped"],
-                color=plot_color,
-                s=5,
-                marker="s",
-                label=plot_label,
-            )
-
+    # Plot the median as line plot
+    scatter = ax.scatter(
+        x=plot_dataset["n_players"],
+        y=plot_dataset["log10_budget"],
+        c=plot_dataset[statistic],
+        cmap=cmap,
+        s=5,
+        marker="s",
+        vmin=min_v,
+        vmax=max_v,
+    )
+    if scatter.get_offsets().size > 0:
+        plt.colorbar(scatter, label=clabel)  # Add a colorbar if data is present
+    else:
+        print("No data to create colorbar.")
     # Axis customization
-    min_x = plot_dataset[plot_by].min()
-    max_x = min(plot_dataset[plot_by].max(), 100)
-    node_range = np.arange(min_x - min_x % 5, max_x, 5)
+    node_range = np.arange(min_x - min_x % 5, max_x, 10)
+    plot_naive_budget(node_range)
     plt.xlim(min_x, max_x)
-    plt.ylim(1, 10)
     plt.xticks(node_range)
     plt.yticks([2, 3, 4, 5, 6, 7, 8], ["100", "1k", "10k", "100k", "1m", "10m", "100m"])
+    plt.ylim(min_y, max_y)
     # Title and descriptions
-    plt.ylabel("GraphSHAP-IQ Budget (in log10)")
-    plt.xlabel(plot_by)
+    plt.ylabel(budget_label())
+    plt.xlabel(node_label())
     ax.legend()
-    plt.title(dataset)
+    plt.title(title)
     plt.grid(True, linestyle=":")
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path_plots, dataset + "_by_layers_statistics.png"))
+    plt.savefig(os.path.join(save_path_plots, save_id + ".png"))
     plt.show()
 
 
@@ -184,7 +173,7 @@ if __name__ == "__main__":
     save_path_plots = os.path.join(save_directory, "plots")
     results = {}
 
-    COLOR_LIST = ["#ef27a6", "#7d53de", "#00b4d8", "#ff6f00"]
+    COLOR_LIST = ["#ef27a6", "#7d53de", "#00b4d8", "#ff6f00", "#ffba08"]
     params = {
         "legend.fontsize": "x-large",
         "figure.figsize": (7, 5),
@@ -219,10 +208,9 @@ if __name__ == "__main__":
         result = pd.read_csv(file_path)
         file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
         if file_name.split("_")[0] == "complexity":
-            dataset_name = file_name.split("_")[2]
-            result["model_type"] = file_name.split("_")[1]
+            dataset_name = file_name.split("_")[1]
             result["dataset_name"] = dataset_name
-            result["n_layers"] = file_name.split("_")[3]
+            result["n_layers"] = file_name.split("_")[2]
             result = pd.merge(
                 result,
                 dataset_statistics[dataset_name],
@@ -233,33 +221,50 @@ if __name__ == "__main__":
             results[file_name] = result
 
     df = pd.concat(results.values(), keys=results.keys())
-    df["log10_gSHAP_budget"] = np.log10(df["exact_gSHAP"])
-    df["log10_gSHAP_budget_capped"] = df["log10_gSHAP_budget"].clip(
-        upper=df["n_players"] * np.log10(2)
-    )
-    df["n_players"] = df["n_players"].astype(int)
-    df["log10_gSHAP_budget"] = np.log10(df["exact_gSHAP"])
-    # df["player_bins"] = pd.cut(df["n_players"], bins=range(0, df["n_players"].max() + 6, 5), right=False)
-    means = df.groupby(["dataset_name", "model_type", "n_layers", "n_players"])[
-        "log10_gSHAP_budget"
-    ].mean()
-    q1 = df.groupby(["dataset_name", "model_type", "n_layers", "n_players"])[
-        "log10_gSHAP_budget"
-    ].quantile(0)
-    q3 = df.groupby(["dataset_name", "model_type", "n_layers", "n_players"])[
-        "log10_gSHAP_budget"
-    ].quantile(1)
-    medians = df.groupby(["dataset_name", "model_type", "n_layers", "n_players"])[
-        "log10_gSHAP_budget"
-    ].quantile(0.5)
-    stds = df.groupby(["dataset_name", "model_type", "n_layers", "n_players"])[
-        "log10_gSHAP_budget"
-    ].std()
+    df["log10_budget"] = np.log10(df["budget"].astype(float))
+    df["log10_budget_capped"] = df["log10_budget"].clip(upper=df["n_players"] * np.log10(2))
 
+    means = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].mean()
+    q1 = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].quantile(0.25)
+    q3 = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].quantile(0.75)
+    medians = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].median()
+    stds = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].std()
 
-    for dataset in DATASETS:
+    for dataset in df["dataset_name"].unique():
+        #Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
         plot_dataset = df[df["dataset_name"] == dataset]
-        #plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
-        plot_complexity_by_node_degree(
-            plot_dataset, dataset, scatter=True, plot_by="graph_density"
-        )
+        plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
+        plot_complexity_by_layers(plot_dataset, dataset, scatter=False)
+
+
+
+    # Graph Density Plot
+    dataset_name = "Mutagenicity"
+    n_layers = "2"
+    plot_dataet = df.copy()
+    plot_dataset = df[df["n_layers"] == n_layers]
+    plot_dataset = plot_dataset[plot_dataset["dataset_name"] == dataset_name]
+    save_id = "complexity_by_graph_density_" + dataset_name + "_" + n_layers
+    min_x = max(plot_dataset["n_players"].min(), 5)
+    max_x = min(plot_dataset["n_players"].max(), 65)
+    min_v = 0.05
+    max_v = 0.55
+    min_y = 1.5
+    max_y = 6.5
+    statistic = "graph_density"
+    clabel = "Graph Density"
+    title = "Exact Shapley Explanations on Mutagenicity (2-Layer GNN)"
+    plot_complexity_by_statistic(
+        save_id,
+        plot_dataset,
+        statistic,
+        title,
+        clabel,
+        min_x,
+        max_x,
+        min_v,
+        max_v,
+        min_y,
+        max_y,
+        cmap="plasma",
+    )
