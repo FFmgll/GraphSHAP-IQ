@@ -55,9 +55,9 @@ def get_TU_dataset(device, name):
 	num_nodes_features = dataset.graphs.num_node_features
 	num_classes = dataset.graphs.num_classes
 
-	train_loader = DataLoader(dataset[dataset.train_index], batch_size=32, shuffle=True)
-	val_loader = DataLoader(dataset[dataset.val_index], batch_size=32, shuffle=False)
-	test_loader = DataLoader(dataset[dataset.test_index], batch_size=32, shuffle=False)
+	train_loader = DataLoader(dataset[dataset.train_index], batch_size=64, shuffle=True)
+	val_loader = DataLoader(dataset[dataset.val_index], batch_size=64, shuffle=False)
+	test_loader = DataLoader(dataset[dataset.test_index], batch_size=64, shuffle=False)
 
 	return train_loader, val_loader, test_loader, num_nodes_features, num_classes
 
@@ -65,9 +65,9 @@ def get_TU_dataset(device, name):
 def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 	criterion = torch.nn.CrossEntropyLoss() if model.out_channels > 1 else torch.nn.BCELoss()
-	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-5,
+	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, min_lr=1e-5,
 														   threshold=1e-3)
-	early_stopper = EarlyStopper(patience=50)
+	early_stopper = EarlyStopper(patience=100)
 
 	model_name = model.model_type
 	dataset_name = train_loader.dataset.name
@@ -115,6 +115,7 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 
 		# Save best model on validation set
 		if epoch == 1 or val_acc >= best_val_acc:
+			best_train_acc = train_acc
 			best_val_acc = val_acc
 			best_test_acc = test_acc
 			torch.save(model.state_dict(), save_path)
@@ -130,7 +131,7 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 			 'node_bias': model.node_bias, 'graph_bias': model.graph_bias, 'dropout': model.dropout,
 			 'batch_norm': model.batch_norm,
 			 'jumping_knowledge': model.jumping_knowledge},
-			{'hparam/val_acc': best_val_acc, 'hparam/train_acc': train_acc, 'hparam/test_acc': best_test_acc})
+			{'hparam/val_acc': best_val_acc, 'hparam/train_acc': best_train_acc, 'hparam/test_acc': best_test_acc})
 	writer.close()
 
 

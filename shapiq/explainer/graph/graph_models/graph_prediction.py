@@ -4,21 +4,21 @@ from collections import OrderedDict
 
 import torch
 import torch_geometric
-from torch.nn import Dropout, Module, ReLU
-from torch_geometric.nn import GCNConv, GINConv, JumpingKnowledge, Linear, Sequential, global_mean_pool
+from torch.nn import Dropout, Module, ReLU, LeakyReLU
+from torch_geometric.nn import GCNConv, GINConv, GATConv, JumpingKnowledge, Linear, Sequential, global_mean_pool, global_add_pool
 from torch_geometric.nn.norm import BatchNorm
 from torch_geometric.nn.models import MLP
 
 
 class GNN(Module):
 	def __init__(self, model_type, in_channels, hidden_channels, out_channels, n_layers, node_bias=True,
-	             graph_bias=True,
-	             dropout=True, batch_norm=True, jumping_knowledge=False):
+	             graph_bias=True, dropout=True, batch_norm=True, jumping_knowledge=False):
 		super(GNN, self).__init__()
 
 		layers = {
 			"GCN": GCNConv,
-			"GIN": self.init_GIN # GINConv is initialized with an MLP
+			"GIN": self.init_GIN, # GINConv is initialized with an MLP
+			"GAT": GATConv,
 				}
 
 		self.model_type = model_type
@@ -50,7 +50,7 @@ class GNN(Module):
 			if batch_norm:
 				self.layers[f"batch_norm_{i}"] = BatchNorm(hidden_channels)
 
-			self.layers[f"relu_{i}"] = ReLU()
+			self.layers[f"relu_{i}"] = LeakyReLU()
 			self.layers[f"dropout_{i}"] = Dropout(p=self.p)
 
 		if jumping_knowledge:
@@ -73,14 +73,14 @@ class GNN(Module):
 		self.lin.reset_parameters()
 
 	def init_GIN(self, in_channels, out_channels, **kwargs):
-		mlp = MLP([in_channels, out_channels, out_channels])
+		mlp = MLP([in_channels, out_channels], dropout=self.p)
 		return GINConv(mlp)
 
 	def forward(self, x, edge_index, batch):
 		x = self.node_model(x=x, edge_index=edge_index)
 		if hasattr(self, 'jk'):
 			x = self.jk(x)
-		x = global_mean_pool(x, batch)
+		x = global_add_pool(x, batch)  # global_mean_pool(x, batch)
 		x = self.lin(x)
 		return x
 
