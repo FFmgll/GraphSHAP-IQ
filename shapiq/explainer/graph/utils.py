@@ -7,7 +7,7 @@ import torch
 from torch_geometric.data import DataLoader
 
 from shapiq.explainer.graph.graph_datasets import CustomTUDataset
-from shapiq.explainer.graph.graph_models import GCN, GIN
+from shapiq.explainer.graph.graph_models import GNN
 
 
 GRAPH_DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "graph_datasets")
@@ -78,29 +78,18 @@ def load_graph_model_architecture(
             "hidden"
         ]
 
-    if model_type == "GCN":
-        model = GCN(
-            in_channels=num_nodes_features,
-            hidden_channels=hidden,
-            out_channels=num_classes,
-            n_layers=n_layers,
-            node_bias=node_bias,
-            graph_bias=graph_bias,
-            dropout=dropout,
-            batch_norm=batch_norm,
-            jumping_knowledge=jumping_knowledge,
-        ).to(device)
+    if model_type in ["GCN", "GIN"]:
+        model = GNN(model_type=model_type,
+                    in_channels=num_nodes_features,
+                    hidden_channels=hidden,
+                    out_channels=num_classes,
+                    n_layers=n_layers,
+                    node_bias=node_bias,
+                    graph_bias=graph_bias,
+                    dropout=dropout,
+                    batch_norm=batch_norm,
+                    jumping_knowledge=jumping_knowledge).to(device)
         model.node_model.to(device)
-    elif model_type == "GIN":
-        model = GIN(
-            in_channels=num_nodes_features,
-            hidden_channels=64,
-            out_channels=num_classes,
-            n_layers=n_layers,
-            graph_bias=graph_bias,
-            node_bias=node_bias,
-        ).to(device)
-        pass  # TODO: Implement GIN (or general GNN) model + GAT
     else:
         raise ValueError("Model type not supported.")
 

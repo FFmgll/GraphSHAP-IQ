@@ -270,9 +270,11 @@ class GraphDataset:
         self.device = device
         # explanation_list - list of explanations for each graph
 
+        self.Y = torch.tensor([self.graphs[i].y for i in range(len(self.graphs))])
+
         if split_sizes[1] > 0:
             self.train_index, self.test_index = train_test_split(torch.arange(start = 0, end = len(self.graphs)), 
-                test_size = split_sizes[1] + split_sizes[2], random_state=self.seed, shuffle = False)
+                test_size = split_sizes[1] + split_sizes[2], random_state=self.seed, shuffle = True, stratify = self.Y)
         else:
             self.test_index = None
             self.train_index = torch.arange(start = 0, end = len(self.graphs))
@@ -280,12 +282,12 @@ class GraphDataset:
         if split_sizes[2] > 0:
             self.test_index, self.val_index = train_test_split(self.test_index, 
                 test_size = split_sizes[2] / (split_sizes[1] + split_sizes[2]),
-                random_state = self.seed, shuffle = False)
+                random_state = self.seed, shuffle = True, stratify = self.Y[self.test_index])
 
         else:
             self.val_index = None
 
-        self.Y = torch.tensor([self.graphs[i].y for i in range(len(self.graphs))]).to(self.device)
+        self.Y = self.Y.to(self.device)
 
     def get_data_list(
             self,
