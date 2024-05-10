@@ -103,11 +103,12 @@ if __name__ == "__main__":
         graph=graph,
         interaction_values=k_sii_values,
         plot_explanation=True,
-        n_interactions=10,
-        size_factor=5,
-        compactness=25,
+        n_interactions=100,
+        size_factor=1,
+        compactness=5,
         random_seed=4,
         label_mapping=graph_labels,
+        cubic_scaling=True,
     )
     plt.savefig(os.path.join(PLOT_DIR, f"{results_file}_graph_explanation.pdf"))
     plt.tight_layout()

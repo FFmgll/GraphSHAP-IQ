@@ -27,7 +27,7 @@ DATASET_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "graph_
 
 
 class EarlyStopper:
-	def __init__(self, patience=1, min_delta=0):
+	def __init__(self, patience=1, min_delta=0.):
 		self.patience = patience
 		self.min_delta = min_delta
 		self.counter = 0
@@ -37,7 +37,7 @@ class EarlyStopper:
 		if validation_loss < self.min_validation_loss:
 			self.min_validation_loss = validation_loss
 			self.counter = 0
-		elif validation_loss > (self.min_validation_loss + self.min_delta):
+		elif validation_loss > (self.min_validation_loss * (1 + self.min_delta)):
 			self.counter += 1
 			if self.counter >= self.patience:
 				return True
@@ -54,11 +54,10 @@ def get_TU_dataset(device, name):
 
 	num_nodes_features = dataset.graphs.num_node_features
 	num_classes = dataset.graphs.num_classes
-	# TODO: Consider using stratified sampling for multi-class classification
 
-	train_loader = DataLoader(dataset[dataset.train_index], batch_size=32, shuffle=True)
-	val_loader = DataLoader(dataset[dataset.val_index], batch_size=32, shuffle=False)
-	test_loader = DataLoader(dataset[dataset.test_index], batch_size=32, shuffle=False)
+	train_loader = DataLoader(dataset[dataset.train_index], batch_size=64, shuffle=True)
+	val_loader = DataLoader(dataset[dataset.val_index], batch_size=64, shuffle=False)
+	test_loader = DataLoader(dataset[dataset.test_index], batch_size=64, shuffle=False)
 
 	return train_loader, val_loader, test_loader, num_nodes_features, num_classes
 
@@ -66,11 +65,11 @@ def get_TU_dataset(device, name):
 def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 	criterion = torch.nn.CrossEntropyLoss() if model.out_channels > 1 else torch.nn.BCELoss()
-	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6,
+	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, min_lr=1e-5,
 														   threshold=1e-3)
-	early_stopper = EarlyStopper(patience=50)
+	early_stopper = EarlyStopper(patience=100)
 
-	model_name = model.__class__.__name__
+	model_name = model.model_type
 	dataset_name = train_loader.dataset.name
 	log_dir = Path("shapiq", "explainer", "graph", "ckpt", "training_logs",
 				   "graph_prediction", model_name, dataset_name).resolve()
@@ -116,10 +115,12 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 
 		# Save best model on validation set
 		if epoch == 1 or val_acc >= best_val_acc:
+			best_train_acc = train_acc
 			best_val_acc = val_acc
 			best_test_acc = test_acc
 			torch.save(model.state_dict(), save_path)
 			print(f"Best model saved at epoch {epoch}, Val Acc: {val_acc:.4f}, Test Acc: {test_acc:.4f}")
+			early_stopper.counter = 0  # Reset early stopper
 
 		if early_stopper.early_stop(val_loss):
 			print(f"Early stopping at epoch {epoch}")
@@ -130,7 +131,7 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 			 'node_bias': model.node_bias, 'graph_bias': model.graph_bias, 'dropout': model.dropout,
 			 'batch_norm': model.batch_norm,
 			 'jumping_knowledge': model.jumping_knowledge},
-			{'hparam/val_acc': best_val_acc, 'hparam/train_acc': train_acc, 'hparam/test_acc': best_test_acc})
+			{'hparam/val_acc': best_val_acc, 'hparam/train_acc': best_train_acc, 'hparam/test_acc': best_test_acc})
 	writer.close()
 
 

@@ -16,15 +16,17 @@ class GraphGame(Game):
     prediction, which should be included in the model
 
     Args:
-        x: The graph to explain. Should be a torch tensor representing a graph.
+        x_graph: The graph to explain. Should be a torch tensor representing a graph.
         model: The torch graph neural network to explain as a callable function expecting data
             points as input and returning the model's predictions. The input should be a torch tensor
             representing a graph or batch of graphs.
         masking_mode: Masking technique implemented for node-removal.
         normalize: If True, then each prediction is normalized by the baseline prediction, where all
             nodes are masked.
-        class_id: The position of the response to explain, e.g. the class
+        class_id: The class to be explained. If None, the class with the highest prediction is
+            explained. Defaults to `None`.
         instance_id: The instance id of the game (e.g. the index of the graph in the dataset).
+
 
     Attributes:
         x_graph: The graph to explain. Should be a torch tensor representing a graph.
@@ -41,10 +43,11 @@ class GraphGame(Game):
 
     def __init__(
         self,
-        model: Callable,
+        model: torch.nn.Module,
         x_graph: Data,
         max_neighborhood_size: int,
-        class_id: np.ndarray,
+        *,
+        class_id: Optional[int] = None,
         masking_mode: str = "feature-removal",
         normalize: bool = True,
         baseline: Optional[np.ndarray] = None,
@@ -53,6 +56,7 @@ class GraphGame(Game):
         if baseline is None:
             warnings.warn("Baseline is not provided, baseline will be initialized as zero...")
         self.model = model
+        self.model.eval()
         self.max_neighborhood_size = max_neighborhood_size
         self.x_graph = x_graph.clone()
         self.baseline = baseline
@@ -64,9 +68,15 @@ class GraphGame(Game):
             self.masking = self.mask_input
         if self.masking_mode == "node-removal":
             self.masking = self.mask_nodes
-        self.y_index = class_id
+        if class_id is None:  # explaining the predicted class
+            # eval model and find the prediction index
+            model_output = self.model(self.x_graph.x, self.x_graph.edge_index, self.x_graph.batch)
+            self.y_index = int(np.argmax(model_output.detach().numpy(), axis=1))
+        else:
+            self.y_index = int(class_id)
+
         # Compute emptyset prediction
-        normalization_value = self.value_function(np.zeros(len(x_graph.x)))
+        normalization_value = float(self.value_function(np.zeros(len(x_graph.x))))
         # call the super constructor
         super().__init__(
             n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
