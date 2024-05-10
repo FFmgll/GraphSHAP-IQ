@@ -1,1 +1,1 @@
-from .graph_prediction import GCN, GIN
+from .graph_prediction import GCN, GIN, QualityModel

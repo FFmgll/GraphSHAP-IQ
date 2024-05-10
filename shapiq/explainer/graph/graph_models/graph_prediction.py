@@ -5,9 +5,13 @@ from collections import OrderedDict
 import torch
 import torch_geometric
 from torch.nn import Dropout, Module, ReLU
-from torch_geometric.nn import GCNConv, GINConv, JumpingKnowledge, Linear, Sequential, global_mean_pool
+from torch.nn import Sequential as Seq
+from torch_geometric.nn import (
+	GCNConv, GINConv, JumpingKnowledge, Linear, Sequential, global_mean_pool,
+	MessagePassing
+)
 from torch_geometric.nn.norm import BatchNorm
-
+import torch.nn.functional as F
 
 class GCN(Module):
 	def __init__(self, in_channels, hidden_channels, out_channels, n_layers, node_bias=True, graph_bias=True,
@@ -97,6 +101,47 @@ class GIN(torch.nn.Module):
 
 		return x
 
+class EdgeConv(MessagePassing):
+    def __init__(self, in_channels, hidden_channels, out_channels, bias=False):
+        super().__init__(aggr='mean') #  "Max" aggregation.
+        self.mlp1 = Seq(
+			Linear(2 * in_channels, hidden_channels, bias=bias),
+            ReLU(),
+			Linear(hidden_channels, hidden_channels, bias=bias)
+		)
+        self.mlp2 = Seq(Linear(hidden_channels, out_channels, bias=False))
+
+    def forward(self, x, edge_index, edge_features):
+        # x: [N, in_channels]
+        # edge_index: [2, n_edges]
+        x = self.propagate(edge_index, x=x, edge_features=edge_features)
+        return self.mlp2(x)
+
+    def message(self, x_j, edge_features):
+        # x_j: [n_edges, in_channels]
+        # edge_features: [n_edges, in_channels]
+        tmp = torch.cat([x_j, edge_features], dim=-1)
+        return self.mlp1(tmp)
+
+class QualityModel(Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, bias=False, n_layers=3):
+        super().__init__()
+        self.n_layers = n_layers
+        self.node_enc = Linear(in_channels, hidden_channels, bias=bias)
+        self.edge_enc = Linear(in_channels, hidden_channels, bias=bias)
+        self._layers = torch.nn.ModuleList([
+            EdgeConv(hidden_channels, hidden_channels, hidden_channels, bias=bias)
+            for _ in range(self.n_layers)
+        ])
+        self.out = Seq(Linear(hidden_channels, out_channels, bias=False))
+
+    def forward(self, x, edge_index, edge_features, batch):
+        x = self.node_enc(x)
+        edge_features = self.edge_enc(edge_features)
+        for layer in self._layers:
+            x += layer(x, edge_index, edge_features)
+        x = global_mean_pool(x, batch)
+        return self.out(x)
 
 if __name__ == "__main__":
 	model = GCN(128, 64, 2, 3, node_bias=True, graph_bias=True, dropout=False, batch_norm=False,
