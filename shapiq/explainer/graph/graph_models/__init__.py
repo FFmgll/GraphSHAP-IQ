@@ -1,1 +1,1 @@
-from .graph_prediction import GNN
+from .graph_prediction import GNN, QualityModel

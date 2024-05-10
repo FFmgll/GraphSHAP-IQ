@@ -78,7 +78,7 @@ def load_graph_model_architecture(
             "hidden"
         ]
 
-    if model_type in ["GCN", "GIN"]:
+    if model_type in ["GCN", "GIN", "GAT"]:
         model = GNN(model_type=model_type,
                     in_channels=num_nodes_features,
                     hidden_channels=hidden,
