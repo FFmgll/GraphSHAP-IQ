@@ -41,15 +41,17 @@ class WaterQuality(Dataset):
     def load(self):
         self.quality_data = []
         self.flow_data = []
-        graph = np.load(Path(self.data_dir) / 'graph.npz')
+        graph = np.load(Path(self.data_dir) / 'graph.npz', allow_pickle=True)
         self.edge_index = graph['edge_index']
         self.edge_index = np.concatenate([self.edge_index, self.edge_index[::-1]], axis=-1)
         self.edge_index = torch.tensor(self.edge_index)
+        self.node_pos = graph['pos'].item()
         self.n_scenarios = 0
         self._len = 0
         self.quality_max = -1e10
         self.flow_max = -1e10
         self.steps_per_sample = 36
+        
 
         for file in self.filter_subset():
             if str(file).endswith('graph.npz'): continue

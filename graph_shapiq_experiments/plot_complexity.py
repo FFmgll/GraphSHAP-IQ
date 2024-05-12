@@ -12,29 +12,39 @@ def logarithmic_function(x, a, b):
 
 
 def budget_label():
-    return "GraphSHAP-IQ Model Calls (in log 10)"
+    return "Number of Model Calls (in log 10)"
+
 
 def node_label():
     return "Number of Graph Nodes (n)"
 
 
-def plot_trend_curve(x_values, values, color, type="lin"):
+def plot_trend_curve(x_values, values, color, type="log"):
+    x_val = np.array(x_values)
+    y_val = np.array(values)
+
     if type == "log":
-        popt, pcov = curve_fit(logarithmic_function, x_values, values)
+        popt, pcov = curve_fit(logarithmic_function, x_val, y_val)
+        y_fit = logarithmic_function(x_val, *popt)
+        #
+        idx_to_plot = y_fit < x_val*np.log10(2)
+        plot_y = y_fit[idx_to_plot]
+        plot_x = x_val[idx_to_plot]
+
         plt.plot(
-            x_values,
-            logarithmic_function(x_values, *popt),
+            plot_x,
+            plot_y,
             color=color,
             linestyle="--",
             linewidth=1,
             label="",
         )
     if type == "lin":
-        coefficients = np.polyfit(x_values, values, 1)
+        coefficients = np.polyfit(x_val, y_val, 1)
         polynomial_func = np.poly1d(coefficients)
         plt.plot(
-            x_values,
-            polynomial_func(x_values),
+            x_val,
+            polynomial_func(x_val),
             color=color,
             linestyle=":",
             linewidth=1,
@@ -108,7 +118,7 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
     # Axis customization
     min_x = plot_dataset["n_players"].min()
     max_x = min(plot_dataset["n_players"].max(), 150)
-    node_range = np.arange(min_x - min_x % 5, max_x, max_x//10)
+    node_range = np.arange(min_x - min_x % 5, max_x, max_x // 10)
     plot_naive_budget(node_range)
     plt.xlim(min_x, max_x)
     plt.ylim(1, 8.5)
@@ -118,13 +128,15 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
     plt.ylabel(budget_label())
     plt.xlabel(node_label())
     ax.legend()
-    plt.title("Exact Shapley Explanations on "+dataset)
+    plt.title("Exact Shapley Explanations on " + dataset)
     plt.grid(True, linestyle=":")
     plt.tight_layout()
     if scatter:
-        plt.savefig(os.path.join(save_path_plots, "complexity_by_layers_"+dataset + ".png"))
+        plt.savefig(os.path.join(save_path_plots, "complexity_by_layers_" + dataset + ".png"))
     else:
-        plt.savefig(os.path.join(save_path_plots, "complexity_by_layers_"+ dataset + "_median_q1_q3.png"))
+        plt.savefig(
+            os.path.join(save_path_plots, "complexity_by_layers_" + dataset + "_median_q1_q3.png")
+        )
     plt.show()
 
 
@@ -231,12 +243,10 @@ if __name__ == "__main__":
     stds = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].std()
 
     for dataset in df["dataset_name"].unique():
-        #Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
+        # Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
         plot_dataset = df[df["dataset_name"] == dataset]
         plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
         plot_complexity_by_layers(plot_dataset, dataset, scatter=False)
-
-
 
     # Graph Density Plot
     dataset_name = "Mutagenicity"
