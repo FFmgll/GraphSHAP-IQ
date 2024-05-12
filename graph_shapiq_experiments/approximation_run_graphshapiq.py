@@ -2,19 +2,17 @@
 
 import copy
 
-
 import torch
-
 from tqdm.auto import tqdm
 
-from utils_approximation import (
+from approximation_utils import (
     is_game_computed,
     save_interaction_value,
     BudgetError,
     GRAPHSHAPIQ_APPROXIMATION_DIR,
+    pre_select_data_ids,
 )
-
-from shapiq import InteractionValues
+from shapiq.interaction_values import InteractionValues
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.explainer.graph import (
     GraphSHAPIQ,
@@ -107,16 +105,25 @@ def run_graph_shapiq_approximation(
 if __name__ == "__main__":
 
     # run setup
-    N_GAMES = 1
-    MAX_N_PLAYERS = 12
-    MIN_N_PLAYERS = 1
+    N_GAMES = 24
+    MAX_N_PLAYERS = 15
+    MIN_N_PLAYERS = 10
 
-    MAX_BUDGET = 10_000
+    MAX_BUDGET = 2**15
 
     MODEL_ID = "GCN"  # one of GCN GIN
     DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     N_LAYERS = 2  # one of 1 2 3 4
     EFFICIENCY_MODE = True  # one of True False
+
+    DATA_IDS = pre_select_data_ids(
+        dataset_to_select=DATASET_NAME,
+        n_layers=N_LAYERS,
+        max_budget=MAX_BUDGET,
+        min_players=MIN_N_PLAYERS,
+        max_players=MAX_N_PLAYERS,
+        sort=False,
+    )
 
     # see whether a GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -127,7 +134,8 @@ if __name__ == "__main__":
     # set the games up for the approximation
     games_to_run = []
     explanation_instances = get_explanation_instances(DATASET_NAME)
-    for data_id, x_graph in enumerate(explanation_instances):
+    for data_id in DATA_IDS:
+        x_graph = explanation_instances[int(data_id)]
         if is_game_computed(
             MODEL_ID, DATASET_NAME, N_LAYERS, data_id, directory=GRAPHSHAPIQ_APPROXIMATION_DIR
         ):

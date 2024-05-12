@@ -23,7 +23,7 @@ from shapiq.explainer.graph import get_explanation_instances
 from shapiq.interaction_values import InteractionValues
 from shapiq.plot.explanation_graph import explanation_graph_plot
 from shapiq.moebius_converter import MoebiusConverter
-from utils_approximation import EXACT_DIR, parse_file_name
+from approximation_utils import EXACT_DIR, parse_file_name
 
 RESULTS_DIR = os.path.join("..", "results", "single_gt_instances")
 PLOT_DIR = os.path.join("..", "results", "explanation_graphs")

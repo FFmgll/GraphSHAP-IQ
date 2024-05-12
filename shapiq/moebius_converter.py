@@ -37,7 +37,7 @@ class MoebiusConverter:
     def __init__(self, moebius_coefficients: InteractionValues):
         self.moebius_coefficients: InteractionValues = moebius_coefficients
         self.n = self.moebius_coefficients.n_players
-        self.n_interactions = self._get_n_interactions()
+        # self.n_interactions = self._get_n_interactions()  # TODO: remove from shapiq
         self._computed: dict = {}
         # setup callable mapping from index to computation
         self._index_mapping: dict[str, Callable[[], InteractionValues]] = {
