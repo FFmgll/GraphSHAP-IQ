@@ -70,12 +70,12 @@ class MoebiusConverter:
         if order is None:
             order = self.n
 
-        if index in self._computed:
-            return copy.deepcopy(self._computed[index])
+        if (index, order) in self._computed:
+            return copy.deepcopy(self._computed[(index, order)])
         elif index in self.available_indices:
             computation_function = self._index_mapping[index]
             computed_index: InteractionValues = computation_function(index=index, order=order)
-            self._computed[index] = computed_index
+            self._computed[(index, order)] = computed_index
             return copy.deepcopy(computed_index)
         else:
             raise ValueError(f"Index {index} not supported.")
