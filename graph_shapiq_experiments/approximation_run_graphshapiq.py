@@ -105,13 +105,13 @@ def run_graph_shapiq_approximation(
 if __name__ == "__main__":
 
     # run setup
-    N_GAMES = 12
+    N_GAMES = 20
     MAX_N_PLAYERS = 40
     MIN_N_PLAYERS = 16
 
     MAX_BUDGET = 2**15
 
-    MODEL_ID = "GAT"  # one of GCN GIN
+    MODEL_ID = "GIN"  # one of GCN GIN
     DATASET_NAME = "PROTEINS"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     N_LAYERS = 2  # one of 1 2 3 4
     EFFICIENCY_MODE = True  # one of True False
