@@ -238,7 +238,7 @@ _best_hyperparameters = {
                 "Mutagenicity": {
                         "n_layers": {
                                 "1": {"hidden": 128},
-                                "2": {"hidden": 128},
+                                "2": {"hidden": 64},
                                 "3": {"hidden": 128},
                                 "4": {"hidden": 64},
                                 }
