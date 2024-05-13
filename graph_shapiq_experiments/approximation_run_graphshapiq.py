@@ -83,7 +83,6 @@ def run_graph_shapiq_approximation(
     if total_budget > MAX_BUDGET:
         raise BudgetError(
             f"The total budget of {total_budget} is too high for game id {game.game_id}."
-            f" The maximum budget is {MAX_BUDGET}."
         )
 
     interaction_sizes = list(range(1, approximator.max_size_neighbors + 1))
@@ -112,7 +111,7 @@ if __name__ == "__main__":
 
     MODEL_ID = "GAT"  # one of GCN GIN GAT
     DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
-    N_LAYERS = 2  # one of 1 2 3 4
+    N_LAYERS = 2  # one of 1 2 3
     EFFICIENCY_MODE = True  # one of True False
 
     max_budget = 2**15
