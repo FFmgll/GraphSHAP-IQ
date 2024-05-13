@@ -503,7 +503,33 @@ def create_results_overview_table() -> pd.DataFrame:
                 }
             )
 
-    return pd.DataFrame(results)
+    df = pd.DataFrame(results)
+
+    # add a id colum for the graphshapiq run for each other approximation
+    approx_to_map = ["exact", "KernelSHAPIQ", "SVARMIQ", "PermutationSamplingSII"]
+    graph_shap_iq_runs = df[df["approximation"] == "GraphSHAPIQ"]
+    df["graphshapiq_run"] = None
+    df["max_interaction_size"] = None
+    for index, row in graph_shap_iq_runs.iterrows():
+        # set graphshapiq run id for itself
+        df.loc[index, "graphshapiq_run"] = row["run_id"]
+        df.loc[index, "max_interaction_size"] = row["max_neighborhood_size"]
+        instance_id = row["instance_id"]
+        budget = row["budget"]
+        for approx in approx_to_map:
+            if approx != "exact":
+                run = df[
+                    (df["instance_id"] == instance_id)
+                    & (df["budget"] == budget)
+                    & (df["approximation"] == approx)
+                ]
+            else:
+                run = df[(df["instance_id"] == instance_id) & (df["approximation"] == approx)]
+            if not run.empty:
+                df.loc[run.index, "graphshapiq_run"] = row["run_id"]
+                df.loc[run.index, "max_interaction_size"] = row["max_neighborhood_size"]
+
+    return df
 
 
 def pre_select_data_ids(
@@ -513,6 +539,7 @@ def pre_select_data_ids(
     min_players: int,
     max_players: int,
     sort: bool = False,
+    sort_budget: bool = False,
 ) -> list[int]:
     """Preselect data ids based on the complexity analysis results.
 
@@ -523,6 +550,8 @@ def pre_select_data_ids(
         min_players: The minimum (inclusive) number of players to select the data ids from.
         max_players: The maximum (inclusive) number of players to select the data ids from.
         sort: Whether to sort the data ids by the number of players (descending) or not. Default is
+            False.
+        sort_budget: Whether to sort the data ids by the budget (ascending) or not. Default is
             False.
     """
 
@@ -581,6 +610,11 @@ def pre_select_data_ids(
     # sort by n_players descending
     if sort:
         selection = selection.sort_values(by="n_players", ascending=False)
+
+    # sort by budget ascending
+    if sort_budget:
+        selection = selection.sort_values(by="budget", ascending=True)
+
     selection.to_csv("selected_data_ids.csv", index=False)
 
     # return the selected data ids

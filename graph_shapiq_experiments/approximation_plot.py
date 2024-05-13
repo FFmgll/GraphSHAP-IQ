@@ -1,19 +1,10 @@
-"""This plotting script takes the interaction values of the approximations and the exact values
-from the GraphSHAP-IQ approximations and plots the results."""
-import copy
-import os
-from typing import Optional
+"""This plotting script visualizes the approximation qualities as a scatter plot for different
+approximation methods and budgets."""
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-from tqdm.auto import tqdm
 
-from shapiq.interaction_values import InteractionValues
-from shapiq.moebius_converter import MoebiusConverter
-from approximation_utils import create_results_overview_table
-from shapiq.games.benchmark.metrics import get_all_metrics
-
+from approximation_utils_plot import get_plot_df
 
 COLORS = {
     "PermutationSamplingSII": "#7d53de",
@@ -30,153 +21,86 @@ MARKERS = {
 }
 
 
-def load_interactions_to_plot(results_df: pd.DataFrame):
-    """Load the interaction values of the approximations and the exact values from the GraphSHAP-IQ
-    approximations and return the results as a list of dictionaries.
+def make_box_plots(plot_df) -> None:
+    """Make a plot showing the approximation qualities for different approximation methods as
+    box plots in one plot.
 
     Args:
-        results_df: The results DataFrame.
-
-    Returns:
-        The results to plot as a list of dictionaries.
+        plot_df: The DataFrame containing the approximation qualities.
     """
-    results_to_plot: list[dict] = []
-    # get exact values and transform them with Möbius
-    exact_values_index: dict[str, InteractionValues] = {}  # instance_id -> InteractionValues
-    instances_exact = results_df[results_df["exact"] == True][["instance_id", "file_path"]]
-    for instance_id, file_path in tqdm(
-        instances_exact.itertuples(index=False, name=None),
-        desc="Transforming exact values",
-        total=len(instances_exact),
-    ):
-        exact = InteractionValues.load(file_path)
-        converter = MoebiusConverter(moebius_coefficients=exact)
-        exact_values_index[instance_id] = converter(index=INDEX, order=MAX_ORDER)
-    print(f"Found {len(exact_values_index)} exact values.")
-    for instance_id, values in exact_values_index.items():
-        n_players = values.n_players
-        print(f"Instance {instance_id} with {n_players} players.")
+    # remove outliers for plotting percentile: 0.05 and 0.95
+    upper_bound = plot_df[PLOT_METRIC].quantile(0.95)
+    lower_bound = plot_df[PLOT_METRIC].quantile(0.05)
+    plot_df = plot_df[(plot_df[PLOT_METRIC] <= upper_bound) & (plot_df[PLOT_METRIC] >= lower_bound)]
 
-    # get and transform the graph_shapiq values
-    graph_shapiq_values_index: dict[str, InteractionValues] = {}  # instance_id -> InteractionValues
-    gshap = results_df[results_df["approximation"] == "GraphSHAPIQ"][
-        ["run_id", "instance_id", "budget", "file_path"]
-    ]
-    for run_id, instance_id, budget, file_path in tqdm(
-        gshap.itertuples(index=False, name=None),
-        desc="Transforming GraphSHAP-IQ values",
-        total=len(gshap),
-    ):
-        if instance_id not in instances_exact["instance_id"].values:
-            print(f"Skipping {instance_id} because exact values are not computed.")
+    # remove the interaction sizes not to plot
+    if INTERACTION_SIZE_NOT_TO_PLOT is not None and INTERACTION_SIZE_NOT_TO_PLOT != []:
+        plot_df = plot_df[~plot_df["max_interaction_size"].isin(INTERACTION_SIZE_NOT_TO_PLOT)]
+
+    # make a single figure with box plots for each apporximation method at each max_interaction_size
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+
+    # get offsets that center the box plots for each approximation method
+    n_approx = len(APPROX_TO_PLOT)
+    box_plot_width = 1 / n_approx - 0.05
+    approx_position_offsets = []
+    for i in range(n_approx):
+        approx_position_offsets.append(i * box_plot_width - (n_approx - 1) / (2 * n_approx))
+
+    index = 0
+    for approx in APPROX_TO_PLOT:
+        approx_df = plot_df[plot_df["approximation"] == approx]
+        if approx_df.empty:
             continue
-        graph_shapiq = InteractionValues.load(file_path)
-        converter = MoebiusConverter(moebius_coefficients=graph_shapiq)
-        graph_shapiq_values_index[instance_id] = converter(index=INDEX, order=MAX_ORDER)
-
-        metrics = get_all_metrics(
-            ground_truth=exact_values_index[instance_id],
-            estimated=graph_shapiq_values_index[instance_id],
+        ax.boxplot(
+            [
+                approx_df[approx_df["max_interaction_size"] == size][PLOT_METRIC]
+                for size in approx_df["max_interaction_size"].unique()
+            ],
+            positions=approx_df["max_interaction_size"].unique() + approx_position_offsets[index],
+            widths=box_plot_width,
+            showfliers=False,
+            patch_artist=True,
+            boxprops=dict(edgecolor=COLORS[approx], facecolor=COLORS[approx] + "33"),
+            whiskerprops=dict(color=COLORS[approx]),
+            capprops=dict(color=COLORS[approx]),
+            medianprops=dict(color=COLORS[approx]),
+            meanprops=dict(marker="o", markerfacecolor=COLORS[approx], markeredgecolor="black"),
         )
-        results_to_plot.append(
-            {
-                "run_id": run_id,
-                "instance_id": instance_id,
-                "approximation": "GraphSHAPIQ",
-                "budget": budget,
-                "index": INDEX,
-                "max_order": MAX_ORDER,
-                "min_order": 0,
-                **metrics,
-            }
-        )
+        index += 1
+        # add empty plot for legend
+        ax.plot([], [], color=COLORS[approx], label=approx)
 
-    # add approximator
-    for approx_name in ["PermutationSamplingSII", "KernelSHAPIQ", "SVARMIQ"]:
-        approx: dict[str, InteractionValues] = {}  # instance_id - InteractionValues
-        kshap = results_df[results_df["approximation"] == approx_name][
-            ["run_id", "instance_id", "budget", "file_path"]
-        ]
-        for run_id, instance_id, budget, file_path in tqdm(
-            kshap.itertuples(index=False, name=None),
-            desc=f"Loading {approx_name} values",
-            total=len(kshap),
-        ):
-            if instance_id not in instances_exact["instance_id"].values:
-                print(f"Skipping {instance_id} because exact values are not computed.")
-                continue
-            approx[instance_id] = InteractionValues.load(file_path)
-            metrics = get_all_metrics(
-                ground_truth=exact_values_index[instance_id],
-                estimated=approx[instance_id],
-            )
-            results_to_plot.append(
-                {
-                    "run_id": run_id,
-                    "instance_id": instance_id,
-                    "approximation": approx_name,
-                    "budget": approx[instance_id].estimation_budget,
-                    "index": INDEX,
-                    "max_order": MAX_ORDER,
-                    "min_order": 0,
-                    **metrics,
-                }
-            )
-    return results_to_plot
+    # remove the x ticks
+    ax.set_xticks([])
+    # set the x ticks to the max_interaction_size
+    max_size = max(plot_df["max_interaction_size"].unique())
+    min_size = min(plot_df["max_interaction_size"].unique())
+    ax.set_xticks(range(min_size, max_size + 1))
+    ax.set_xticklabels(range(min_size, max_size + 1))
 
+    # add grid behind the box plots
+    ax.yaxis.grid(True)
+    ax.set_axisbelow(True)
 
-if __name__ == "__main__":
-
-    APPROX_TO_PLOT = ["PermutationSamplingSII", "SVARMIQ", "KernelSHAPIQ", "GraphSHAPIQ"]
-
-    # plot parameters
-    PLOT_METRIC = "SSE"
-    # CSV_PLOT_FILE = None
-    # CSV_PLOT_FILE = "plot_csv_Mutagenicity_GCN_2_True_k-SII_2.csv"
-    # CSV_PLOT_FILE = "plot_csv_Mutagenicity_GCN_2_False_k-SII_2.csv"
-    CSV_PLOT_FILE = "plot_csv_Mutagenicity_GCN_3_False_k-SII_2.csv"
-
-    # setting parameters
-    MODEL_ID = "GCN"
-    DATASET_NAME = "Mutagenicity"
-    N_LAYERS = 3
-    SMALL_GRAPH = False
-    MAX_BUDGET = 2**15
-
-    INDEX = "k-SII"
-    MAX_ORDER = 2
-
-    MAX_SIZE = -2
-
-    overview_table = create_results_overview_table()
-    overview_table = copy.deepcopy(
-        overview_table[
-            (overview_table["dataset_name"] == DATASET_NAME)
-            & (overview_table["n_layers"] == N_LAYERS)
-            & (overview_table["model_id"] == MODEL_ID)
-            & (overview_table["small_graph"] == SMALL_GRAPH)
-        ]
+    ax.set_xlabel("Interaction size")
+    ax.set_ylabel(PLOT_METRIC)
+    plt.legend(loc="best")
+    small_graph = "small" if SMALL_GRAPH else "large"
+    title = (
+        f"{INDEX} of order {MAX_ORDER} for {DATASET_NAME} ({small_graph} graph) "
+        + f"with {MODEL_ID} ({N_LAYERS} layers)"
     )
+    ax.set_title(title)
+    plt.show()
 
-    # create a DataFrame from the results
-    if CSV_PLOT_FILE is None or not os.path.exists(CSV_PLOT_FILE):
-        plot_df = pd.DataFrame(load_interactions_to_plot(overview_table))
-        file_name = (
-            f"plot_csv_{DATASET_NAME}_{MODEL_ID}_{N_LAYERS}_{SMALL_GRAPH}_{INDEX}_{MAX_ORDER}.csv"
-        )
-        plot_df.to_csv(file_name, index=False)
-    else:
-        plot_df = pd.read_csv(CSV_PLOT_FILE)
 
-    # inner join with the overview table and drop all duplicate columns from the overview table
-    merge_columns = ["run_id"]
-    plot_df = pd.merge(plot_df, overview_table, on=merge_columns, how="inner")
-    for column in plot_df.columns:
-        if column.endswith("_y"):
-            plot_df = plot_df.drop(column, axis=1)
-        if column.endswith("_x"):
-            plot_df = plot_df.rename(columns={column: column[:-2]})
+def make_scatter_plot(plot_df) -> None:
+    """Make a scatter plot of the approximation qualities for different approximation methods.
 
+    Args:
+        plot_df: The DataFrame containing the approximation qualities.
+    """
     # for graphshapiq, only select the values max_neighborhood_size - 1 for each instance_id
     if MAX_SIZE is not None:
         selection = plot_df[plot_df["approximation"] == "GraphSHAPIQ"]
@@ -238,16 +162,67 @@ if __name__ == "__main__":
     ax.set_title(title)
 
     # set log scale
-    if PLOT_METRIC in ("MSE", "SSE", "MAE"):
+    if PLOT_METRIC in ("MSE", "SSE", "MAE") and LOG_SCALE:
         ax.set_yscale("log")
-        # ax.set_ylim(1e-1, 1e6)
     if "Precision" in PLOT_METRIC:
         ax.set_ylim(0, 1)
     if "Kendall" in PLOT_METRIC:
         ax.set_ylim(-1, 1)
 
+    ax.set_ylim(Y_LIM)
+
     ax.set_xlim(0, MAX_BUDGET)
 
-    # place legend lower left
-    # plt.legend(loc="lower left")
+    # place legend
+    plt.legend(loc="best")
     plt.show()
+
+
+if __name__ == "__main__":
+
+    # setting parameters
+    MODEL_ID = "GAT"  # GCN GIN GAT
+    DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS
+    N_LAYERS = 2  # 2 3
+    SMALL_GRAPH = False  # True False
+    INDEX = "k-SII"  # k-SII
+    MAX_ORDER = 2  # 2
+
+    # plot parameters
+    APPROX_TO_PLOT = [
+        "PermutationSamplingSII",
+        # "SVARMIQ",
+        "KernelSHAPIQ",
+        "GraphSHAPIQ",
+    ]
+    PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
+    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
+    MAX_INTERACTION_SIZES_TO_DROP = 2  # None n (drop the interaction sizes higher than max - n)
+
+    # scatter plot parameters
+    SCATTER_PLOT = False  # True False (plot the approximation qualities as a scatter plot)
+    MAX_SIZE = None  # None -n to n (select the maximum neighborhood size to plot)
+    Y_LIM = None  # None (set the y-axis limits)
+    LOG_SCALE = True  # True False (set the y-axis to log scale)
+    MAX_BUDGET = 10_000  # 2**15 10_000
+
+    # box plot parameters
+    BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
+    INTERACTION_SIZE_NOT_TO_PLOT = [1, 2]  # None [n, m] (remove the interaction sizes not to plot)
+
+    df = get_plot_df(
+        index=INDEX,
+        max_order=MAX_ORDER,
+        dataset_name=DATASET_NAME,
+        n_layers=N_LAYERS,
+        model_id=MODEL_ID,
+        small_graph=SMALL_GRAPH,
+        load_from_csv=LOAD_FROM_CSV,
+        max_interaction_sizes_to_drop=MAX_INTERACTION_SIZES_TO_DROP,
+    )
+
+    if SCATTER_PLOT:
+        make_scatter_plot(df)
+
+    if BOX_PLOTS:
+        make_box_plots(df)
