@@ -226,7 +226,14 @@ _best_hyperparameters = {
                                 "4": {"hidden": 32},
                                 },
                         },
-                "ENZYMES": {},
+                "ENZYMES": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 32},
+                                "4": {"hidden": 64},
+                                },
+                        },
                 "MUTAG": {},
                 "Mutagenicity": {
                         "n_layers": {
@@ -248,11 +255,19 @@ _best_hyperparameters = {
                         },
                 "COX2": {
                         "n_layers": {
-                                "1": {"hidden": 64},
-                                "2": {"hidden": 64},
-                                "3": {"hidden": 64},
-                                "4": {"hidden": 64},
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 128},
                                 }
+                        },
+                "ENZYMES": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 128},
+                                },
                         },
                 "Mutagenicity": {
                         "n_layers": {
@@ -285,6 +300,14 @@ _best_hyperparameters = {
                                 "1": {"hidden": 64},
                                 "2": {"hidden": 32},
                                 "3": {"hidden": 32},
+                                "4": {"hidden": 32},
+                                }
+                        },
+                "ENZYMES": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 64},
                                 "4": {"hidden": 32},
                                 }
                         },
