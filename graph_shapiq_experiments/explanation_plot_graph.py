@@ -33,15 +33,31 @@ if not os.path.exists(PLOT_DIR):
 
 if __name__ == "__main__":
 
-    # file_name = "GCN_Mutagenicity_2_0_16_10_True.interaction_values"
-    file_name = "GCN_Mutagenicity_2_2_14_12_True_4288.interaction_values"
+    ORDER = 2
+    INDEX = "BII"
+
+    MODEL_TYPE = "GCN"
+    DATASET_NAME = "Mutagenicity"
+    N_LAYER = 2
+    DATA_ID = 2
+
+    file_identifier = "_".join([MODEL_TYPE, DATASET_NAME, str(N_LAYER), str(DATA_ID)])
+    # find the file in EXACT_DIR that contains the identifier
+    file_name = None
+    for file in os.listdir(EXACT_DIR):
+        if file_identifier in file:
+            file_name = file
+            break
+    if file_name is None:
+        raise ValueError(f"File with identifier {file_identifier} not found.")
+
     plot_name = file_name.replace(".interaction_values", ".pdf")
     path_to_file = os.path.join(EXACT_DIR, file_name)
 
     moebius_values = InteractionValues.load(path_to_file)
 
     converter = MoebiusConverter(moebius_coefficients=moebius_values)
-    k_sii_values = converter(index="k-SII", order=moebius_values.n_players)
+    k_sii_values = converter(index=INDEX, order=ORDER)
     print(k_sii_values)
 
     attributes = parse_file_name(file_name)
@@ -69,7 +85,7 @@ if __name__ == "__main__":
         compactness=5,
         random_seed=4,
         label_mapping=graph_labels,
-        cubic_scaling=True,
+        cubic_scaling=False,
     )
     plt.savefig(os.path.join(PLOT_DIR, f"{plot_name}_graph_explanation.pdf"))
     plt.tight_layout()

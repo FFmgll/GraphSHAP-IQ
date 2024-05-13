@@ -4,6 +4,7 @@ approximations."""
 import copy
 import itertools
 import os
+import multiprocessing as mp
 
 from tqdm.auto import tqdm
 
@@ -143,6 +144,11 @@ def approximate_baselines():
 
     # run the baselines
     print(f"Approximating the baselines:", APPROXIMATORS_TO_RUN)
+    print(
+        f"Settings: max_budget={MAX_APPROX_BUDGET}, iterations={ITERATIONS}, "
+        f"small_graph={SMALL_GRAPH}, index={INDEX}, max_order={MAX_ORDER}, "
+        f"dataset={DATASET_NAME}, model={MODEL_ID}, n_layers={N_LAYERS}"
+    )
     with tqdm(
         total=total_budget, desc="Running the baseline approximations ", unit=" model calls"
     ) as pbar:
@@ -154,23 +160,23 @@ def approximate_baselines():
 if __name__ == "__main__":
 
     # game setup
-    DATASET_NAME = "Mutagenicity"
-    MODEL_ID = "GCN"
+    DATASET_NAME = "PROTEINS"  # PROTEINS Mutagenicity
+    MODEL_ID = "GAT"  # GCN GIN GAT
     N_LAYERS = 2
 
-    ITERATIONS = 2
+    ITERATIONS = 1
 
     INDEX = "k-SII"
     MAX_ORDER = 2
 
-    MAX_APPROX_BUDGET = 10_000
+    MAX_APPROX_BUDGET = 2**15
 
-    SMALL_GRAPH = True
+    SMALL_GRAPH = False
 
     APPROXIMATORS_TO_RUN = [
-        # KernelSHAPIQ.__name__,
+        KernelSHAPIQ.__name__,
         # SVARMIQ.__name__,
-        PermutationSamplingSII.__name__,
+        # PermutationSamplingSII.__name__,
     ]
 
     approximate_baselines()

@@ -6,6 +6,7 @@ from scipy.special import bernoulli, binom
 
 from .interaction_values import InteractionValues
 from .utils.sets import powerset
+from .exact import ExactComputer
 
 ALL_AVAILABLE_CONCEPTS: dict[str, str] = {
     # Base Interactions
@@ -19,19 +20,20 @@ ALL_AVAILABLE_CONCEPTS: dict[str, str] = {
 ALL_AVAILABLE_INDICES: set[str] = set(ALL_AVAILABLE_CONCEPTS.keys())
 
 
+def _dummy_game_fun(x: np.ndarray) -> np.ndarray[float]:
+    return np.array([0.0])
+
+
 class MoebiusConverter:
     """Computes exact Shapley Interactions using the (sparse) Möbius representation.
     Much faster than exact computation, if Möbius representation is sparse.
 
     Args:
-        N: The set of players.
         moebius_coefficients: An InteractionValues objects containing the (sparse) Möbius coefficients
 
     Attributes:
-        N: The set of players
         n: The number of players.
         moebius_coefficients: The InteractionValues object containing all non-zero (sparse) Möbius coefficients
-        n_interactions: A pre-computed array containing the number of interactions up to the size of the index, e.g. n_interactions[4] is the number of interactions up to size 4.
     """
 
     def __init__(self, moebius_coefficients: InteractionValues):

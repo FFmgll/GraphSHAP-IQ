@@ -2,7 +2,8 @@
 like interaction indices or generalized values."""
 
 import copy
-from typing import Callable, Union
+import warnings
+from typing import Callable, Union, Optional
 
 import numpy as np
 from scipy.special import bernoulli, binom
@@ -39,7 +40,8 @@ class ExactComputer:
     def __init__(
         self,
         n_players: int,
-        game_fun: Callable[[np.ndarray], np.ndarray[float]],
+        game_fun: Callable[[np.ndarray], np.ndarray[float]]
+        # moebius_coefficients: Optional[InteractionValues] = None,
     ) -> None:
         # set parameter attributes
         self.n: int = n_players
@@ -49,14 +51,19 @@ class ExactComputer:
         self._grand_coalition_tuple: tuple[int] = tuple(range(self.n))
         self._grand_coalition_set: set[int] = set(self._grand_coalition_tuple)
         self._big_M: float = 10e7
-        self._n_interactions: np.ndarray = self.get_n_interactions(self.n)
         self._computed = {}  # will store all computed indices
 
         # evaluate the game on the powerset
-        computed_game = self.compute_game_values(game_fun)
-        self.baseline_value: float = computed_game[0]
-        self.game_values: np.ndarray[float] = computed_game[1]
-        self.coalition_lookup: dict[tuple[int], int] = computed_game[2]
+        if game_fun is not None:
+            computed_game = self.compute_game_values(game_fun)
+            self.baseline_value: float = computed_game[0]
+            self.game_values: np.ndarray[float] = computed_game[1]
+            self.coalition_lookup: dict[tuple[int], int] = computed_game[2]
+        else:
+            warnings.warn("No game function provided. Please provide a game function.")
+            self.baseline_value = 0.0
+            self.game_values = np.zeros(2**self.n)
+            self.coalition_lookup = {}
 
         # setup callable mapping from index to computation
         self._index_mapping: dict[str, Callable[[], InteractionValues]] = {
@@ -594,9 +601,9 @@ class ExactComputer:
                 intersection_size = len(set(coalition).intersection(interaction))
                 interaction_size = len(interaction)
                 # This is different from FSII
-                coalition_matrix[coalition_pos, interaction_lookup[interaction]] = (
-                    bernoulli_weights[interaction_size, intersection_size]
-                )
+                coalition_matrix[
+                    coalition_pos, interaction_lookup[interaction]
+                ] = bernoulli_weights[interaction_size, intersection_size]
 
         weight_matrix_sqrt = np.sqrt(np.diag(least_squares_weights))
         coalition_matrix_weighted_sqrt = np.dot(weight_matrix_sqrt, coalition_matrix)
@@ -783,9 +790,9 @@ class ExactComputer:
             probabilistic_value = self.base_interaction(index="SII", order=1)
             # Change emptyset value of SII to baseline value
             probabilistic_value.baseline_value = self.baseline_value
-            probabilistic_value.values[probabilistic_value.interaction_lookup[tuple()]] = (
-                self.baseline_value
-            )
+            probabilistic_value.values[
+                probabilistic_value.interaction_lookup[tuple()]
+            ] = self.baseline_value
         else:
             raise ValueError(f"Index {index} not supported")
         self._computed[index] = probabilistic_value

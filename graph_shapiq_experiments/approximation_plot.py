@@ -131,14 +131,17 @@ if __name__ == "__main__":
 
     # plot parameters
     PLOT_METRIC = "SSE"
-    CSV_PLOT_FILE = "plot_csv.csv"
+    # CSV_PLOT_FILE = None
+    # CSV_PLOT_FILE = "plot_csv_Mutagenicity_GCN_2_True_k-SII_2.csv"
+    # CSV_PLOT_FILE = "plot_csv_Mutagenicity_GCN_2_False_k-SII_2.csv"
+    CSV_PLOT_FILE = "plot_csv_Mutagenicity_GCN_3_False_k-SII_2.csv"
 
     # setting parameters
     MODEL_ID = "GCN"
     DATASET_NAME = "Mutagenicity"
     N_LAYERS = 3
     SMALL_GRAPH = False
-    MAX_BUDGET = 2**16
+    MAX_BUDGET = 2**15
 
     INDEX = "k-SII"
     MAX_ORDER = 2
@@ -158,7 +161,10 @@ if __name__ == "__main__":
     # create a DataFrame from the results
     if CSV_PLOT_FILE is None or not os.path.exists(CSV_PLOT_FILE):
         plot_df = pd.DataFrame(load_interactions_to_plot(overview_table))
-        plot_df.to_csv("plot_csv.csv", index=False)
+        file_name = (
+            f"plot_csv_{DATASET_NAME}_{MODEL_ID}_{N_LAYERS}_{SMALL_GRAPH}_{INDEX}_{MAX_ORDER}.csv"
+        )
+        plot_df.to_csv(file_name, index=False)
     else:
         plot_df = pd.read_csv(CSV_PLOT_FILE)
 
@@ -177,7 +183,9 @@ if __name__ == "__main__":
         for instance_id in selection["instance_id"].unique():
             instance_selection = selection[selection["instance_id"] == instance_id]
             max_max_neighborhood_size = instance_selection["max_neighborhood_size"].max()
-            if MAX_SIZE > 0:
+            if MAX_SIZE == 0:
+                max_size_to_plot = max_max_neighborhood_size
+            elif MAX_SIZE > 0:
                 max_size_to_plot = min(MAX_SIZE, max_max_neighborhood_size)
             else:
                 max_size_to_plot = max_max_neighborhood_size - abs(MAX_SIZE)
