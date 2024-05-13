@@ -1,7 +1,7 @@
 """This utility module contains functions to get the instances to explain for different datasets."""
 
-from typing import Any, Union
 import os
+from typing import Union
 
 import torch
 from torch_geometric.data import DataLoader
@@ -218,7 +218,14 @@ _best_hyperparameters = {
                                 "4": {"hidden": 64},
                                 },
                         },
-                "PROTEINS": {},
+                "PROTEINS": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 32},
+                                },
+                        },
                 "ENZYMES": {},
                 "MUTAG": {},
                 "Mutagenicity": {
@@ -239,15 +246,31 @@ _best_hyperparameters = {
                                 "4": {"hidden": 64},
                                 },
                         },
-                "GAT": {
-                        "Mutagenicity": {
-                                "n_layers": {
-                                        "1": {"hidden": 128},
-                                        "2": {"hidden": 64},
-                                        "3": {"hidden": 128},
-                                        "4": {"hidden": 64},
-                                        }
+                "PROTEINS": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 128},
+                                "3": {"hidden": 32},
+                                "4": {"hidden": 32},
                                 },
                         },
+                },
+        "GAT": {
+                "Mutagenicity": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 64},
+                                }
+                        },
+                "PROTEINS": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 32},
+                                },
+                        }
                 },
         }
