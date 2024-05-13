@@ -1,21 +1,9 @@
-"""This script is used to plot the explanation graphs for a given instance and explanaiton.
-
-## Old Naming Convention (seperated by underscore):
-    - Type of model, e.g. GCN, GIN
-    - Dataset name, e.g. MUTAG
-    - Number of Graph Convolutions, e.g. 2 graph conv layers
-    - Graph bias, e.g. True, if the linear layer after global pooling has a bias
-    - Node bias, e.g. True, if the convolution layers have a bias
-    - Data ID: a technical identifier of the explained instance
-    - Number of players, i.e. number of nodes in the graph
-    - Largest neighborhood size as integer
-"""
+"""This script is used to plot the explanation graphs for a given instance and explanaiton."""
 
 
 import os
 
 import numpy as np
-import pandas as pd
 from matplotlib import pyplot as plt
 from torch_geometric.utils import to_networkx
 
@@ -37,7 +25,7 @@ if __name__ == "__main__":
     MODEL_TYPE = "GCN"
     DATASET_NAME = "Mutagenicity"
     N_LAYER = 2
-    DATA_ID = 197
+    DATA_ID = 189  # 197
 
     # plot parameter
     RANDOM_SEED = 4
@@ -81,11 +69,10 @@ if __name__ == "__main__":
     graph = to_networkx(graph_instance, to_undirected=True)
 
     # plot full graph explanation ------------------------------------------------------------------
-    all_k_sii_values = converter(index=INDEX, order=converter.n)
-    print(all_k_sii_values)
+    print(moebius_values)
     _ = explanation_graph_plot(
         graph=graph,
-        interaction_values=all_k_sii_values,
+        interaction_values=moebius_values,
         plot_explanation=True,
         n_interactions=N_INTERACTIONS,
         size_factor=SIZE_FACTOR,
@@ -94,13 +81,34 @@ if __name__ == "__main__":
         label_mapping=graph_labels,
         cubic_scaling=CUBIC_SCALING,
     )
+    plt.savefig(os.path.join(PLOT_DIR, f"plot_nSII_{plot_name}.pdf"))
+    plt.tight_layout()
+    plt.show()
+
+    # plot 3-SII explanation -----------------------------------------------------------------------
+    three_sii_values = converter(index=INDEX, order=3)
+    print(three_sii_values)
+    _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=three_sii_values,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+    )
+    plt.savefig(os.path.join(PLOT_DIR, f"plot_nSII_{plot_name}.pdf"))
+    plt.tight_layout()
+    plt.show()
 
     # plot 2-SII explanation -----------------------------------------------------------------------
-    k_sii_values = converter(index=INDEX, order=2)
-    print(k_sii_values)
+    two_sii_values = converter(index=INDEX, order=2)
+    print(two_sii_values)
     _ = explanation_graph_plot(
         graph=graph,
-        interaction_values=k_sii_values,
+        interaction_values=two_sii_values,
         plot_explanation=True,
         n_interactions=N_INTERACTIONS,
         size_factor=SIZE_FACTOR,
@@ -109,7 +117,7 @@ if __name__ == "__main__":
         label_mapping=graph_labels,
         cubic_scaling=CUBIC_SCALING,
     )
-    plt.savefig(os.path.join(PLOT_DIR, f"{plot_name}_graph_kSII_explanation.pdf"))
+    plt.savefig(os.path.join(PLOT_DIR, f"plot_2SII_{plot_name}.pdf"))
     plt.tight_layout()
     plt.show()
 
@@ -127,14 +135,14 @@ if __name__ == "__main__":
         label_mapping=graph_labels,
         cubic_scaling=CUBIC_SCALING,
     )
-    plt.savefig(os.path.join(PLOT_DIR, f"{plot_name}_graph_SV_explanation.pdf"))
+    plt.savefig(os.path.join(PLOT_DIR, f"plot_SV_{plot_name}.pdf"))
     plt.tight_layout()
     plt.show()
 
     # plot the og graph ----------------------------------------------------------------------------
     _ = explanation_graph_plot(
         graph=graph,
-        interaction_values=all_k_sii_values,
+        interaction_values=moebius_values,
         plot_explanation=False,
         n_interactions=N_INTERACTIONS,
         size_factor=SIZE_FACTOR,
@@ -142,6 +150,6 @@ if __name__ == "__main__":
         random_seed=RANDOM_SEED,
         label_mapping=graph_labels,
     )
-    plt.savefig(os.path.join(PLOT_DIR, f"{plot_name}_graph.pdf"))
+    plt.savefig(os.path.join(PLOT_DIR, f"plot_graph_{plot_name}.pdf"))
     plt.tight_layout()
     plt.show()

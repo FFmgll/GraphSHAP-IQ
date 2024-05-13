@@ -15,7 +15,7 @@ from ._config import get_color
 NORMAL_NODE_SIZE = 0.125
 BASE_ALPHA_VALUE = 1.0  # the transparency level for the highest interaction
 BASE_SIZE = 0.05  # the size of the highest interaction edge (with scale factor 1)
-ADJUST_NODE_ALPHA = False
+ADJUST_NODE_ALPHA = True
 SCALE_NODE_EXPLANATIONS_BY_AREA = False
 
 

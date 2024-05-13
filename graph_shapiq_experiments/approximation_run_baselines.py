@@ -159,24 +159,21 @@ def approximate_baselines():
 
 if __name__ == "__main__":
 
-    # game setup
-    DATASET_NAME = "PROTEINS"  # PROTEINS Mutagenicity
-    MODEL_ID = "GIN"  # GCN GIN GAT
-    N_LAYERS = 2
+    # TODO: adjust the settings here
+    DATASET_NAME = "PROTEINS"  # PROTEINS
+    MODEL_ID = "GCN"  # GCN GIN GAT
+    N_LAYERS = 2  # 2 3
 
+    # don't change these
     ITERATIONS = 2
-
     INDEX = "k-SII"
     MAX_ORDER = 2
-
     MAX_APPROX_BUDGET = 2**15
-
     SMALL_GRAPH = False
 
     APPROXIMATORS_TO_RUN = [
-        KernelSHAPIQ.__name__,
-        # SVARMIQ.__name__,
-        # PermutationSamplingSII.__name__,
+        # KernelSHAPIQ.__name__,  # TODO: comment out for one run
+        PermutationSamplingSII.__name__,  # TODO: comment out for the other run
     ]
 
     approximate_baselines()
