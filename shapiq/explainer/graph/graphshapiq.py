@@ -37,6 +37,7 @@ class GraphSHAPIQ:
             for node in self.neighbors:
                 self.total_budget += 2 ** (len(self.neighbors[node]))
                 self.budget_estimated = True
+            self.total_budget = int(min(2**self.n_players, self.total_budget))
 
     def _get_neighborhoods(self):
         """Computes the neighborhoods of each node and caps the max_interaction_size at the size of
