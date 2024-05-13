@@ -207,7 +207,7 @@ _best_hyperparameters = {
                                 "1": {"hidden": 128},
                                 "2": {"hidden": 128},
                                 "3": {"hidden": 128},
-                                "4": {"hidden": 128},
+                                "4": {"hidden": 32},
                                 }
                         },
                 "BZR": {
@@ -246,6 +246,14 @@ _best_hyperparameters = {
                                 "4": {"hidden": 32},
                                 }
                         },
+                "COX2": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 64},
+                                "4": {"hidden": 64},
+                                }
+                        },
                 "Mutagenicity": {
                         "n_layers": {
                                 "1": {"hidden": 128},
@@ -271,6 +279,14 @@ _best_hyperparameters = {
                                 "3": {"hidden": 128},
                                 "4": {"hidden": 8},
                                 },
+                        },
+                "COX2": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 32},
+                                "4": {"hidden": 32},
+                                }
                         },
                 "Mutagenicity": {
                         "n_layers": {
