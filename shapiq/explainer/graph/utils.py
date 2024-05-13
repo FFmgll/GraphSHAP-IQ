@@ -213,9 +213,9 @@ _best_hyperparameters = {
                 "BZR": {
                         "n_layers": {
                                 "1": {"hidden": 128},
-                                "2": {"hidden": 32},
-                                "3": {"hidden": 64},
-                                "4": {"hidden": 64},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 128},
                                 },
                         },
                 "PROTEINS": {
@@ -238,6 +238,14 @@ _best_hyperparameters = {
                         },
                 },
         "GIN": {
+                "BZR": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 32},
+                                }
+                        },
                 "Mutagenicity": {
                         "n_layers": {
                                 "1": {"hidden": 128},
@@ -256,6 +264,14 @@ _best_hyperparameters = {
                         },
                 },
         "GAT": {
+                "BZR": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 128},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 8},
+                                },
+                        },
                 "Mutagenicity": {
                         "n_layers": {
                                 "1": {"hidden": 128},
