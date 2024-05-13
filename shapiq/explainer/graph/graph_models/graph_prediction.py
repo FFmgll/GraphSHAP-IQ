@@ -77,7 +77,7 @@ class GNN(Module):
 		self.lin.reset_parameters()
 
 	def init_GIN(self, in_channels, out_channels, **kwargs):
-		mlp = MLP([in_channels, out_channels], dropout=self.p)
+		mlp = MLP([in_channels, 32, out_channels], dropout=self.p)
 		return GINConv(mlp)
 
 	def forward(self, x, edge_index, batch):
