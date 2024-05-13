@@ -161,10 +161,10 @@ if __name__ == "__main__":
 
     # game setup
     DATASET_NAME = "PROTEINS"  # PROTEINS Mutagenicity
-    MODEL_ID = "GAT"  # GCN GIN GAT
+    MODEL_ID = "GIN"  # GCN GIN GAT
     N_LAYERS = 2
 
-    ITERATIONS = 1
+    ITERATIONS = 2
 
     INDEX = "k-SII"
     MAX_ORDER = 2

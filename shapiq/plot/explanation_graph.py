@@ -13,8 +13,10 @@ from ..interaction_values import InteractionValues
 from ._config import get_color
 
 NORMAL_NODE_SIZE = 0.125
-BASE_ALPHA_VALUE = 0.5  # the transparency level for the highest interaction
+BASE_ALPHA_VALUE = 1.0  # the transparency level for the highest interaction
 BASE_SIZE = 0.05  # the size of the highest interaction edge (with scale factor 1)
+ADJUST_NODE_ALPHA = False
+SCALE_NODE_EXPLANATIONS_BY_AREA = False
 
 
 def _normalize_value(
@@ -192,15 +194,21 @@ def _draw_explanation_nodes(
             continue
         position = pos[node]
         color = graph.nodes.get(node)["color"]
-        normal_node_area = math.pi * (NORMAL_NODE_SIZE / 2) ** 2
-        this_node_area = math.pi * (graph.nodes.get(node)["size"] / 2) ** 2
-        combined_area = normal_node_area + this_node_area
+        explanation_size = graph.nodes.get(node)["size"]
+        alpha = 1.0
+        if ADJUST_NODE_ALPHA:
+            alpha = graph.nodes.get(node)["alpha"]
 
-        # get the radius of a circle with the same area as the combined area
-        radius = math.sqrt(combined_area / math.pi)
+        radius = NORMAL_NODE_SIZE / 2 + explanation_size / 2
+        if SCALE_NODE_EXPLANATIONS_BY_AREA:
+            # get the radius of a circle with the same area as the combined area
+            normal_node_area = math.pi * (NORMAL_NODE_SIZE / 2) ** 2
+            this_node_area = math.pi * (explanation_size / 2) ** 2
+            combined_area = normal_node_area + this_node_area
+            radius = math.sqrt(combined_area / math.pi)
 
         circle = mpath.Path.circle(position, radius=radius)
-        patch = mpatches.PathPatch(circle, facecolor=color, lw=0.75, edgecolor="white")
+        patch = mpatches.PathPatch(circle, facecolor=color, lw=1, edgecolor="white", alpha=alpha)
         ax.add_patch(patch)
 
         ax.scatter(position[0], position[1], s=0, c="none", lw=0)  # add empty point for limits

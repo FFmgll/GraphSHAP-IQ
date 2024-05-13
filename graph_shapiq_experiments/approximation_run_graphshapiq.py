@@ -1,6 +1,7 @@
 """This script runs the GraphSHAP-IQ approximation on different datasets and graphs."""
 
 import copy
+import sys
 
 import torch
 from tqdm.auto import tqdm
@@ -105,25 +106,41 @@ def run_graph_shapiq_approximation(
 if __name__ == "__main__":
 
     # run setup
-    N_GAMES = 20
+    N_GAMES = 10
     MAX_N_PLAYERS = 40
-    MIN_N_PLAYERS = 16
+    MIN_N_PLAYERS = 30
 
-    MAX_BUDGET = 2**15
-
-    MODEL_ID = "GIN"  # one of GCN GIN
+    MODEL_ID = "GIN"  # one of GCN GIN GAT
     DATASET_NAME = "PROTEINS"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     N_LAYERS = 2  # one of 1 2 3 4
     EFFICIENCY_MODE = True  # one of True False
 
-    DATA_IDS = pre_select_data_ids(
+    max_budget = 2**15
+    if DATASET_NAME == "PROTEINS":
+        if N_LAYERS == 2:
+            max_budget = 10_000
+        elif N_LAYERS == 3:
+            max_budget = 2**15
+        else:
+            raise ValueError(f"Wrong Setup for {DATASET_NAME} and {N_LAYERS}")
+    if DATASET_NAME == "Mutagenicity":
+        if N_LAYERS == 2:
+            max_budget = 10_000
+        else:
+            raise ValueError(f"Wrong Setup for {DATASET_NAME} and {N_LAYERS}")
+    MAX_BUDGET = max_budget
+
+    data_ids = pre_select_data_ids(
         dataset_to_select=DATASET_NAME,
         n_layers=N_LAYERS,
         max_budget=MAX_BUDGET,
         min_players=MIN_N_PLAYERS,
         max_players=MAX_N_PLAYERS,
         sort=False,
+        sort_budget=False,
     )
+    data_ids = data_ids[:N_GAMES]
+    print(f"Selected data_ids:", data_ids)
 
     # see whether a GPU is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -134,7 +151,7 @@ if __name__ == "__main__":
     # set the games up for the approximation
     games_to_run = []
     explanation_instances = get_explanation_instances(DATASET_NAME)
-    for data_id in DATA_IDS:
+    for data_id in data_ids:
         x_graph = explanation_instances[int(data_id)]
         if is_game_computed(
             MODEL_ID, DATASET_NAME, N_LAYERS, data_id, directory=GRAPHSHAPIQ_APPROXIMATION_DIR
