@@ -49,6 +49,8 @@ class MoebiusConverter:
             "FSII": self.moebius_to_shapley_interaction,
             # shapley_base_interaction
             "SII": self.moebius_to_base_interaction,
+            # shapley value
+            "SV": self.moebius_to_base_interaction,
         }
         self.available_indices: set[str] = set(self._index_mapping.keys())
         self.available_concepts: dict[str, str] = ALL_AVAILABLE_CONCEPTS
@@ -181,6 +183,9 @@ class MoebiusConverter:
         Returns:
             An InteractionValues object containing the base interactions
         """
+        index_to_change_back = index
+        if index == "SV":
+            index = "SII"
         base_interaction_dict = {}
         # Pre-compute weights
         distribution_weights = np.zeros((self.n + 1, order + 1))
@@ -212,6 +217,8 @@ class MoebiusConverter:
         for i, interaction in enumerate(base_interaction_dict):
             base_interaction_values[i] = base_interaction_dict[interaction]
             base_interaction_lookup[interaction] = i
+
+        index = index_to_change_back
 
         base_interactions = InteractionValues(
             values=base_interaction_values,

@@ -6,27 +6,35 @@ from typing import Optional, Union
 import pandas as pd
 import torch
 
-from shapiq.explainer.graph import (
-    get_explanation_instances,
-    _compute_baseline_value,
-    load_graph_model,
-)
+from shapiq.explainer.graph import _compute_baseline_value, load_graph_model
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.interaction_values import InteractionValues
 
-BASELINES_DIR = os.path.join("..", "results", "approximation", "baselines")
-KERNELSHAPIQ_DIR = os.path.join(BASELINES_DIR, "KernelSHAPIQ")
-SVARMIQ_DIR = os.path.join(BASELINES_DIR, "SVARMIQ")
-PERMUTATION_DIR = os.path.join(BASELINES_DIR, "PermutationSamplingSII")
-EXACT_DIR = os.path.join("..", "results", "approximation", "exact")
-GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "GraphSHAPIQ")
+ALL_SUPPORTED_BASELINE_METHODS = [
+    "KernelSHAPIQ",
+    "KernelSHAP",
+    "SVARMIQ",
+    "SVARM",
+    "PermutationSamplingSII",
+    "PermutationSamplingSV",
+]
 
-os.makedirs(BASELINES_DIR, exist_ok=True)
-os.makedirs(KERNELSHAPIQ_DIR, exist_ok=True)
-os.makedirs(SVARMIQ_DIR, exist_ok=True)
-os.makedirs(PERMUTATION_DIR, exist_ok=True)
-os.makedirs(EXACT_DIR, exist_ok=True)
-os.makedirs(GRAPHSHAPIQ_APPROXIMATION_DIR, exist_ok=True)
+# create directories
+BASELINES_DIR = os.path.join("..", "results", "approximation", "baselines")
+GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "GraphSHAPIQ")
+L_SHAPLEY_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "L_Shapley")
+EXACT_DIR = os.path.join("..", "results", "approximation", "exact")
+ALL_BASELINE_DIRECTORIES = [
+    os.path.join(BASELINES_DIR, method) for method in ALL_SUPPORTED_BASELINE_METHODS
+]
+ALL_DIRECTORIES = ALL_BASELINE_DIRECTORIES + [
+    GRAPHSHAPIQ_APPROXIMATION_DIR,
+    L_SHAPLEY_APPROXIMATION_DIR,
+    EXACT_DIR,
+]
+
+for directory in ALL_DIRECTORIES:
+    os.makedirs(directory, exist_ok=True)
 
 
 def parse_file_name(file_name: str) -> dict[str, Union[str, int, bool]]:
@@ -145,7 +153,7 @@ def save_interaction_value(
     n_layers: int,
     max_neighborhood_size: int,
     efficiency: bool,
-    directory: str = GRAPHSHAPIQ_APPROXIMATION_DIR,
+    save_directory: str,
     save_exact: bool = False,
     iteration: int = 1,
     budget: Optional[int] = None,
@@ -162,7 +170,7 @@ def save_interaction_value(
             computed.
         efficiency: Whether the efficiency routine was used for the approximation (True) or not
             (False).
-        directory: The directory to save the interaction values in. Default is the
+        save_directory: The directory to save the interaction values in. Default is the
             GRAPHSHAPIQ_APPROXIMATION_DIR.
         save_exact: Whether to save the exact values as well. Default is False. Set to True if you
             evaluate with GraphSHAP-IQ.
@@ -185,7 +193,7 @@ def save_interaction_value(
         interaction_values.max_order,
         iteration,
     )
-    save_path = os.path.join(directory, save_name)
+    save_path = os.path.join(save_directory, save_name)
     interaction_values.save(save_path)
     # check if GT values are available and save them accordingly
     if not interaction_values.estimated and save_exact:
@@ -282,12 +290,7 @@ def is_file_computed(file_name: str, directory: str, min_iterations: int = 1) ->
     times."""
     if directory == BASELINES_DIR:
         # check in all baseline directories
-        all_directories = [
-            KERNELSHAPIQ_DIR,
-            SVARMIQ_DIR,
-            PERMUTATION_DIR,
-        ]
-        for directory in all_directories:
+        for directory in ALL_BASELINE_DIRECTORIES:
             if is_file_computed(file_name, directory, min_iterations):
                 return True
     attributes = parse_file_name(file_name)
@@ -375,13 +378,7 @@ def load_all_interaction_values(
         mapping from the data ID to the list of interaction values.
     """
     interaction_values = {}
-    directories = [
-        EXACT_DIR,
-        KERNELSHAPIQ_DIR,
-        SVARMIQ_DIR,
-        PERMUTATION_DIR,
-        GRAPHSHAPIQ_APPROXIMATION_DIR,
-    ]
+    directories = ALL_DIRECTORIES
 
     for directory in directories:
         approx_method = directory.split(os.sep)[-1]
@@ -440,14 +437,7 @@ def create_results_overview_table() -> pd.DataFrame:
         The DataFrame with the overview.
     """
     results = []
-    directories = [
-        EXACT_DIR,
-        KERNELSHAPIQ_DIR,
-        SVARMIQ_DIR,
-        PERMUTATION_DIR,
-        GRAPHSHAPIQ_APPROXIMATION_DIR,
-    ]
-    for directory in directories:
+    for directory in ALL_DIRECTORIES:
         is_graphshapiq = directory == GRAPHSHAPIQ_APPROXIMATION_DIR
         approx_method = directory.split(os.sep)[-1]
         all_files = os.listdir(directory)
@@ -506,7 +496,7 @@ def create_results_overview_table() -> pd.DataFrame:
     df = pd.DataFrame(results)
 
     # add a id colum for the graphshapiq run for each other approximation
-    approx_to_map = ["exact", "KernelSHAPIQ", "SVARMIQ", "PermutationSamplingSII"]
+    approx_to_map = ["exact"] + ALL_SUPPORTED_BASELINE_METHODS
     graph_shap_iq_runs = df[df["approximation"] == "GraphSHAPIQ"]
     df["graphshapiq_run"] = None
     df["max_interaction_size"] = None

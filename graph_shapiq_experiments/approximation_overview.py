@@ -14,12 +14,14 @@ if __name__ == "__main__":
         results_df["model_id"].unique(),
         results_df["n_layers"].unique(),
     ):
-        print(f"Dataset: {dataset_name}, Model: {model_id}, Layers: {n_layer}")
         selection = results_df[
             (results_df["dataset_name"] == dataset_name)
             & (results_df["model_id"] == model_id)
             & (results_df["n_layers"] == n_layer)
         ]
+        if selection.empty:
+            continue
+        print(f"Dataset: {dataset_name}, Model: {model_id}, Layers: {n_layer}")
         print(f"Number of instances: {len(selection)}")
         for small_graph in [True, False]:
             selection_setting = selection[selection["small_graph"] == small_graph]

@@ -14,6 +14,8 @@ from shapiq.approximator import (
     SVARMIQ,
     InconsistentKernelSHAPIQ,
     PermutationSamplingSII,
+    PermutationSamplingSV,
+    KernelSHAP,
 )
 from approximation_utils import (
     get_game_from_file_name,
@@ -62,8 +64,12 @@ def run_baseline(
         approximator = SVARMIQ(n=n_players, index=index, max_order=max_order)
     elif approx_name == PermutationSamplingSII.__name__:
         approximator = PermutationSamplingSII(n=n_players, index=index, max_order=max_order)
+    elif approx_name == PermutationSamplingSV.__name__ and index == "SV" and max_order == 1:
+        approximator = PermutationSamplingSV(n=n_players)
+    elif approx_name == KernelSHAP.__name__ and index == "SV" and max_order == 1:
+        approximator = KernelSHAP(n=n_players)
     else:
-        raise ValueError(f"Approximator {approx_name} not found.")
+        raise ValueError(f"Approximator {approx_name} not found. Maybe wrong settings?")
     interaction_values = approximator.approximate(budget=budget, game=game)
     # save the resulting InteractionValues
     save_interaction_value(
@@ -190,17 +196,19 @@ if __name__ == "__main__":
 
     APPROXIMATORS_TO_RUN = [
         # KernelSHAPIQ.__name__,
-        PermutationSamplingSII.__name__,
+        # PermutationSamplingSII.__name__,
+        KernelSHAP.__name__,
+        PermutationSamplingSV.__name__,
     ]
 
     approximate_baselines(
-        model_id="GIN",  # GCN GAT GIN
-        n_layers=3,  # 2 3
-        dataset_name="PROTEINS",  # PROTEINS Mutagenicity
+        model_id="GCN",  # GCN GAT GIN
+        n_layers=2,  # 2 3
+        dataset_name="Mutagenicity",  # PROTEINS Mutagenicity
         iterations=2,
-        index="k-SII",
-        max_order=2,
+        index="SV",
+        max_order=1,
         small_graph=False,
-        max_approx_budget=2**15,  # 10_000, 2**15
+        max_approx_budget=10_000,  # 10_000, 2**15
         approximators_to_run=APPROXIMATORS_TO_RUN,
     )

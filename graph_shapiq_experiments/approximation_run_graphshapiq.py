@@ -1,7 +1,6 @@
 """This script runs the GraphSHAP-IQ approximation on different datasets and graphs."""
 
 import copy
-import sys
 
 import torch
 from tqdm.auto import tqdm
@@ -11,11 +10,13 @@ from approximation_utils import (
     save_interaction_value,
     BudgetError,
     GRAPHSHAPIQ_APPROXIMATION_DIR,
+    L_SHAPLEY_APPROXIMATION_DIR,
     pre_select_data_ids,
 )
 from shapiq.interaction_values import InteractionValues
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.explainer.graph import (
+    L_Shapley,
     GraphSHAPIQ,
     _compute_baseline_value,
     get_explanation_instances,
@@ -55,6 +56,7 @@ def run_graph_shapiq_approximations(
                 max_neighborhood_size=size,
                 efficiency=efficiency,
                 save_exact=True,
+                save_directory=GRAPHSHAPIQ_APPROXIMATION_DIR,
             )
 
 
@@ -102,7 +104,47 @@ def run_graph_shapiq_approximation(
     return approximated_values
 
 
+def run_l_shapley_approximations(games: list[GraphGame]) -> None:
+    """Runs the L-Shapley algorithm similarly to the GraphSHAP-IQ approximation.
+
+    Args:
+        games: The game to run the approximation on.
+    """
+    # run the approximation
+    for game in tqdm(games, desc="Running the L-Shapley approximation"):
+        # compute the approximated values
+        approximated_values = {}
+        approximator = L_Shapley(game)
+        interaction_sizes = list(range(1, approximator.max_size_neighbors + 1))
+        for interaction_size in interaction_sizes:
+            shapley_values = approximator.explain(
+                max_interaction_size=interaction_size,
+            )
+            budget_used = approximator.last_n_model_calls
+            shapley_values.estimation_budget = budget_used
+            shapley_values.estimated = (
+                False if interaction_size == approximator.max_size_neighbors else True
+            )
+            shapley_values.sparsify(threshold=1e-8)
+            approximated_values[interaction_size] = copy.deepcopy(shapley_values)
+        # save the resulting InteractionValues
+        for size, values in approximated_values.items():
+            save_interaction_value(
+                interaction_values=values,
+                game=game,
+                model_id=MODEL_ID,
+                dataset_name=DATASET_NAME,
+                n_layers=N_LAYERS,
+                max_neighborhood_size=size,
+                efficiency=False,  # parameter does not exist for L-Shapley
+                save_exact=False,  # never save exact values for L-Shapley
+                save_directory=L_SHAPLEY_APPROXIMATION_DIR,
+            )
+
+
 if __name__ == "__main__":
+
+    RUN_L_SHAPLEY = True
 
     # run setup
     N_GAMES = 10
@@ -110,7 +152,7 @@ if __name__ == "__main__":
     MIN_N_PLAYERS = 30
 
     MODEL_ID = "GAT"  # one of GCN GIN GAT
-    DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
+    DATASET_NAME = "PROTEINS"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     N_LAYERS = 2  # one of 1 2 3
     EFFICIENCY_MODE = True  # one of True False
 
@@ -155,7 +197,10 @@ if __name__ == "__main__":
         if is_game_computed(
             MODEL_ID, DATASET_NAME, N_LAYERS, data_id, directory=GRAPHSHAPIQ_APPROXIMATION_DIR
         ):
-            continue
+            if RUN_L_SHAPLEY:
+                pass
+            else:
+                continue
         baseline = _compute_baseline_value(x_graph)
         game_to_run = GraphGame(
             model,
@@ -172,8 +217,12 @@ if __name__ == "__main__":
         if len(games_to_run) >= N_GAMES:
             break
 
-    print(f"Running the GraphSHAP-IQ approximation on {len(games_to_run)} games.")
-    print(f"Game_ids: {[game.game_id for game in games_to_run]}")
-
     # run the approximation
-    run_graph_shapiq_approximations(games_to_run, efficiency=EFFICIENCY_MODE)
+    if RUN_L_SHAPLEY:
+        print(f"Running the L-Shapley approximation on {len(games_to_run)} games.")
+        print(f"Game_ids: {[game.game_id for game in games_to_run]}")
+        run_l_shapley_approximations(games_to_run)
+    else:
+        print(f"Running the GraphSHAP-IQ approximation on {len(games_to_run)} games.")
+        print(f"Game_ids: {[game.game_id for game in games_to_run]}")
+        run_graph_shapiq_approximations(games_to_run, efficiency=EFFICIENCY_MODE)

@@ -8,25 +8,34 @@ from approximation_utils_plot import get_plot_df
 
 COLORS = {
     "PermutationSamplingSII": "#7d53de",
+    "PermutationSamplingSV": "#7d53de",
     "KernelSHAPIQ": "#ff6f00",
+    "KernelSHAP": "#ff6f00",
     "SVARMIQ": "#00b4d8",
+    "SVARM": "#00b4d8",
     "GraphSHAPIQ": "#ef27a6",
 }
 
+hex_black = "#000000"
+
 MARKERS = {
     "PermutationSamplingSII": "x",
+    "PermutationSamplingSV": "x",
     "KernelSHAPIQ": "o",
+    "KernelSHAP": "o",
     "SVARMIQ": "d",
+    "SVARM": "d",
     "GraphSHAPIQ": "o",
 }
 
 
-def make_box_plots(plot_df) -> None:
+def make_box_plots(plot_df, moebius_plot_df) -> None:
     """Make a plot showing the approximation qualities for different approximation methods as
     box plots in one plot.
 
     Args:
         plot_df: The DataFrame containing the approximation qualities.
+        moebius_plot_df: The DataFrame containing the Moebius approximation qualities.
     """
     # remove outliers for plotting percentile: 0.05 and 0.95
     upper_bound = plot_df[PLOT_METRIC].quantile(0.95)
@@ -37,8 +46,12 @@ def make_box_plots(plot_df) -> None:
     if INTERACTION_SIZE_NOT_TO_PLOT is not None and INTERACTION_SIZE_NOT_TO_PLOT != []:
         plot_df = plot_df[~plot_df["max_interaction_size"].isin(INTERACTION_SIZE_NOT_TO_PLOT)]
 
-    # make a single figure with box plots for each apporximation method at each max_interaction_size
-    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    # make a single figure with the box plots and the moebius values (shared x-axis)
+    fig, axes = plt.subplots(
+        2, 1, figsize=(8, 7), sharex=True, gridspec_kw={"height_ratios": [6, 1]}
+    )
+    box_axis = axes[0]
+    moebius_axis = axes[1]
 
     # get offsets that center the box plots for each approximation method
     n_approx = len(APPROX_TO_PLOT)
@@ -52,7 +65,7 @@ def make_box_plots(plot_df) -> None:
         approx_df = plot_df[plot_df["approximation"] == approx]
         if approx_df.empty:
             continue
-        ax.boxplot(
+        box_axis.boxplot(
             [
                 approx_df[approx_df["max_interaction_size"] == size][PLOT_METRIC]
                 for size in approx_df["max_interaction_size"].unique()
@@ -69,29 +82,70 @@ def make_box_plots(plot_df) -> None:
         )
         index += 1
         # add empty plot for legend
-        ax.plot([], [], color=COLORS[approx], label=approx)
+        box_axis.plot([], [], color=COLORS[approx], label=approx)
 
-    # remove the x ticks
-    ax.set_xticks([])
-    # set the x ticks to the max_interaction_size
     max_size = max(plot_df["max_interaction_size"].unique())
     min_size = min(plot_df["max_interaction_size"].unique())
-    ax.set_xticks(range(min_size, max_size + 1))
-    ax.set_xticklabels(range(min_size, max_size + 1))
+
+    # plot the moebius values also as box plots
+    # select the correct sizes
+    moebius_plot_df = moebius_plot_df[
+        (moebius_plot_df["size"] >= min_size) & (moebius_plot_df["size"] <= max_size)
+    ]
+    # moebius_plot_df["value"] = moebius_plot_df["value"].abs()
+    moebius_axis.boxplot(
+        [
+            moebius_plot_df[moebius_plot_df["size"] == size]["value"]
+            for size in moebius_plot_df["size"].unique()
+        ],
+        positions=moebius_plot_df["size"].unique(),
+        widths=box_plot_width,
+        showfliers=False,
+        patch_artist=True,
+        boxprops=dict(edgecolor="black", facecolor=hex_black + "33"),
+        whiskerprops=dict(color="black"),
+        capprops=dict(color="black"),
+        medianprops=dict(color="black"),
+        meanprops=dict(marker="o", markerfacecolor="black", markeredgecolor="black"),
+    )
+
+    # moebius_axis.b(
+    #    moebius_plot_df["size"],
+    #    moebius_plot_df["value"],
+    #    label="Moebius",
+    #    color="black",
+    #    marker="o",
+    # )
 
     # add grid behind the box plots
-    ax.yaxis.grid(True)
-    ax.set_axisbelow(True)
+    box_axis.yaxis.grid(True)
+    box_axis.set_axisbelow(True)
 
-    ax.set_xlabel("Interaction size")
-    ax.set_ylabel(PLOT_METRIC)
-    plt.legend(loc="best")
+    # set the x ticks to the max_interaction_size
+
+    moebius_axis.set_xticks(range(min_size, max_size + 1))
+    moebius_axis.set_xticklabels(range(min_size, max_size + 1))
+    moebius_axis.set_xlabel("Interaction size")
+    moebius_axis.tick_params(axis="x", which="both", bottom=True, top=True)  # xticks above + below
+
+    # add ylabels
+    box_axis.set_ylabel(PLOT_METRIC)
+    moebius_axis.set_ylabel("Moebius")
+
+    # ad legends (only for the box plots)
+    box_axis.legend(loc="best")
+
+    # add title
     small_graph = "small" if SMALL_GRAPH else "large"
     title = (
         f"{INDEX} of order {MAX_ORDER} for {DATASET_NAME} ({small_graph} graph) "
         + f"with {MODEL_ID} ({N_LAYERS} layers)"
     )
-    ax.set_title(title)
+    box_axis.set_title(title)
+
+    # remove white space between the subplots
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0)
     plt.show()
 
 
@@ -185,32 +239,39 @@ if __name__ == "__main__":
     DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
-    INDEX = "k-SII"  # k-SII
-    MAX_ORDER = 2  # 2
+    INDEX = "SV"  # k-SII
+    MAX_ORDER = 1  # 2
 
     # plot parameters
-    APPROX_TO_PLOT = [
-        "PermutationSamplingSII",
-        # "SVARMIQ",
-        "KernelSHAPIQ",
-        "GraphSHAPIQ",
-    ]
+    if INDEX == "SV":
+        APPROX_TO_PLOT = [
+            "PermutationSamplingSV",
+            "KernelSHAP",
+            "GraphSHAPIQ",
+        ]
+    else:
+        APPROX_TO_PLOT = [
+            "PermutationSamplingSII",
+            "KernelSHAPIQ",
+            "GraphSHAPIQ",
+        ]
+
     PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
     LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
-    MAX_INTERACTION_SIZES_TO_DROP = 2  # None n (drop the interaction sizes higher than max - n)
+    MAX_INTERACTION_SIZES_TO_DROP = None  # None n (drop the interaction sizes higher than max - n)
 
     # scatter plot parameters
-    SCATTER_PLOT = False  # True False (plot the approximation qualities as a scatter plot)
+    SCATTER_PLOT = True  # True False (plot the approximation qualities as a scatter plot)
     MAX_SIZE = None  # None -n to n (select the maximum neighborhood size to plot)
     Y_LIM = None  # None (set the y-axis limits)
     LOG_SCALE = True  # True False (set the y-axis to log scale)
-    MAX_BUDGET = 10_000  # 2**15 10_000
+    MAX_BUDGET = 2**15  # 2**15 10_000
 
     # box plot parameters
     BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
-    INTERACTION_SIZE_NOT_TO_PLOT = [1, 2]  # None [n, m] (remove the interaction sizes not to plot)
+    INTERACTION_SIZE_NOT_TO_PLOT = None  # None [n, m] (remove the interaction sizes not to plot)
 
-    df = get_plot_df(
+    df, moebius_df = get_plot_df(
         index=INDEX,
         max_order=MAX_ORDER,
         dataset_name=DATASET_NAME,
@@ -221,8 +282,16 @@ if __name__ == "__main__":
         max_interaction_sizes_to_drop=MAX_INTERACTION_SIZES_TO_DROP,
     )
 
+    # average the PLOT METRIC over ["instance_id", "budget", "approximation"] but keep all other
+    # the df should then be smaller (only average rows)
+    aggregation = {PLOT_METRIC: "mean"}
+    for column in df.columns:
+        if column not in ["instance_id", "budget", "approximation", PLOT_METRIC]:
+            aggregation[column] = "first"
+    df = df.groupby(["instance_id", "budget", "approximation"]).agg(aggregation).reset_index()
+
     if SCATTER_PLOT:
         make_scatter_plot(df)
 
     if BOX_PLOTS:
-        make_box_plots(df)
+        make_box_plots(df, moebius_df)

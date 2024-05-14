@@ -15,9 +15,9 @@ def load_interactions_to_plot(
     overview_table: pd.DataFrame,
     index: str,
     max_order: int,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load the interaction values of the approximations and the exact values from the GraphSHAP-IQ
-    approximations and return the results as a list of dictionaries.
+    approximations and return the results as DataFrames
 
     Args:
         overview_table: The overview table to load the interaction values from.
@@ -25,22 +25,32 @@ def load_interactions_to_plot(
         max_order: The maximum order to use for the Möbius transformation.
 
     Returns:
-        The results to plot as a list of dictionaries.
+        The results to plot and the exact values as DataFrames.
     """
 
     results_to_plot: list[dict] = []
     # get exact values and transform them with Möbius
     exact_values_index: dict[str, InteractionValues] = {}  # instance_id -> InteractionValues
-    instances_exact = overview_table[overview_table["exact"] == True][["instance_id", "file_path"]]
-    for instance_id, file_path in tqdm(
+    n_moebius_values: int = 0
+    moebius_values: list[dict] = []
+    instances_exact = overview_table[overview_table["exact"] == True][
+        ["instance_id", "file_path", "run_id"]
+    ]
+    for instance_id, file_path, run_id in tqdm(
         instances_exact.itertuples(index=False, name=None),
         desc="Transforming exact values",
         total=len(instances_exact),
     ):
         exact = InteractionValues.load(file_path)
+        n_moebius_values += len(exact)
+        for interaction in exact.interaction_lookup.keys():
+            moebius_values.append({"value": exact[interaction], "size": len(interaction)})
         converter = MoebiusConverter(moebius_coefficients=exact)
         exact_values_index[instance_id] = converter(index=index, order=max_order)
-    print(f"Found {len(exact_values_index)} exact values.")
+    print(
+        f"Found {len(exact_values_index)} exact values. In total {n_moebius_values} moebius values "
+        f"are stored."
+    )
     for instance_id, values in exact_values_index.items():
         n_players = values.n_players
         print(f"Instance {instance_id} with {n_players} players.")
@@ -80,15 +90,20 @@ def load_interactions_to_plot(
         )
 
     # add approximator
-    for approx_name in ["PermutationSamplingSII", "KernelSHAPIQ", "SVARMIQ"]:
+    approximator_names = overview_table[
+        (overview_table["index"] == index) & (overview_table["order"] == max_order)
+    ]["approximation"].unique()
+    for approx_name in approximator_names:
         approx: dict[str, InteractionValues] = {}  # instance_id - InteractionValues
-        kshap = overview_table[overview_table["approximation"] == approx_name][
-            ["run_id", "instance_id", "budget", "file_path"]
-        ]
+        approx_df = overview_table[
+            (overview_table["approximation"] == approx_name)
+            & (overview_table["index"] == index)
+            & (overview_table["order"] == max_order)
+        ][["run_id", "instance_id", "budget", "file_path"]]
         for run_id, instance_id, budget, file_path in tqdm(
-            kshap.itertuples(index=False, name=None),
+            approx_df.itertuples(index=False, name=None),
             desc=f"Loading {approx_name} values",
-            total=len(kshap),
+            total=len(approx_df),
         ):
             if instance_id not in instances_exact["instance_id"].values:
                 print(f"Skipping {instance_id} because exact values are not computed.")
@@ -110,7 +125,8 @@ def load_interactions_to_plot(
                     **metrics,
                 }
             )
-    return pd.DataFrame(results_to_plot)
+
+    return pd.DataFrame(results_to_plot), pd.DataFrame(moebius_values)
 
 
 def get_plot_df(
@@ -122,7 +138,7 @@ def get_plot_df(
     small_graph: bool,
     load_from_csv: bool = False,
     max_interaction_sizes_to_drop: Optional[int] = None,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Get the DataFrame for the plot."""
 
     file_name = "plot_csv"
@@ -140,10 +156,12 @@ def get_plot_df(
     )
 
     if not load_from_csv or not os.path.exists(file_name):
-        plot_df = load_interactions_to_plot(overview_table, index, max_order)
+        plot_df, moebius_df = load_interactions_to_plot(overview_table, index, max_order)
         plot_df.to_csv(file_name, index=False)
+        moebius_df.to_csv(file_name.replace(".csv", "_moebius.csv"), index=False)
     else:
         plot_df = pd.read_csv(file_name)
+        moebius_df = pd.read_csv(file_name.replace(".csv", "_moebius.csv"))
 
     # inner join with the overview table and drop all duplicate columns from the overview table
     merge_columns = ["run_id"]
@@ -167,4 +185,4 @@ def get_plot_df(
                     ].index
                 )
 
-    return plot_df
+    return plot_df, moebius_df
