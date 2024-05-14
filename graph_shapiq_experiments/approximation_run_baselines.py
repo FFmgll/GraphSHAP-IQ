@@ -34,6 +34,7 @@ def run_baseline(
     x_graph,
     index: str,
     max_order: int,
+    interaction_size,
 ) -> None:
     """Run the baseline approximation on the given game.
 
@@ -45,6 +46,7 @@ def run_baseline(
         x_graph: The graph instance to run.
         index: The index for which the approximator is to be run.
         max_order: The maximum approximation order.
+        interaction_size: The interaction size of the graph-shapiq approximation.
 
     Returns:
         The interaction values of the baseline approximation.
@@ -79,8 +81,8 @@ def run_baseline(
         dataset_name=game_settings["dataset_name"],
         n_layers=game_settings["n_layers"],
         save_exact=False,
-        directory=os.path.join(BASELINES_DIR, approx_name),
-        max_neighborhood_size=interaction_values.estimation_budget,
+        save_directory=os.path.join(BASELINES_DIR, approx_name),
+        max_interaction_size=interaction_size,
         efficiency=False,
         iteration=iteration,
         budget=budget,

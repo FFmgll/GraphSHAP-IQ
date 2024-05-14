@@ -137,7 +137,6 @@ def get_plot_df(
     model_id: str,
     small_graph: bool,
     load_from_csv: bool = False,
-    max_interaction_sizes_to_drop: Optional[int] = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Get the DataFrame for the plot."""
 
@@ -172,17 +171,25 @@ def get_plot_df(
         if column.endswith("_x"):
             plot_df = plot_df.rename(columns={column: column[:-2]})
 
-    # for each instance_id, the top max_interaction_sizes_to_drop
-    if max_interaction_sizes_to_drop is not None:
-        for instance_id in plot_df["instance_id"].unique():
-            instance_df = plot_df[plot_df["instance_id"] == instance_id]
-            max_size = instance_df["max_interaction_size"].max()
-            for size in range(max_size, max_size - max_interaction_sizes_to_drop, -1):
-                plot_df = plot_df.drop(
-                    plot_df[
-                        (plot_df["instance_id"] == instance_id)
-                        & (plot_df["max_interaction_size"] == size)
-                    ].index
-                )
+    # remove exact values from the plot_df
+    plot_df = plot_df[plot_df["approximation"] != "exact"]
+
+    # set the highest two max_interaction_sizes of GraphSHAPIQ to exact == True for each instance
+    graph_shapiq_df = plot_df[plot_df["approximation"] == "GraphSHAPIQ"]
+    for instance_id in graph_shapiq_df["instance_id"].unique():
+        instance_df = graph_shapiq_df[graph_shapiq_df["instance_id"] == instance_id]
+        max_budgets = instance_df["budget"].nlargest(2)
+        plot_df.loc[
+            (plot_df["instance_id"] == instance_id)
+            & (plot_df["budget"].isin(max_budgets.values))
+            & (plot_df["approximation"] == "GraphSHAPIQ"),
+            "exact",
+        ] = True
+
+    # drop all baseline runs where GraphSHAPIQ is exact (the graphshapiq_run column is a key from the baseline to the run)
+    for index, row in plot_df.iterrows():
+        if row["approximation"] == "GraphSHAPIQ" and row["exact"]:
+            run_id_to_drop = row["run_id"]
+            plot_df.drop(plot_df[plot_df["graphshapiq_run"] == run_id_to_drop].index, inplace=True)
 
     return plot_df, moebius_df

@@ -53,7 +53,7 @@ def run_graph_shapiq_approximations(
                 model_id=MODEL_ID,
                 dataset_name=DATASET_NAME,
                 n_layers=N_LAYERS,
-                max_neighborhood_size=size,
+                max_interaction_size=size,
                 efficiency=efficiency,
                 save_exact=True,
                 save_directory=GRAPHSHAPIQ_APPROXIMATION_DIR,
@@ -114,12 +114,23 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
     for game in tqdm(games, desc="Running the L-Shapley approximation"):
         # compute the approximated values
         approximated_values = {}
-        approximator = L_Shapley(game)
-        interaction_sizes = list(range(1, approximator.max_size_neighbors + 1))
-        for interaction_size in interaction_sizes:
-            shapley_values = approximator.explain(
-                max_interaction_size=interaction_size,
-            )
+        g_shapiq = GraphSHAPIQ(game)
+        max_size_neighbors = (
+            g_shapiq.max_size_neighbors
+        )  # random number 10 that should always be enough
+        approximator = L_Shapley(game, max_budget=g_shapiq.total_budget)
+        print(
+            f"Evaluating Game. max_size_neighbors: {max_size_neighbors}, total_budget: "
+            f"{g_shapiq.total_budget}."
+        )
+        for interaction_size in range(1, max_size_neighbors + 10):
+            try:
+                shapley_values, exceeded_budget = approximator.explain(
+                    max_interaction_size=interaction_size,
+                    break_on_exceeding_budget=L_SHAPLEY_BREAK_ON_EXCEEDING_BUDGET,
+                )
+            except ValueError:
+                break
             budget_used = approximator.last_n_model_calls
             shapley_values.estimation_budget = budget_used
             shapley_values.estimated = (
@@ -127,6 +138,9 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
             )
             shapley_values.sparsify(threshold=1e-8)
             approximated_values[interaction_size] = copy.deepcopy(shapley_values)
+            print(f"Finished interaction size {interaction_size} with budget {budget_used}")
+            if exceeded_budget:
+                break
         # save the resulting InteractionValues
         for size, values in approximated_values.items():
             save_interaction_value(
@@ -135,7 +149,7 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
                 model_id=MODEL_ID,
                 dataset_name=DATASET_NAME,
                 n_layers=N_LAYERS,
-                max_neighborhood_size=size,
+                max_interaction_size=size,
                 efficiency=False,  # parameter does not exist for L-Shapley
                 save_exact=False,  # never save exact values for L-Shapley
                 save_directory=L_SHAPLEY_APPROXIMATION_DIR,
@@ -145,6 +159,7 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
 if __name__ == "__main__":
 
     RUN_L_SHAPLEY = True
+    L_SHAPLEY_BREAK_ON_EXCEEDING_BUDGET = False  # stops the L-Shapley approximation if necessary
 
     # run setup
     N_GAMES = 10

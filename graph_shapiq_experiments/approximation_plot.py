@@ -6,6 +6,7 @@ import pandas as pd
 
 from approximation_utils_plot import get_plot_df
 
+hex_black = "#000000"
 COLORS = {
     "PermutationSamplingSII": "#7d53de",
     "PermutationSamplingSV": "#7d53de",
@@ -14,9 +15,8 @@ COLORS = {
     "SVARMIQ": "#00b4d8",
     "SVARM": "#00b4d8",
     "GraphSHAPIQ": "#ef27a6",
+    "L_Shapley": hex_black,
 }
-
-hex_black = "#000000"
 
 MARKERS = {
     "PermutationSamplingSII": "x",
@@ -26,6 +26,7 @@ MARKERS = {
     "SVARMIQ": "d",
     "SVARM": "d",
     "GraphSHAPIQ": "o",
+    "L_Shapley": "o",
 }
 
 
@@ -88,7 +89,6 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     min_size = min(plot_df["max_interaction_size"].unique())
 
     # plot the moebius values also as box plots
-    # select the correct sizes
     moebius_plot_df = moebius_plot_df[
         (moebius_plot_df["size"] >= min_size) & (moebius_plot_df["size"] <= max_size)
     ]
@@ -109,20 +109,13 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
         meanprops=dict(marker="o", markerfacecolor="black", markeredgecolor="black"),
     )
 
-    # moebius_axis.b(
-    #    moebius_plot_df["size"],
-    #    moebius_plot_df["value"],
-    #    label="Moebius",
-    #    color="black",
-    #    marker="o",
-    # )
-
-    # add grid behind the box plots
+    # add grid
     box_axis.yaxis.grid(True)
     box_axis.set_axisbelow(True)
+    moebius_axis.yaxis.grid(True)
+    moebius_axis.set_axisbelow(True)
 
     # set the x ticks to the max_interaction_size
-
     moebius_axis.set_xticks(range(min_size, max_size + 1))
     moebius_axis.set_xticklabels(range(min_size, max_size + 1))
     moebius_axis.set_xlabel("Interaction size")
@@ -235,12 +228,12 @@ def make_scatter_plot(plot_df) -> None:
 if __name__ == "__main__":
 
     # setting parameters
-    MODEL_ID = "GAT"  # GCN GIN GAT
+    MODEL_ID = "GIN"  # GCN GIN GAT
     DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS
-    N_LAYERS = 2  # 2 3
+    N_LAYERS = 3  # 2 3
     SMALL_GRAPH = False  # True False
-    INDEX = "SV"  # k-SII
-    MAX_ORDER = 1  # 2
+    INDEX = "k-SII"  # k-SII
+    MAX_ORDER = 2  # 2
 
     # plot parameters
     if INDEX == "SV":
@@ -248,6 +241,7 @@ if __name__ == "__main__":
             "PermutationSamplingSV",
             "KernelSHAP",
             "GraphSHAPIQ",
+            "L_Shapley",
         ]
     else:
         APPROX_TO_PLOT = [
@@ -258,7 +252,7 @@ if __name__ == "__main__":
 
     PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
     LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
-    MAX_INTERACTION_SIZES_TO_DROP = None  # None n (drop the interaction sizes higher than max - n)
+    MAX_INTERACTION_SIZES_TO_DROP = 2  # None n (drop the interaction sizes higher than max - n)
 
     # scatter plot parameters
     SCATTER_PLOT = True  # True False (plot the approximation qualities as a scatter plot)
@@ -269,7 +263,11 @@ if __name__ == "__main__":
 
     # box plot parameters
     BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
-    INTERACTION_SIZE_NOT_TO_PLOT = None  # None [n, m] (remove the interaction sizes not to plot)
+    INTERACTION_SIZE_NOT_TO_PLOT = [
+        1,
+        2,
+        3,
+    ]  # None [n, m] (remove the interaction sizes not to plot)
 
     df, moebius_df = get_plot_df(
         index=INDEX,
@@ -279,7 +277,7 @@ if __name__ == "__main__":
         model_id=MODEL_ID,
         small_graph=SMALL_GRAPH,
         load_from_csv=LOAD_FROM_CSV,
-        max_interaction_sizes_to_drop=MAX_INTERACTION_SIZES_TO_DROP,
+        # max_interaction_sizes_to_drop=MAX_INTERACTION_SIZES_TO_DROP,
     )
 
     # average the PLOT METRIC over ["instance_id", "budget", "approximation"] but keep all other

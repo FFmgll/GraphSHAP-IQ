@@ -12,7 +12,7 @@ from scipy.special import binom
 
 
 class L_Shapley:
-    def __init__(self, game: Union[GraphGame, GraphNodeGame]):
+    def __init__(self, game: Union[GraphGame, GraphNodeGame], max_budget: int):
         self._last_n_model_calls: Optional[int] = None
         self.edge_index = game.edge_index
         self.n_players = game.n_players
@@ -22,8 +22,7 @@ class L_Shapley:
         self.output_dim = game.output_dim
         self.game = game
         self._grand_coalition_prediction = game(np.ones(self.game.n_players))
-        self.max_neighborhood_size = game.max_neighborhood_size
-        self.neighbors, self.max_size_neighbors = self._get_neighborhoods()
+        self.max_budget = max_budget
 
     def _get_neighborhoods(self):
         """Computes the neighborhoods of each node and caps the max_interaction_size at the size of
@@ -73,7 +72,9 @@ class L_Shapley:
                 coalition_lookup[S] = lookup_shift + i
         return coalition_matrix, coalition_lookup
 
-    def explain(self, max_interaction_size: int) -> InteractionValues:
+    def explain(
+        self, max_interaction_size: int, break_on_exceeding_budget: bool
+    ) -> tuple[InteractionValues, bool]:
 
         self.max_neighborhood_size = max_interaction_size
         self.neighbors, self.max_size_neighbors = self._get_neighborhoods()
@@ -82,6 +83,11 @@ class L_Shapley:
         # Get collection of Möbius interactions to be computed, and complete neighborhoods that are not considered (if
         # efficiency_routine is True)
         coalitions = self._get_all_coalitions(max_interaction_size)
+        exceeded_budget = False
+        if len(coalitions) > self.max_budget:
+            exceeded_budget = True
+            if break_on_exceeding_budget:
+                raise ValueError("Exceeded budget.")
 
         # Convert collected coalitions into coalition matrix
         coalition_matrix, coalition_lookup = self._convert_to_coalition_matrix(coalitions)
@@ -105,7 +111,7 @@ class L_Shapley:
                 max_interaction_size,
             )
 
-        return InteractionValues(
+        int_values = InteractionValues(
             values=shapley_values,
             interaction_lookup=shapley_values_lookup,
             min_order=0,
@@ -115,6 +121,7 @@ class L_Shapley:
             baseline_value=float(masked_predictions[coalition_lookup[tuple()]]),
             estimation_budget=self.last_n_model_calls,
         )
+        return int_values, exceeded_budget
 
     def _LShapley_routine(
         self,

@@ -17,6 +17,7 @@ ALL_SUPPORTED_BASELINE_METHODS = [
     "SVARM",
     "PermutationSamplingSII",
     "PermutationSamplingSV",
+    "L_Shapley",
 ]
 
 # create directories
@@ -46,7 +47,7 @@ def parse_file_name(file_name: str) -> dict[str, Union[str, int, bool]]:
         - Number of Graph Convolutions, e.g. 2 graph conv layers
         - Data ID: a technical identifier of the explained instance
         - Number of players, i.e. number of nodes in the graph
-        - Maximum neighbourhood size as integer
+        - Maximum interaction size as integer
         - Efficiency routine used for the approximation as boolean
         - Estimation budget as an integer
         - index of the approximation as string e.g. k-SII or Moebius
@@ -68,7 +69,7 @@ def parse_file_name(file_name: str) -> dict[str, Union[str, int, bool]]:
         "n_layers": int(parts[2]),
         "data_id": int(parts[3]),
         "n_players": int(parts[4]),
-        "max_neighborhood_size": int(parts[5]),
+        "max_interaction_size": int(parts[5]),
         "efficiency": bool(parts[6]),
         "budget": int(parts[7]),
         "index": str(parts[8]),
@@ -83,12 +84,12 @@ def create_file_name(
     n_layers: int,
     data_id: int,
     n_players: int,
-    max_neighborhood_size: int,
+    max_interaction_size: int,
     efficiency: bool,
     budget: int,
-    index: str = "Moebius",
-    order: Optional[int] = None,
-    iteration: int = 1,
+    index: str,
+    order: int,
+    iteration: int,
 ) -> str:
     """Create the file name for the interaction values.
 
@@ -98,7 +99,7 @@ def create_file_name(
         - Number of Graph Convolutions, e.g. 2 graph conv layers
         - Data ID: a technical identifier of the explained instance
         - Number of players, i.e. number of nodes in the graph
-        - Maximum neighbourhood size as integer
+        - Maximum interaction size as integer
         - Efficiency routine used for the approximation as boolean
         - Estimation budget as an integer
         - index of the approximation as string e.g. k-SII or Moebius
@@ -111,13 +112,13 @@ def create_file_name(
         n_layers: The number of layers.
         data_id: The data ID.
         n_players: The number of players.
-        max_neighborhood_size: The maximum neighbourhood size.
+        max_interaction_size: The maximum neighbourhood size.
         efficiency: Whether the efficiency routine was used for the approximation (True) or not
             (False).
         budget: The estimation budget.
-        index: The index of the approximation. Default is "Moebius".
-        order: The order of the approximation. Default is None.
-        iteration: The iteration number. Default is 1.
+        index: The index of the approximation.
+        order: The order of the approximation.
+        iteration: The iteration number.
 
     Returns:
         The file name of the interaction values.
@@ -132,7 +133,7 @@ def create_file_name(
                 str(n_layers),
                 str(data_id),
                 str(n_players),
-                str(max_neighborhood_size),
+                str(max_interaction_size),
                 str(efficiency),
                 str(budget),
                 str(index),
@@ -151,7 +152,7 @@ def save_interaction_value(
     model_id: str,
     dataset_name: str,
     n_layers: int,
-    max_neighborhood_size: int,
+    max_interaction_size: int,
     efficiency: bool,
     save_directory: str,
     save_exact: bool = False,
@@ -166,7 +167,7 @@ def save_interaction_value(
         model_id: The model ID.
         dataset_name: The dataset name.
         n_layers: The number of layers.
-        max_neighborhood_size: The maximum neighbourhood size for which the interaction values were
+        max_interaction_size: The maximum neighbourhood size for which the interaction values were
             computed.
         efficiency: Whether the efficiency routine was used for the approximation (True) or not
             (False).
@@ -186,7 +187,7 @@ def save_interaction_value(
         n_layers,
         game.game_id,
         game.n_players,
-        max_neighborhood_size,
+        max_interaction_size,
         efficiency,
         budget,
         interaction_values.index,
@@ -232,13 +233,13 @@ def load_exact_values_from_disk(
 
 
 def load_approximation_values_from_disk(
-    exact_file_name: str, directory: str
+    exact_file_name: str, save_directory: str
 ) -> list[InteractionValues]:
     """Loads all approximation values from disk that matches the exact file name.
 
     Args:
         exact_file_name: The file name of the exact values.
-        directory: The directory to search for the approximation values in. For example,
+        save_directory: The directory to search for the approximation values in. For example,
             GRAPHSHAPIQ_APPROXIMATION_DIR for the GraphSHAP-IQ approximation values.
 
     Returns:
@@ -247,7 +248,7 @@ def load_approximation_values_from_disk(
     approximation_values = []
     exact_setup = parse_file_name(exact_file_name)
 
-    for file_name in os.listdir(directory):
+    for file_name in os.listdir(save_directory):
         if not file_name.endswith(".interaction_values"):
             continue
 
@@ -260,11 +261,13 @@ def load_approximation_values_from_disk(
             and exact_setup["data_id"] == file_setup["data_id"]
         ):
             # load the interaction values
-            approximation_values.append(InteractionValues.load(os.path.join(directory, file_name)))
+            approximation_values.append(
+                InteractionValues.load(os.path.join(save_directory, file_name))
+            )
 
     if len(approximation_values) == 0:
         raise FileNotFoundError(
-            f"No approximation values found for {exact_file_name} in {directory}."
+            f"No approximation values found for {exact_file_name} in {save_directory}."
         )
     return approximation_values
 
@@ -503,11 +506,18 @@ def create_results_overview_table() -> pd.DataFrame:
     for index, row in graph_shap_iq_runs.iterrows():
         # set graphshapiq run id for itself
         df.loc[index, "graphshapiq_run"] = row["run_id"]
-        df.loc[index, "max_interaction_size"] = row["max_neighborhood_size"]
+        max_neighborhood_size = row["max_neighborhood_size"]
+        df.loc[index, "max_interaction_size"] = max_neighborhood_size
         instance_id = row["instance_id"]
         budget = row["budget"]
         for approx in approx_to_map:
-            if approx != "exact":
+            if approx == "L_Shapley":
+                run = df[
+                    (df["instance_id"] == instance_id)
+                    & (df["max_neighborhood_size"] == max_neighborhood_size)
+                    & (df["approximation"] == approx)
+                ]
+            elif approx != "exact":
                 run = df[
                     (df["instance_id"] == instance_id)
                     & (df["budget"] == budget)
