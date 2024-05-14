@@ -59,35 +59,6 @@ class L_Shapley:
                         visited.add(edge[1])
         return tuple(sorted(neighbors))
 
-    def compute_moebius_transform(
-        self,
-        coalitions: dict,
-        coalition_predictions: np.ndarray,
-        coalition_lookup: np.ndarray,
-    ):
-        moebius_values = np.zeros(len(coalition_lookup))
-        moebius_lookup = {}
-
-        for i, coalition in enumerate(coalitions):
-            moebius_values[i] = 0
-            moebius_lookup[coalition] = i
-            for L in powerset(coalition):
-                moebius_values[i] += (-1) ** (len(coalition) - len(L)) * coalition_predictions[
-                    coalition_lookup[L]
-                ]
-
-        moebius_coefficients = InteractionValues(
-            values=moebius_values,
-            interaction_lookup=moebius_lookup,
-            min_order=0,
-            max_order=self.n_players,
-            n_players=self.n_players,
-            index="Moebius",
-            baseline_value=float(moebius_values[moebius_lookup[tuple()]]),
-        )
-
-        return moebius_coefficients
-
     def _convert_to_coalition_matrix(self, coalitions: Union[set, dict], lookup_shift: int = 0):
         coalition_matrix = np.zeros((len(coalitions), self.n_players))
         coalition_lookup = {}
