@@ -158,11 +158,11 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
 
 if __name__ == "__main__":
 
-    RUN_L_SHAPLEY = True
+    RUN_L_SHAPLEY = False
     L_SHAPLEY_BREAK_ON_EXCEEDING_BUDGET = False  # stops the L-Shapley approximation if necessary
 
     # run setup
-    N_GAMES = 10
+    N_GAMES = 3
     MAX_N_PLAYERS = 40
     MIN_N_PLAYERS = 30
 
@@ -227,8 +227,7 @@ if __name__ == "__main__":
             baseline=baseline,
             instance_id=int(data_id),
         )
-        if MIN_N_PLAYERS <= game_to_run.n_players <= MAX_N_PLAYERS:
-            games_to_run.append(game_to_run)
+        games_to_run.append(game_to_run)
         if len(games_to_run) >= N_GAMES:
             break
 

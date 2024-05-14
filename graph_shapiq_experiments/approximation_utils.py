@@ -461,18 +461,6 @@ def create_results_overview_table() -> pd.DataFrame:
                 ]
             )
 
-            # check if the model ID and dataset name match
-            file_identifier = "_".join(
-                [
-                    str(attributes["model_id"]),
-                    str(attributes["dataset_name"]),
-                    str(attributes["n_layers"]),
-                    str(attributes["data_id"]),
-                    str(attributes["budget"]),
-                    str(attributes["iteration"]),
-                ]
-            )
-
             results.append(
                 {
                     "run_id": os.path.join(directory, file_name),  # unique identifier
@@ -482,7 +470,7 @@ def create_results_overview_table() -> pd.DataFrame:
                     "n_layers": int(attributes["n_layers"]),
                     "data_id": int(attributes["data_id"]),
                     "n_players": int(attributes["n_players"]),
-                    "max_neighborhood_size": int(attributes["max_neighborhood_size"]),
+                    "max_interaction_size": int(attributes["max_interaction_size"]),
                     "efficiency": bool(attributes["efficiency"]) if is_graphshapiq else None,
                     "budget": int(attributes["budget"]),
                     "index": attributes["index"],
@@ -497,38 +485,6 @@ def create_results_overview_table() -> pd.DataFrame:
             )
 
     df = pd.DataFrame(results)
-
-    # add a id colum for the graphshapiq run for each other approximation
-    approx_to_map = ["exact"] + ALL_SUPPORTED_BASELINE_METHODS
-    graph_shap_iq_runs = df[df["approximation"] == "GraphSHAPIQ"]
-    df["graphshapiq_run"] = None
-    df["max_interaction_size"] = None
-    for index, row in graph_shap_iq_runs.iterrows():
-        # set graphshapiq run id for itself
-        df.loc[index, "graphshapiq_run"] = row["run_id"]
-        max_neighborhood_size = row["max_neighborhood_size"]
-        df.loc[index, "max_interaction_size"] = max_neighborhood_size
-        instance_id = row["instance_id"]
-        budget = row["budget"]
-        for approx in approx_to_map:
-            if approx == "L_Shapley":
-                run = df[
-                    (df["instance_id"] == instance_id)
-                    & (df["max_neighborhood_size"] == max_neighborhood_size)
-                    & (df["approximation"] == approx)
-                ]
-            elif approx != "exact":
-                run = df[
-                    (df["instance_id"] == instance_id)
-                    & (df["budget"] == budget)
-                    & (df["approximation"] == approx)
-                ]
-            else:
-                run = df[(df["instance_id"] == instance_id) & (df["approximation"] == approx)]
-            if not run.empty:
-                df.loc[run.index, "graphshapiq_run"] = row["run_id"]
-                df.loc[run.index, "max_interaction_size"] = row["max_neighborhood_size"]
-
     return df
 
 

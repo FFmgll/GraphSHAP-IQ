@@ -71,7 +71,6 @@ def load_interactions_to_plot(
         graph_shapiq = InteractionValues.load(file_path)
         converter = MoebiusConverter(moebius_coefficients=graph_shapiq)
         graph_shapiq_values_index[instance_id] = converter(index=index, order=max_order)
-
         metrics = get_all_metrics(
             ground_truth=exact_values_index[instance_id],
             estimated=graph_shapiq_values_index[instance_id],
@@ -137,6 +136,7 @@ def get_plot_df(
     model_id: str,
     small_graph: bool,
     load_from_csv: bool = False,
+    drop_exact: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Get the DataFrame for the plot."""
 
@@ -145,12 +145,14 @@ def get_plot_df(
 
     # get the overview table for the specified parameters
     overview_table = create_results_overview_table()
+    interaction_indices_to_select = [index, "Moebius"]
     overview_table = copy.deepcopy(
         overview_table[
             (overview_table["dataset_name"] == dataset_name)
             & (overview_table["n_layers"] == n_layers)
             & (overview_table["model_id"] == model_id)
             & (overview_table["small_graph"] == small_graph)
+            & (overview_table["index"].isin(interaction_indices_to_select))
         ]
     )
 
@@ -175,21 +177,19 @@ def get_plot_df(
     plot_df = plot_df[plot_df["approximation"] != "exact"]
 
     # set the highest two max_interaction_sizes of GraphSHAPIQ to exact == True for each instance
+    plot_df["graph_shapiq_is_exact"] = False
     graph_shapiq_df = plot_df[plot_df["approximation"] == "GraphSHAPIQ"]
     for instance_id in graph_shapiq_df["instance_id"].unique():
         instance_df = graph_shapiq_df[graph_shapiq_df["instance_id"] == instance_id]
-        max_budgets = instance_df["budget"].nlargest(2)
+        max_sizes = instance_df["max_interaction_size"].nlargest(2)
         plot_df.loc[
             (plot_df["instance_id"] == instance_id)
-            & (plot_df["budget"].isin(max_budgets.values))
-            & (plot_df["approximation"] == "GraphSHAPIQ"),
-            "exact",
+            & (plot_df["max_interaction_size"].isin(max_sizes)),
+            "graph_shapiq_is_exact",
         ] = True
 
-    # drop all baseline runs where GraphSHAPIQ is exact (the graphshapiq_run column is a key from the baseline to the run)
-    for index, row in plot_df.iterrows():
-        if row["approximation"] == "GraphSHAPIQ" and row["exact"]:
-            run_id_to_drop = row["run_id"]
-            plot_df.drop(plot_df[plot_df["graphshapiq_run"] == run_id_to_drop].index, inplace=True)
+    # drop rows where GraphSHAPIQ is exact
+    if drop_exact:
+        plot_df = plot_df[~(plot_df["graph_shapiq_is_exact"])]
 
     return plot_df, moebius_df

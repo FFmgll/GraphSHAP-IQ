@@ -2,7 +2,6 @@
 approximations."""
 
 import copy
-import itertools
 import os
 
 from tqdm.auto import tqdm
@@ -22,7 +21,8 @@ from approximation_utils import (
     BASELINES_DIR,
     parse_file_name,
     save_interaction_value,
-    create_results_overview_table,
+    EXACT_DIR,
+    GRAPHSHAPIQ_APPROXIMATION_DIR,
 )
 
 
@@ -34,7 +34,7 @@ def run_baseline(
     x_graph,
     index: str,
     max_order: int,
-    interaction_size,
+    interaction_size: int,
 ) -> None:
     """Run the baseline approximation on the given game.
 
@@ -85,12 +85,11 @@ def run_baseline(
         max_interaction_size=interaction_size,
         efficiency=False,
         iteration=iteration,
-        budget=budget,
+        budget=interaction_values.estimation_budget,
     )
 
 
 def approximate_baselines(
-    *,
     model_id,
     dataset_name,
     n_layers,
@@ -102,66 +101,58 @@ def approximate_baselines(
     max_approx_budget,
 ) -> None:
     """Runs the baseline approximations as specified in the configuration."""
-    results_overview = create_results_overview_table()
-
-    # check how many runs need to be done for the specified settings
-    results_selection = results_overview[
-        (results_overview["model_id"] == model_id)
-        & (results_overview["dataset_name"] == dataset_name)
-        & (results_overview["n_layers"] == n_layers)
-        & (results_overview["small_graph"] == small_graph)
-    ]
-
-    # get all exact values that are not computed yet
-    exact_selection = results_selection[results_selection["exact"] == True]
-    exact_ids = exact_selection["instance_id"].tolist()
-    print(f"Found {len(exact_ids)} instances matching this setting.")
-    if not exact_ids:
-        print(f"No instances found.")
-        return
-
-    # get all budgets for the instances
-    budgets = {}
-    for instance_id in exact_ids:
-        budget_steps = results_selection[
-            (results_selection["instance_id"] == instance_id)
-            & (results_selection["approximation"] == "GraphSHAPIQ")
-        ]["budget"].unique()
-        budgets[instance_id] = copy.deepcopy(budget_steps)
-
     # get the dataset
     all_instances = get_explanation_instances(dataset_name=dataset_name)
 
-    # # list of tuples (approximator, instance_id, budget, iteration, file_name, x_graph)
+    # get all files that need to potentially be computed
+    file_names = os.listdir(EXACT_DIR) + os.listdir(GRAPHSHAPIQ_APPROXIMATION_DIR)
+    file_names = set(file_names)
+
+    # remove all files not matching the model_id, dataset_name, n_layers
+    file_names = [
+        file_name
+        for file_name in file_names
+        if f"{model_id}_{dataset_name}_{n_layers}" in file_name
+    ]
+
+    # get all files in approximations directory
+    approx_files: dict[str, set[str]] = {}
+    for approx_name in approximators_to_run:
+        save_directory = str(os.path.join(BASELINES_DIR, approx_name))
+        approx_files[approx_name] = set(os.listdir(save_directory))
+
     parameter_space, total_budget, unique_instances = [], 0, set()
-    for approximator in approximators_to_run:
-        approx_selection = results_selection[
-            (results_selection["approximation"] == approximator)
-            & (results_selection["index"] == index)
-            & (results_selection["order"] == max_order)
+    for file_name in file_names:
+        attributes = parse_file_name(file_name)
+        parts = [
+            "model_id",
+            "dataset_name",
+            "n_layers",
+            "data_id",
+            "n_players",
+            "max_interaction_size",
         ]
-        for instance_id in exact_ids:
-            setting = results_selection[results_selection["instance_id"] == instance_id].iloc[0]
-            approximated = approx_selection[approx_selection["instance_id"] == instance_id]
-            budget_steps = budgets[instance_id]
-            n_evals_required = len(budget_steps) * iterations
-            if approximated.shape[0] >= n_evals_required:
-                continue
-            for iteration, budget in itertools.product(range(1, iterations + 1), budget_steps):
-                is_computed = approximated[
-                    (approximated["iteration"] == iteration) & (approximated["budget"] == budget)
-                ]
-                if not is_computed.empty:
-                    continue  # already computed
-                if budget > max_approx_budget:
-                    continue
-                file_name = setting["file_name"]
-                x_graph = copy.deepcopy(all_instances[setting["data_id"]])
-                parameter_space.append(
-                    (approximator, instance_id, budget, iteration, file_name, x_graph)
-                )
-                total_budget += budget
-                unique_instances.add(instance_id)
+        identifier = "_".join(str(attributes[part]) for part in parts)
+        for approx_method in approx_files:
+            # check if identifier and index and max_order are in the file name
+            matched_files = [f for f in approx_files[approx_method] if identifier in f]
+            matched_files = [f for f in matched_files if f"{index}_{max_order}" in f]
+            if len(matched_files) < iterations:  # needs to be computed
+                x_graph = all_instances[attributes["data_id"]]
+                for iteration in range(max(len(matched_files), 1), iterations + 1):
+                    params = {
+                        "approx_name": approx_method,
+                        "budget": attributes["budget"],
+                        "iteration": iteration,
+                        "file_name": file_name,
+                        "x_graph": copy.deepcopy(x_graph),
+                        "index": index,
+                        "max_order": max_order,
+                        "interaction_size": attributes["max_interaction_size"],
+                    }
+                    parameter_space.append(params)
+                    total_budget += attributes["budget"]
+                unique_instances.add(attributes["data_id"])
 
     if len(parameter_space) == 0:
         print(f"No instances to compute.")
@@ -181,35 +172,27 @@ def approximate_baselines(
     with tqdm(
         total=total_budget, desc="Running the baseline approximations ", unit=" model calls"
     ) as pbar:
-        for approximator, instance_id, budget, iteration, file_name, x_graph in parameter_space:
-            run_baseline(
-                approximator,
-                budget,
-                iteration,
-                file_name,
-                x_graph,
-                index=index,
-                max_order=max_order,
-            )
-            pbar.update(budget)
+        for parameters in parameter_space:
+            run_baseline(**parameters)
+            pbar.update(parameters["budget"])
 
 
 if __name__ == "__main__":
 
     APPROXIMATORS_TO_RUN = [
         # KernelSHAPIQ.__name__,
-        # PermutationSamplingSII.__name__,
-        KernelSHAP.__name__,
-        PermutationSamplingSV.__name__,
+        PermutationSamplingSII.__name__,
+        # KernelSHAP.__name__,
+        # PermutationSamplingSV.__name__,
     ]
 
     approximate_baselines(
         model_id="GCN",  # GCN GAT GIN
         n_layers=2,  # 2 3
-        dataset_name="Mutagenicity",  # PROTEINS Mutagenicity
+        dataset_name="PROTEINS",  # PROTEINS Mutagenicity
         iterations=2,
-        index="SV",
-        max_order=1,
+        index="k-SII",
+        max_order=2,
         small_graph=False,
         max_approx_budget=10_000,  # 10_000, 2**15
         approximators_to_run=APPROXIMATORS_TO_RUN,

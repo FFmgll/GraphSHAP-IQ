@@ -148,29 +148,6 @@ def make_scatter_plot(plot_df) -> None:
     Args:
         plot_df: The DataFrame containing the approximation qualities.
     """
-    # for graphshapiq, only select the values max_neighborhood_size - 1 for each instance_id
-    if MAX_SIZE is not None:
-        selection = plot_df[plot_df["approximation"] == "GraphSHAPIQ"]
-        for instance_id in selection["instance_id"].unique():
-            instance_selection = selection[selection["instance_id"] == instance_id]
-            max_max_neighborhood_size = instance_selection["max_neighborhood_size"].max()
-            if MAX_SIZE == 0:
-                max_size_to_plot = max_max_neighborhood_size
-            elif MAX_SIZE > 0:
-                max_size_to_plot = min(MAX_SIZE, max_max_neighborhood_size)
-            else:
-                max_size_to_plot = max_max_neighborhood_size - abs(MAX_SIZE)
-            instance_selection = instance_selection[
-                instance_selection["max_neighborhood_size"] == max_size_to_plot
-            ]
-            plot_df = plot_df.drop(
-                plot_df[
-                    (plot_df["instance_id"] == instance_id)
-                    & (plot_df["approximation"] == "GraphSHAPIQ")
-                ].index
-            )
-            plot_df = pd.concat([plot_df, instance_selection])
-
     # drop all instances with a budget higher than MAX_BUDGET
     plot_df = plot_df[plot_df["budget"] <= MAX_BUDGET]
 
@@ -182,14 +159,6 @@ def make_scatter_plot(plot_df) -> None:
         approx_df = plot_df[plot_df["approximation"] == approx_method]
         if approx_df.empty:
             continue
-        if approx_method != "GraphSHAPIQ":
-            # average over the iterations
-            approx_df = (
-                approx_df.groupby(by=["instance_id", "budget"])
-                .agg({PLOT_METRIC: "mean"})
-                .reset_index()
-            )
-            approx_df[PLOT_METRIC] = approx_df[PLOT_METRIC]
         budgets = approx_df["budget"]
         metric = approx_df[PLOT_METRIC]
         ax.scatter(
@@ -230,7 +199,7 @@ if __name__ == "__main__":
     # setting parameters
     MODEL_ID = "GIN"  # GCN GIN GAT
     DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS
-    N_LAYERS = 3  # 2 3
+    N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
     INDEX = "k-SII"  # k-SII
     MAX_ORDER = 2  # 2
@@ -251,7 +220,7 @@ if __name__ == "__main__":
         ]
 
     PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
-    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
+    LOAD_FROM_CSV = False  # True False (load the results from a csv file or build it from scratch)
     MAX_INTERACTION_SIZES_TO_DROP = 2  # None n (drop the interaction sizes higher than max - n)
 
     # scatter plot parameters
@@ -277,16 +246,20 @@ if __name__ == "__main__":
         model_id=MODEL_ID,
         small_graph=SMALL_GRAPH,
         load_from_csv=LOAD_FROM_CSV,
-        # max_interaction_sizes_to_drop=MAX_INTERACTION_SIZES_TO_DROP,
+        drop_exact=False,
     )
 
     # average the PLOT METRIC over ["instance_id", "budget", "approximation"] but keep all other
     # the df should then be smaller (only average rows)
     aggregation = {PLOT_METRIC: "mean"}
     for column in df.columns:
-        if column not in ["instance_id", "budget", "approximation", PLOT_METRIC]:
+        if column not in ["instance_id", "max_interaction_size", "approximation", PLOT_METRIC]:
             aggregation[column] = "first"
-    df = df.groupby(["instance_id", "budget", "approximation"]).agg(aggregation).reset_index()
+    df = (
+        df.groupby(["instance_id", "max_interaction_size", "approximation"])
+        .agg(aggregation)
+        .reset_index()
+    )
 
     if SCATTER_PLOT:
         make_scatter_plot(df)
