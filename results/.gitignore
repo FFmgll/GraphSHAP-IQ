@@ -1,5 +1,7 @@
-approximation/*
-approximation
+approximation/baselines
+approximation/exact
+approximation/L_Shapley
+approximation/GraphSHAPIQ
 explanation_graphs/*
 explanation_graphs
 approximation_old/*
