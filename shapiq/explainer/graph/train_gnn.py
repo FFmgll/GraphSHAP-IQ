@@ -52,12 +52,20 @@ def get_TU_dataset(device, name):
 	dataset = CustomTUDataset(
 		root=DATASET_PATH, name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
 
-	num_nodes_features = dataset.graphs.num_node_features
-	num_classes = dataset.graphs.num_classes
+	try:
+		train_loader = DataLoader(dataset[dataset.train_index], batch_size=64, shuffle=True)
+		val_loader = DataLoader(dataset[dataset.val_index], batch_size=64, shuffle=False)
+		test_loader = DataLoader(dataset[dataset.test_index], batch_size=64, shuffle=False)
 
-	train_loader = DataLoader(dataset[dataset.train_index], batch_size=64, shuffle=True)
-	val_loader = DataLoader(dataset[dataset.val_index], batch_size=64, shuffle=False)
-	test_loader = DataLoader(dataset[dataset.test_index], batch_size=64, shuffle=False)
+		num_nodes_features = dataset.graphs.num_node_features
+		num_classes = dataset.graphs.num_classes
+	except TypeError:
+		train_loader = DataLoader([dataset[i] for i in dataset.train_index], batch_size=64, shuffle=True)
+		val_loader = DataLoader([dataset[i] for i in dataset.val_index], batch_size=64, shuffle=False)
+		test_loader = DataLoader([dataset[i] for i in dataset.test_index], batch_size=64, shuffle=False)
+
+		num_nodes_features = dataset[0].num_node_features
+		num_classes = dataset[0].num_classes
 
 	return train_loader, val_loader, test_loader, num_nodes_features, num_classes
 
@@ -137,7 +145,8 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 
 def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=True, hidden=True, dropout=True, batch_norm=True, jumping_knowledge=True,
 			  enforce_retrain=False):
-	if dataset_name in ["AIDS", "DHFR", "COX2", "BZR", "MUTAG", "BENZENE", "PROTEINS", "ENZYMES", "Mutagenicity"]:
+	if dataset_name in ["AIDS", "DHFR", "COX2", "BZR", "MUTAG", "BENZENE", "PROTEINS", "ENZYMES", "Mutagenicity",
+	                    "FluorideCarbonyl", "Benzene", "AlkaneCarbonyl"]:
 		train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(device,
 																								dataset_name)
 	else:
@@ -162,4 +171,4 @@ def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=Tru
 	return model, model_id
 
 if __name__ == "__main__":
-	model, model_id = train_gnn("Mutagenicity", "GCN", 1)
+	model, model_id = train_gnn("FluorideCarbonyl", "GCN", 1)

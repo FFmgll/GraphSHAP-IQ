@@ -4,7 +4,7 @@ import os
 from typing import Union
 
 import torch
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 
 from shapiq.explainer.graph.graph_datasets import CustomTUDataset
 from shapiq.explainer.graph.graph_models import GNN
@@ -27,11 +27,14 @@ def get_tu_instances(name):
             split_sizes=(0.8, 0.1, 0.1),
             )
     loader = DataLoader(dataset, shuffle=False)
-    all_samples_to_explain = []
-    for data in loader:
-        for i in range(data.num_graphs):
-            all_samples_to_explain.append(data[i])
-    return all_samples_to_explain
+    try:
+        all_samples_to_explain = []
+        for data in loader:
+            for i in range(data.num_graphs):
+                all_samples_to_explain.append(data[i])
+        return all_samples_to_explain
+    except TypeError:
+        return dataset.graphs
 
 
 def load_graph_model_architecture(
