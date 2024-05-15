@@ -136,8 +136,7 @@ def get_plot_df(
     model_id: str,
     small_graph: bool,
     load_from_csv: bool = False,
-    drop_exact: bool = True,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Get the DataFrame for the plot."""
 
     file_name = "plot_csv"
@@ -189,7 +188,7 @@ def get_plot_df(
         ] = True
 
     # drop rows where GraphSHAPIQ is exact
-    if drop_exact:
-        plot_df = plot_df[~(plot_df["graph_shapiq_is_exact"])]
+    exact_df = plot_df[plot_df["graph_shapiq_is_exact"]]
+    plot_df = plot_df[~plot_df["graph_shapiq_is_exact"]]
 
-    return plot_df, moebius_df
+    return plot_df, moebius_df, exact_df

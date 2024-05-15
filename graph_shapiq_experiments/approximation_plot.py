@@ -194,10 +194,74 @@ def make_scatter_plot(plot_df) -> None:
     plt.show()
 
 
+def make_errors_at_exact_plot(plot_df) -> None:
+    """Plots the errors of the baseline approximations at the sizes where GraphSHAP-IQ has exact
+    values.
+
+    The errors are plotted for each approximation method.
+
+    Args:
+        plot_df: The DataFrame containing the approximation qualities.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+
+    # get an sorted list of the approximations to plot
+    approx_order_to_plot = [
+        "GraphSHAPIQ",
+        "KernelSHAPIQ",
+        "KernelSHAP",
+        "PermutationSamplingSII",
+        "PermutationSamplingSV",
+        "SVARMIQ",
+        "SVARM",
+        "L_Shapley",
+    ]
+    sorted_approx = []
+    for approx in approx_order_to_plot:
+        if approx in plot_df["approximation"].unique() and approx in APPROX_TO_PLOT:
+            sorted_approx.append(approx)
+    # add the rest that is missing
+    for approx in plot_df["approximation"].unique():
+        if approx not in sorted_approx and approx in APPROX_TO_PLOT:
+            sorted_approx.append(approx)
+
+    for position, approx_method in enumerate(sorted_approx):
+        approx_df = plot_df[plot_df["approximation"] == approx_method]
+        if approx_df.empty:
+            continue
+        errors = approx_df[PLOT_METRIC]
+        # plot a boxplot
+        color = COLORS[approx_method] + "33"
+        edge_color = COLORS[approx_method]
+        ax.boxplot(
+            errors,
+            positions=[position],
+            widths=0.6,
+            showfliers=False,
+            patch_artist=True,
+            boxprops=dict(edgecolor=edge_color, facecolor=color),
+            whiskerprops=dict(color=edge_color),
+            capprops=dict(color=edge_color),
+            medianprops=dict(color=edge_color),
+            meanprops=dict(marker="o", markerfacecolor=edge_color, markeredgecolor="black"),
+        )
+
+    ax.set_xticks(range(len(APPROX_TO_PLOT)))
+    ax.set_xticklabels(sorted_approx)
+
+    ax.set_ylabel(PLOT_METRIC)
+    title = (
+        f"{INDEX} of order {MAX_ORDER} for {DATASET_NAME} with {MODEL_ID} and {N_LAYERS} layers\n"
+        f"(small graph: {SMALL_GRAPH}, neighbors size: {MAX_SIZE})"
+    )
+    ax.set_title(title)
+    plt.show()
+
+
 if __name__ == "__main__":
 
     # setting parameters
-    MODEL_ID = "GIN"  # GCN GIN GAT
+    MODEL_ID = "GAT"  # GCN GIN GAT
     DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
@@ -220,7 +284,7 @@ if __name__ == "__main__":
         ]
 
     PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
-    LOAD_FROM_CSV = False  # True False (load the results from a csv file or build it from scratch)
+    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
     MAX_INTERACTION_SIZES_TO_DROP = 2  # None n (drop the interaction sizes higher than max - n)
 
     # scatter plot parameters
@@ -232,13 +296,13 @@ if __name__ == "__main__":
 
     # box plot parameters
     BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
-    INTERACTION_SIZE_NOT_TO_PLOT = [
-        1,
-        2,
-        3,
-    ]  # None [n, m] (remove the interaction sizes not to plot)
+    # None [n, m] (remove the interaction sizes not to plot)
+    INTERACTION_SIZE_NOT_TO_PLOT = [1, 2, 3]
 
-    df, moebius_df = get_plot_df(
+    # errors at exact plot
+    PLOT_ERRORS_AT_EXACT = True  # True False (plot the errors at the exact values)
+
+    df, moebius_df, exact_df = get_plot_df(
         index=INDEX,
         max_order=MAX_ORDER,
         dataset_name=DATASET_NAME,
@@ -246,7 +310,6 @@ if __name__ == "__main__":
         model_id=MODEL_ID,
         small_graph=SMALL_GRAPH,
         load_from_csv=LOAD_FROM_CSV,
-        drop_exact=False,
     )
 
     # average the PLOT METRIC over ["instance_id", "budget", "approximation"] but keep all other
@@ -266,3 +329,6 @@ if __name__ == "__main__":
 
     if BOX_PLOTS:
         make_box_plots(df, moebius_df)
+
+    if PLOT_ERRORS_AT_EXACT:
+        make_errors_at_exact_plot(exact_df)

@@ -162,17 +162,19 @@ if __name__ == "__main__":
     L_SHAPLEY_BREAK_ON_EXCEEDING_BUDGET = False  # stops the L-Shapley approximation if necessary
 
     # run setup
-    N_GAMES = 3
+    N_GAMES = 10
     MAX_N_PLAYERS = 40
     MIN_N_PLAYERS = 30
 
     MODEL_ID = "GAT"  # one of GCN GIN GAT
-    DATASET_NAME = "PROTEINS"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
-    N_LAYERS = 2  # one of 1 2 3
+    DATASET_NAME = "BZR"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
+    SORT_PLAYER = True
+    N_LAYERS = 1  # one of 1 2 3
     EFFICIENCY_MODE = True  # one of True False
 
     max_budget = 2**15
     if DATASET_NAME == "PROTEINS":
+        SORT_PLAYER = False
         if N_LAYERS == 2:
             max_budget = 10_000
         elif N_LAYERS == 3:
@@ -180,6 +182,7 @@ if __name__ == "__main__":
         else:
             raise ValueError(f"Wrong Setup for {DATASET_NAME} and {N_LAYERS}")
     if DATASET_NAME == "Mutagenicity":
+        SORT_PLAYER = False
         if N_LAYERS == 2:
             max_budget = 10_000
         else:
@@ -192,7 +195,7 @@ if __name__ == "__main__":
         max_budget=MAX_BUDGET,
         min_players=MIN_N_PLAYERS,
         max_players=MAX_N_PLAYERS,
-        sort=False,
+        sort=SORT_PLAYER,
         sort_budget=False,
     )
     data_ids = data_ids[:N_GAMES]
