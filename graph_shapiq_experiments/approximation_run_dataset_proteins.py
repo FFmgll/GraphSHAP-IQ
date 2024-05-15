@@ -38,7 +38,7 @@ if __name__ == "__main__":
             dataset_name="PROTEINS",
             model_id=model_id,
             n_layers=N_LAYERS,
-            iterations=ITERATIONS,
+            iterations=[1, 2],
             index=INDEX,
             max_order=MAX_ORDER,
             small_graph=False,
