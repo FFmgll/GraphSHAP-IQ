@@ -60,12 +60,14 @@ def get_TU_dataset(device, name):
 		num_nodes_features = dataset.graphs.num_node_features
 		num_classes = dataset.graphs.num_classes
 	except TypeError:
-		train_loader = DataLoader([dataset[i] for i in dataset.train_index], batch_size=64, shuffle=True)
-		val_loader = DataLoader([dataset[i] for i in dataset.val_index], batch_size=64, shuffle=False)
-		test_loader = DataLoader([dataset[i] for i in dataset.test_index], batch_size=64, shuffle=False)
+		DataLoader.name = property(lambda self: name)  # Keep track of the dataset name somehow
+		# Load dataset as list, second element is the Explanation
+		train_loader = DataLoader([dataset[i][0] for i in dataset.train_index], batch_size=64, shuffle=True)
+		val_loader = DataLoader([dataset[i][0] for i in dataset.val_index], batch_size=64, shuffle=False)
+		test_loader = DataLoader([dataset[i][0] for i in dataset.test_index], batch_size=64, shuffle=False)
 
-		num_nodes_features = dataset[0].num_node_features
-		num_classes = dataset[0].num_classes
+		num_nodes_features = dataset.graphs[0].num_node_features
+		num_classes = 2 # Binary classification for FluorideCarbonyl, Benzene, AlkaneCarbonyl
 
 	return train_loader, val_loader, test_loader, num_nodes_features, num_classes
 
@@ -78,7 +80,11 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 	early_stopper = EarlyStopper(patience=100)
 
 	model_name = model.model_type
-	dataset_name = train_loader.dataset.name
+	try:
+		dataset_name = train_loader.dataset.name
+	except AttributeError:  # Get the name from the class name
+		dataset_name = train_loader.name
+
 	log_dir = Path("shapiq", "explainer", "graph", "ckpt", "training_logs",
 				   "graph_prediction", model_name, dataset_name).resolve()
 	log_dir.mkdir(parents=True, exist_ok=True)
@@ -171,4 +177,4 @@ def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=Tru
 	return model, model_id
 
 if __name__ == "__main__":
-	model, model_id = train_gnn("FluorideCarbonyl", "GCN", 1)
+	model, model_id = train_gnn("FluorideCarbonyl", "GCN", 1, hidden=False)
