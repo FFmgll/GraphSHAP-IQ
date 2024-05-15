@@ -1,12 +1,15 @@
 from torch_geometric.datasets import TUDataset
-from graphxai_local.datasets.dataset import GraphDataset
+from shapiq.explainer.graph.graph_datasets.datasets import GraphDataset
 from graphxai_local.datasets.real_world.mutagenicity import Mutagenicity
+from graphxai_local.datasets import FluorideCarbonyl, Benzene, AlkaneCarbonyl
 
-def CustomTUDataset(name: str, root: str, seed: int = 42, split_sizes=(0.7, 0.2, 0.1)):
+def CustomTUDataset(name: str, root: str, seed: int = 42, split_sizes=(0.8, 0.1, 0.1)):
 	"""Helper function to switch between datasets (TU and GraphXAI)"""
 	if name == 'Mutagenicity_XAI':
 		print('Loading Mutagenicity with explanations, it may take a while...')
 		return Mutagenicity(root=root, seed=seed, split_sizes=split_sizes, test_debug=True)
+	elif name in ['FluorideCarbonyl', 'Benzene', 'AlkaneCarbonyl']:
+		return eval(name)(seed=seed, split_sizes=split_sizes)
 	else:
 		return _CustomTUDataset(name=name, root=root, seed=seed, split_sizes=split_sizes)
 
@@ -38,7 +41,7 @@ class _CustomTUDataset(GraphDataset):
 		super().__init__(name=name, seed=seed, split_sizes=split_sizes)
 
 if __name__ == "__main__":
-	dataset = CustomTUDataset(name='Mutagenicity_XAI', root='./')
+	dataset = CustomTUDataset(name='AlkaneCarbonyl', root='./')
 	#dataset = CustomTUDataset(name='AIDS', root='./')
 	print(dataset)
 	print(dataset[0])

@@ -60,7 +60,7 @@ def load_graphs(datapath: str):
         x = torch.from_numpy(X[i]['nodes'])
         edge_attr = torch.from_numpy(X[i]['edges'])
         #y = X[i]['globals'][0]
-        y = torch.tensor([ylist[i]], dtype = torch.long)
+        y = torch.tensor([int(ylist[i])], dtype = torch.long)
 
         # Get edge_index:
         e1 = torch.from_numpy(X[i]['receivers']).long()
