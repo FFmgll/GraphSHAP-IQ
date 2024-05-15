@@ -3,6 +3,8 @@ approximations."""
 
 import copy
 import os
+import argparse
+import sys
 
 from tqdm.auto import tqdm
 
@@ -10,6 +12,7 @@ from shapiq.explainer.graph import get_explanation_instances
 from shapiq.approximator import (
     KernelSHAPIQ,
     SHAPIQ,
+    SVARM,
     SVARMIQ,
     InconsistentKernelSHAPIQ,
     PermutationSamplingSII,
@@ -70,6 +73,8 @@ def run_baseline(
         approximator = PermutationSamplingSV(n=n_players)
     elif approx_name == KernelSHAP.__name__ and index == "SV" and max_order == 1:
         approximator = KernelSHAP(n=n_players)
+    elif approx_name == SVARM.__name__ and index == "SV" and max_order == 1:
+        approximator = SVARM(n=n_players)
     else:
         raise ValueError(f"Approximator {approx_name} not found. Maybe wrong settings?")
     interaction_values = approximator.approximate(budget=budget, game=game)
@@ -90,15 +95,15 @@ def run_baseline(
 
 
 def approximate_baselines(
-    model_id,
-    dataset_name,
-    n_layers,
-    small_graph,
-    iterations,
-    approximators_to_run,
-    index,
-    max_order,
-    max_approx_budget,
+    model_id: str,
+    dataset_name: str,
+    n_layers: int,
+    small_graph: bool,
+    iterations: list[int],
+    approximators_to_run: list[str],
+    index: str,
+    max_order: int,
+    max_approx_budget: int,
 ) -> None:
     """Runs the baseline approximations as specified in the configuration."""
     # get the dataset
@@ -137,21 +142,23 @@ def approximate_baselines(
             # check if identifier and index and max_order are in the file name
             matched_files = [f for f in approx_files[approx_method] if identifier in f]
             matched_files = [f for f in matched_files if f"{index}_{max_order}" in f]
-            if len(matched_files) < iterations:  # needs to be computed
+            for iteration in iterations:
+                matched_iteration = [f for f in matched_files if f"_{iteration}." in f]
+                if len(matched_iteration) != 0:  # already computed
+                    continue
                 x_graph = all_instances[attributes["data_id"]]
-                for iteration in range(max(len(matched_files), 1), iterations + 1):
-                    params = {
-                        "approx_name": approx_method,
-                        "budget": attributes["budget"],
-                        "iteration": iteration,
-                        "file_name": file_name,
-                        "x_graph": copy.deepcopy(x_graph),
-                        "index": index,
-                        "max_order": max_order,
-                        "interaction_size": attributes["max_interaction_size"],
-                    }
-                    parameter_space.append(params)
-                    total_budget += attributes["budget"]
+                params = {
+                    "approx_name": approx_method,
+                    "budget": attributes["budget"],
+                    "iteration": iteration,
+                    "file_name": file_name,
+                    "x_graph": copy.deepcopy(x_graph),
+                    "index": index,
+                    "max_order": max_order,
+                    "interaction_size": attributes["max_interaction_size"],
+                }
+                parameter_space.append(params)
+                total_budget += attributes["budget"]
                 unique_instances.add(attributes["data_id"])
 
     if len(parameter_space) == 0:
@@ -179,21 +186,67 @@ def approximate_baselines(
 
 if __name__ == "__main__":
 
-    APPROXIMATORS_TO_RUN = [
-        # KernelSHAPIQ.__name__,
-        PermutationSamplingSII.__name__,
-        # KernelSHAP.__name__,
-        # PermutationSamplingSV.__name__,
-    ]
+    run_from_command_line = False
+    print(sys.argv)
+    if len(sys.argv) > 2:
+        run_from_command_line = True
+
+    # parse the parameters from the command line
+    if not run_from_command_line:
+        MODEL_ID = "GCN"
+        N_LAYERS = 2
+        DATASET_NAME = "Mutagenicity"
+        ITERATIONS = [1, 2]
+        INDEX = "SV"
+        MAX_ORDER = 1
+        SMALL_GRAPH = False
+        if INDEX == "k-SII":
+            APPROXIMATORS_TO_RUN = [
+                "KernelSHAPIQ",
+                "PermutationSamplingSII",
+                "SVARM",
+            ]
+        else:
+            APPROXIMATORS_TO_RUN = [
+                "KernelSHAP",
+                "PermutationSamplingSV",
+                "SVARMIQ",
+            ]
+    else:
+        # example setting for the command line:
+        # k-SII order 2
+        # python approximation_run_baselines.py --model_id GCN --dataset_name PROTEINS --approximators_to_use KernelSHAPIQ PermutationSamplingSII SVARMIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # SV order 1
+        # python approximation_run_baselines.py --model_id GCN --dataset_name PROTEINS --approximators_to_use KernelSHAP PermutationSamplingSV SVARM --n_layers 2 --iterations 1 2 --index SV --max_order 1
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--model_id", type=str, required=True)
+        parser.add_argument("--dataset_name", type=str, required=True)
+        parser.add_argument("--approximators_to_use", type=str, nargs="+", required=True)
+        parser.add_argument("--n_layers", type=int, required=True)
+        parser.add_argument("--iterations", type=int, nargs="+", required=True)
+        parser.add_argument("--index", type=str, required=True)
+        parser.add_argument("--max_order", type=int, required=True)
+        parser.add_argument("--small_graph", type=bool, required=False, default=False)
+        args = parser.parse_args()
+
+        MODEL_ID: str = args.model_id  # GCN GAT GIN
+        N_LAYERS: int = args.n_layers  # 1 2 3
+        DATASET_NAME: str = args.dataset_name  # PROTEINS Mutagenicity BZR
+        ITERATIONS: list[int] = args.iterations  # 1 2
+        INDEX: str = args.index  # k-SII SV
+        MAX_ORDER: int = args.max_order  # 1 2
+        SMALL_GRAPH: bool = args.small_graph  # False True
+        APPROXIMATORS_TO_RUN: list[str] = args.approximators_to_use
 
     approximate_baselines(
-        model_id="GCN",  # GCN GAT GIN
-        n_layers=2,  # 2 3
-        dataset_name="PROTEINS",  # PROTEINS Mutagenicity
-        iterations=2,
-        index="k-SII",
-        max_order=2,
-        small_graph=False,
-        max_approx_budget=10_000,  # 10_000, 2**15
+        model_id=MODEL_ID,
+        n_layers=N_LAYERS,  # 2 3
+        dataset_name=DATASET_NAME,  # PROTEINS Mutagenicity BZR
+        iterations=ITERATIONS,
+        index=INDEX,
+        max_order=MAX_ORDER,
+        small_graph=SMALL_GRAPH,
+        max_approx_budget=2**15,
         approximators_to_run=APPROXIMATORS_TO_RUN,
     )
