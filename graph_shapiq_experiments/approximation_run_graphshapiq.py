@@ -2,6 +2,7 @@
 
 import copy
 
+import pandas as pd
 import torch
 from tqdm.auto import tqdm
 
@@ -12,6 +13,7 @@ from approximation_utils import (
     GRAPHSHAPIQ_APPROXIMATION_DIR,
     L_SHAPLEY_APPROXIMATION_DIR,
     pre_select_data_ids,
+    OVERVIEW_CSV_FILE,
 )
 from shapiq.interaction_values import InteractionValues
 from shapiq.games.benchmark.local_xai import GraphGame
@@ -46,8 +48,9 @@ def run_graph_shapiq_approximations(
             print(e)
             continue
         # save the resulting InteractionValues
+        new_file_names = []
         for size, values in moebius_values.items():
-            save_interaction_value(
+            save_name = save_interaction_value(
                 interaction_values=values,
                 game=game,
                 model_id=MODEL_ID,
@@ -58,6 +61,17 @@ def run_graph_shapiq_approximations(
                 save_exact=True,
                 save_directory=GRAPHSHAPIQ_APPROXIMATION_DIR,
             )
+            new_file_names.append(save_name)
+
+        # append the new file names to the csv file if they are not already in there
+        if new_file_names:
+            # append to OVERVIEW_CSV_FILE
+            df = pd.read_csv(OVERVIEW_CSV_FILE)
+            for file_name in new_file_names:
+                if file_name not in df["file_name"].values:
+                    new_df = pd.DataFrame([{"file_name": file_name}])
+                    df = pd.concat([df, new_df], ignore_index=True)
+            df.to_csv(OVERVIEW_CSV_FILE, index=False)
 
 
 def run_graph_shapiq_approximation(
@@ -143,7 +157,7 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
                 break
         # save the resulting InteractionValues
         for size, values in approximated_values.items():
-            save_interaction_value(
+            _ = save_interaction_value(
                 interaction_values=values,
                 game=game,
                 model_id=MODEL_ID,
@@ -167,7 +181,7 @@ if __name__ == "__main__":
     MIN_N_PLAYERS = 30
 
     MODEL_ID = "GAT"  # one of GCN GIN GAT
-    DATASET_NAME = "BZR"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
+    DATASET_NAME = "PROTEINS"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     SORT_PLAYER = True
     N_LAYERS = 1  # one of 1 2 3
     EFFICIENCY_MODE = True  # one of True False
@@ -175,7 +189,9 @@ if __name__ == "__main__":
     max_budget = 2**15
     if DATASET_NAME == "PROTEINS":
         SORT_PLAYER = False
-        if N_LAYERS == 2:
+        if N_LAYERS == 1:
+            max_budget = 10_000
+        elif N_LAYERS == 2:
             max_budget = 10_000
         elif N_LAYERS == 3:
             max_budget = 2**15

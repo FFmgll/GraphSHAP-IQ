@@ -21,6 +21,8 @@ ALL_SUPPORTED_BASELINE_METHODS = [
 ]
 
 # create directories
+APPROXIMATION_DIR = os.path.join("..", "results", "approximation")
+OVERVIEW_CSV_FILE = os.path.join(APPROXIMATION_DIR, "graph_shapiq_runs.csv")
 BASELINES_DIR = os.path.join("..", "results", "approximation", "baselines")
 GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "GraphSHAPIQ")
 L_SHAPLEY_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "L_Shapley")
@@ -32,10 +34,15 @@ ALL_DIRECTORIES = ALL_BASELINE_DIRECTORIES + [
     GRAPHSHAPIQ_APPROXIMATION_DIR,
     L_SHAPLEY_APPROXIMATION_DIR,
     EXACT_DIR,
+    APPROXIMATION_DIR,
 ]
 
 for directory in ALL_DIRECTORIES:
     os.makedirs(directory, exist_ok=True)
+
+# create csv if not exist
+if not os.path.exists(OVERVIEW_CSV_FILE):
+    pd.DataFrame(columns=["file_name"]).to_csv(OVERVIEW_CSV_FILE, index=False)
 
 
 def parse_file_name(file_name: str) -> dict[str, Union[str, int, bool]]:
@@ -158,7 +165,7 @@ def save_interaction_value(
     save_exact: bool = False,
     iteration: int = 1,
     budget: Optional[int] = None,
-) -> None:
+) -> str:
     """Save the interaction values to a file.
 
     Args:
@@ -178,6 +185,9 @@ def save_interaction_value(
         iteration: The iteration number. Default is None.
         budget: The estimation budget. Default is None, which uses the budget from the
             interaction_values.
+
+    Returns:
+        The file name of the saved interaction values.
     """
     if budget is None:
         budget = interaction_values.estimation_budget
@@ -200,6 +210,7 @@ def save_interaction_value(
     if not interaction_values.estimated and save_exact:
         save_path = os.path.join(EXACT_DIR, save_name)
         interaction_values.save(save_path)
+    return save_name
 
 
 def load_exact_values_from_disk(

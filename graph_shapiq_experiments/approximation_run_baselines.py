@@ -6,6 +6,7 @@ import os
 import argparse
 import sys
 
+import pandas as pd
 from tqdm.auto import tqdm
 
 from shapiq.explainer.graph import get_explanation_instances
@@ -26,6 +27,7 @@ from approximation_utils import (
     save_interaction_value,
     EXACT_DIR,
     GRAPHSHAPIQ_APPROXIMATION_DIR,
+    APPROXIMATION_DIR,
 )
 
 
@@ -171,10 +173,110 @@ def approximate_baselines(
 
     # run the baselines
     print(f"Approximating the baselines:", approximators_to_run)
+    _print_params(
+        model_id,
+        dataset_name,
+        n_layers,
+        small_graph,
+        iterations,
+        index,
+        max_order,
+        max_approx_budget,
+    )
+    with tqdm(
+        total=total_budget, desc="Running the baseline approximations ", unit=" model calls"
+    ) as pbar:
+        for parameters in parameter_space:
+            run_baseline(**parameters)
+            pbar.update(parameters["budget"])
+
+
+def _print_params(
+    model_id: str,
+    dataset_name: str,
+    n_layers: int,
+    small_graph: bool,
+    iterations: list[int],
+    index: str,
+    max_order: int,
+    max_approx_budget: int,
+) -> None:
     print(
         f"Settings: max_budget={max_approx_budget}, iterations={iterations}, "
         f"small_graph={small_graph}, index={index}, max_order={max_order}, "
         f"dataset={dataset_name}, model={model_id}, n_layers={n_layers}"
+    )
+
+
+def approximate_parameters(
+    model_id: str,
+    dataset_name: str,
+    n_layers: int,
+    small_graph: bool,
+    iterations: list[int],
+    approximators_to_run: list[str],
+    index: str,
+    max_order: int,
+    max_approx_budget: int,
+) -> None:
+    """Runs the baseline approximations as specified in the configuration regardless of the already
+    computed approximations."""
+
+    parameter_space, total_budget, unique_instances = [], 0, set()
+    all_instances = get_explanation_instances(dataset_name=dataset_name)
+
+    # read the csv
+    all_graph_shapiq_runs = pd.read_csv(os.path.join(APPROXIMATION_DIR, "graph_shapiq_runs.csv"))
+    all_files = set(all_graph_shapiq_runs["file_name"].values)
+
+    for file_name in all_files:
+        attributes = parse_file_name(file_name)
+        if (
+            attributes["model_id"] != model_id
+            or attributes["dataset_name"] != dataset_name
+            or attributes["n_layers"] != n_layers
+            or attributes["budget"] > max_approx_budget
+        ):
+            continue
+
+        # add to the parameter space
+        for approx_name in approximators_to_run:
+            for iteration in iterations:
+                x_graph = all_instances[attributes["data_id"]]
+                params = {
+                    "approx_name": approx_name,
+                    "budget": attributes["budget"],
+                    "iteration": iteration,
+                    "file_name": file_name,
+                    "x_graph": copy.deepcopy(x_graph),
+                    "index": index,
+                    "max_order": max_order,
+                    "interaction_size": attributes["max_interaction_size"],
+                }
+                parameter_space.append(params)
+                total_budget += attributes["budget"]
+                unique_instances.add(attributes["data_id"])
+
+    if len(parameter_space) == 0:
+        print(f"No instances to compute.")
+        return
+
+    print(
+        f"Found {len(parameter_space)} instances to compute for {len(unique_instances)} unique "
+        f"instances. Total budget: {total_budget}."
+    )
+
+    # run the baselines
+    print(f"Approximating the baselines:", approximators_to_run)
+    _print_params(
+        model_id,
+        dataset_name,
+        n_layers,
+        small_graph,
+        iterations,
+        index,
+        max_order,
+        max_approx_budget,
     )
     with tqdm(
         total=total_budget, desc="Running the baseline approximations ", unit=" model calls"
@@ -200,6 +302,7 @@ if __name__ == "__main__":
         INDEX = "SV"
         MAX_ORDER = 1
         SMALL_GRAPH = False
+        APPROXIMATE_REGARDLESS = True  # if True, approximate regardless of already approximations
         if INDEX == "k-SII":
             APPROXIMATORS_TO_RUN = [
                 "KernelSHAPIQ",
@@ -212,6 +315,19 @@ if __name__ == "__main__":
                 "PermutationSamplingSV",
                 "SVARMIQ",
             ]
+
+        if not APPROXIMATE_REGARDLESS:
+            approximate_baselines(
+                model_id=MODEL_ID,
+                n_layers=N_LAYERS,  # 2 3
+                dataset_name=DATASET_NAME,  # PROTEINS Mutagenicity BZR
+                iterations=ITERATIONS,
+                index=INDEX,
+                max_order=MAX_ORDER,
+                small_graph=SMALL_GRAPH,
+                max_approx_budget=2**15,
+                approximators_to_run=APPROXIMATORS_TO_RUN,
+            )
     else:
         # example setting for the command line:
         # k-SII order 2
@@ -239,14 +355,14 @@ if __name__ == "__main__":
         SMALL_GRAPH: bool = args.small_graph  # False True
         APPROXIMATORS_TO_RUN: list[str] = args.approximators_to_use
 
-    approximate_baselines(
+    approximate_parameters(
         model_id=MODEL_ID,
-        n_layers=N_LAYERS,  # 2 3
-        dataset_name=DATASET_NAME,  # PROTEINS Mutagenicity BZR
+        dataset_name=DATASET_NAME,
+        n_layers=N_LAYERS,
+        small_graph=SMALL_GRAPH,
         iterations=ITERATIONS,
+        approximators_to_run=APPROXIMATORS_TO_RUN,
         index=INDEX,
         max_order=MAX_ORDER,
-        small_graph=SMALL_GRAPH,
         max_approx_budget=2**15,
-        approximators_to_run=APPROXIMATORS_TO_RUN,
     )
