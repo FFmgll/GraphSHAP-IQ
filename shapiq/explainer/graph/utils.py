@@ -34,7 +34,7 @@ def get_tu_instances(name):
                 all_samples_to_explain.append(data[i])
         return all_samples_to_explain
     except TypeError:
-        return dataset.graphs
+        return dataset.graphs  # or return dataset.explanations
 
 
 def load_graph_model_architecture(
@@ -65,12 +65,19 @@ def load_graph_model_architecture(
             "PROTEINS",
             "ENZYMES",
             "Mutagenicity",
+            'FluorideCarbonyl',
+            'Benzene',
+            'AlkaneCarbonyl'
             ]:
         dataset = CustomTUDataset(
                 root=GRAPH_DATASETS_DIR, name=dataset_name, seed=1234, split_sizes=(0.8, 0.1, 0.1)
                 )
-        num_nodes_features = dataset.graphs.num_node_features
-        num_classes = dataset.graphs.num_classes
+        try:
+            num_nodes_features = dataset.graphs.num_node_features
+            num_classes = dataset.graphs.num_classes
+        except AttributeError:
+            num_nodes_features = dataset.graphs[0].num_node_features
+            num_classes = 2
     else:
         raise Exception("Dataset not found. It has to be downloaded first.")
 
@@ -79,6 +86,8 @@ def load_graph_model_architecture(
         hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)][
             "hidden"
         ]
+    else:
+        hidden = 16
 
     if model_type in ["GCN", "GIN", "GAT"]:
         model = GNN(model_type=model_type,
