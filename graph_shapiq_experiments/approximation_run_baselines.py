@@ -294,8 +294,10 @@ def approximate_parameters(
 
 if __name__ == "__main__":
 
+    print("Script: CWD: ", os.getcwd())
+
     run_from_command_line = False
-    print(sys.argv)
+    print("Arguments: ", sys.argv)
     if len(sys.argv) > 2:
         run_from_command_line = True
 
