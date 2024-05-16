@@ -196,17 +196,15 @@ if __name__ == "__main__":
     }
 
     DATASETS = [
-        # "AIDS",
-        # "DHFR",
         "COX2",
         "BZR",
         "PROTEINS",
         "ENZYMES",
-        # "MUTAG",
         "Mutagenicity",
         "FluorideCarbonyl",
         "Benzene",
         "AlkaneCarbonyl",
+        "WaterQuality"
     ]
 
     LAYERS = ["1", "2", "3", "4"]
@@ -224,16 +222,17 @@ if __name__ == "__main__":
         file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
         if file_name.split("_")[0] == "complexity":
             dataset_name = file_name.split("_")[1]
-            result["dataset_name"] = dataset_name
-            result["n_layers"] = file_name.split("_")[2]
-            result = pd.merge(
-                result,
-                dataset_statistics[dataset_name],
-                left_index=True,
-                right_index=True,
-                how="inner",
-            )
-            results[file_name] = result
+            if dataset_name in DATASETS:
+                result["dataset_name"] = dataset_name
+                result["n_layers"] = file_name.split("_")[2]
+                result = pd.merge(
+                    result,
+                    dataset_statistics[dataset_name],
+                    left_index=True,
+                    right_index=True,
+                    how="inner",
+                )
+                results[file_name] = result
 
     all_datasets = pd.concat(dataset_statistics.values(), keys=dataset_statistics.keys())
 
