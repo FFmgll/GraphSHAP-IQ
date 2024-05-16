@@ -25,12 +25,14 @@ ALL_SUPPORTED_BASELINE_METHODS = [
 ]
 
 # create directories
-APPROXIMATION_DIR = os.path.join("..", "results", "approximation")
+this_file_path = os.path.abspath(__file__)
+this_file_path = os.path.dirname(this_file_path)
+APPROXIMATION_DIR = os.path.join(this_file_path, "..", "results", "approximation")
 OVERVIEW_CSV_FILE = os.path.join(APPROXIMATION_DIR, "graph_shapiq_runs.csv")
-BASELINES_DIR = os.path.join("..", "results", "approximation", "baselines")
-GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "GraphSHAPIQ")
-L_SHAPLEY_APPROXIMATION_DIR = os.path.join("..", "results", "approximation", "L_Shapley")
-EXACT_DIR = os.path.join("..", "results", "approximation", "exact")
+BASELINES_DIR = os.path.join(APPROXIMATION_DIR, "baselines")
+GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "GraphSHAPIQ")
+L_SHAPLEY_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "L_Shapley")
+EXACT_DIR = os.path.join("exact")
 ALL_BASELINE_DIRECTORIES = [
     os.path.join(BASELINES_DIR, method) for method in ALL_SUPPORTED_BASELINE_METHODS
 ]
