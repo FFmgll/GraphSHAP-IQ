@@ -75,12 +75,18 @@ class GraphGame(Game):
         else:
             self.y_index = int(class_id)
 
-        # Compute emptyset prediction
-        normalization_value = float(self.value_function(np.zeros(len(x_graph.x))))
-        # call the super constructor
-        super().__init__(
-            n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
-        )
+        if normalize:
+            # Compute emptyset prediction
+            normalization_value = float(self.value_function(np.zeros(len(x_graph.x))))
+            # call the super constructor
+            super().__init__(
+                n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
+            )
+        else:
+            # call the super constructor
+            super().__init__(
+                n_players=len(x_graph.x), normalize=normalize
+            )
         self._grand_coalition_set = set(range(self.n_players))
         if instance_id is not None:
             self.game_id = instance_id
