@@ -16,8 +16,8 @@ if __name__ == "__main__":
     ITERATIONS = 2
     MODEL_IDS = [
         "GCN",
-        # "GAT",
-        # "GIN",
+        "GAT",
+        "GIN",
     ]
     N_LAYERS = 2
 

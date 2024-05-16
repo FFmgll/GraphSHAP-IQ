@@ -19,6 +19,8 @@ from shapiq.approximator import (
     PermutationSamplingSII,
     PermutationSamplingSV,
     KernelSHAP,
+    kADDSHAP,
+    UnbiasedKernelSHAP,
 )
 from approximation_utils import (
     get_game_from_file_name,
@@ -77,6 +79,10 @@ def run_baseline(
         approximator = KernelSHAP(n=n_players)
     elif approx_name == SVARM.__name__ and index == "SV" and max_order == 1:
         approximator = SVARM(n=n_players)
+    elif approx_name == kADDSHAP.__name__ and index == "SV" and max_order == 1:
+        approximator = kADDSHAP(n=n_players, max_order=2)
+    elif approx_name == UnbiasedKernelSHAP.__name__ and index == "SV" and max_order == 1:
+        approximator = UnbiasedKernelSHAP(n=n_players)
     else:
         raise ValueError(f"Approximator {approx_name} not found. Maybe wrong settings?")
     interaction_values = approximator.approximate(budget=budget, game=game)
@@ -295,26 +301,33 @@ if __name__ == "__main__":
 
     # parse the parameters from the command line
     if not run_from_command_line:
-        MODEL_ID = "GCN"
+        MODEL_ID = "GAT"
         N_LAYERS = 2
         DATASET_NAME = "Mutagenicity"
-        ITERATIONS = [1, 2]
-        INDEX = "SV"
-        MAX_ORDER = 1
+        ITERATIONS = [1]
+        INDEX = "k-SII"
+        MAX_ORDER = 2
         SMALL_GRAPH = False
-        APPROXIMATE_REGARDLESS = True  # if True, approximate regardless of already approximations
+        APPROXIMATE_REGARDLESS = False  # if True, approximate regardless of already approximations
         if INDEX == "k-SII":
             APPROXIMATORS_TO_RUN = [
-                "KernelSHAPIQ",
-                "PermutationSamplingSII",
-                "SVARM",
+                # "KernelSHAPIQ",
+                # "PermutationSamplingSII",
+                # "SVARMIQ",
+                "InconsistentKernelSHAPIQ",
+                "SHAPIQ",
             ]
-        else:
+        elif INDEX == "SV":
+            MAX_ORDER = 1
             APPROXIMATORS_TO_RUN = [
                 "KernelSHAP",
                 "PermutationSamplingSV",
-                "SVARMIQ",
+                "SVARM",
+                "UnbiasedKernelSHAP",
+                "kADDSHAP",
             ]
+        else:
+            raise ValueError(f"Index {INDEX} not found. Maybe wrong settings?")
 
         if not APPROXIMATE_REGARDLESS:
             approximate_baselines(

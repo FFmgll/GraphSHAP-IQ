@@ -11,14 +11,13 @@ from approximation_run_baselines import approximate_baselines
 
 if __name__ == "__main__":
 
-    ITERATIONS = 2
+    ITERATIONS = [1, 2]
     MODEL_IDS = [
         "GCN",
         "GAT",
         "GIN",
     ]
     N_LAYERS = [
-        1,
         2,
         3,
     ]
@@ -47,14 +46,15 @@ if __name__ == "__main__":
                     KernelSHAPIQ.__name__,
                 ]
             for model_id in MODEL_IDS:
-                approximate_baselines(
-                    dataset_name=dataset_name,
-                    model_id=model_id,
-                    n_layers=N_LAYERS,
-                    iterations=ITERATIONS,
-                    index=index,
-                    max_order=MAX_ORDER,
-                    small_graph=False,
-                    max_approx_budget=2**15,
-                    approximators_to_run=APPROXIMATORS_TO_RUN,
-                )
+                for n_layer in N_LAYERS:
+                    approximate_baselines(
+                        dataset_name=dataset_name,
+                        model_id=model_id,
+                        n_layers=n_layer,
+                        iterations=ITERATIONS,
+                        index=index,
+                        max_order=MAX_ORDER,
+                        small_graph=False,
+                        max_approx_budget=2**15,
+                        approximators_to_run=APPROXIMATORS_TO_RUN,
+                    )

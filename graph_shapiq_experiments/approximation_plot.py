@@ -2,6 +2,7 @@
 approximation methods and budgets."""
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from approximation_utils_plot import get_plot_df
@@ -61,6 +62,8 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     for i in range(n_approx):
         approx_position_offsets.append(i * box_plot_width - (n_approx - 1) / (2 * n_approx))
 
+    moebius_axis.axhline(0, color="gray", linewidth=0.5)
+
     index = 0
     for approx in APPROX_TO_PLOT:
         approx_df = plot_df[plot_df["approximation"] == approx]
@@ -112,13 +115,15 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     # add grid
     box_axis.yaxis.grid(True)
     box_axis.set_axisbelow(True)
-    moebius_axis.yaxis.grid(True)
-    moebius_axis.set_axisbelow(True)
 
     # set the x ticks to the max_interaction_size
     moebius_axis.set_xticks(range(min_size, max_size + 1))
-    moebius_axis.set_xticklabels(range(min_size, max_size + 1))
-    moebius_axis.set_xlabel("Interaction size")
+    x_tick_labels = []
+    for size in range(min_size, max_size + 1):
+        budget = np.mean(plot_df[plot_df["max_interaction_size"] == size]["budget"].values)
+        x_tick_labels.append(rf"$k$={size}")
+    moebius_axis.set_xticklabels(x_tick_labels)
+    moebius_axis.set_xlabel("GraphSHAP-IQ Interaction Order")
     moebius_axis.tick_params(axis="x", which="both", bottom=True, top=True)  # xticks above + below
 
     # add ylabels
@@ -129,16 +134,12 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     box_axis.legend(loc="best")
 
     # add title
-    small_graph = "small" if SMALL_GRAPH else "large"
-    title = (
-        f"{INDEX} of order {MAX_ORDER} for {DATASET_NAME} ({small_graph} graph) "
-        + f"with {MODEL_ID} ({N_LAYERS} layers)"
-    )
-    box_axis.set_title(title)
+    box_axis.set_title(TITLE)
 
     # remove white space between the subplots
     plt.tight_layout()
     plt.subplots_adjust(hspace=0)
+    plt.savefig(f"plots/{SAVE_NAME_PREFIX}_box_plots.pdf")
     plt.show()
 
 
@@ -171,11 +172,7 @@ def make_scatter_plot(plot_df) -> None:
 
     ax.set_xlabel("Budget")
     ax.set_ylabel(PLOT_METRIC)
-    title = (
-        f"{INDEX} of order {MAX_ORDER} for {DATASET_NAME} with {MODEL_ID} and {N_LAYERS} layers\n"
-        f"(small graph: {SMALL_GRAPH}, neighbors size: {MAX_SIZE})"
-    )
-    ax.set_title(title)
+    ax.set_title(TITLE)
 
     # set log scale
     if PLOT_METRIC in ("MSE", "SSE", "MAE") and LOG_SCALE:
@@ -186,11 +183,11 @@ def make_scatter_plot(plot_df) -> None:
         ax.set_ylim(-1, 1)
 
     ax.set_ylim(Y_LIM)
-
     ax.set_xlim(0, MAX_BUDGET)
 
     # place legend
     plt.legend(loc="best")
+    plt.savefig(f"plots/{SAVE_NAME_PREFIX}_scatter.pdf")
     plt.show()
 
 
@@ -203,9 +200,9 @@ def make_errors_at_exact_plot(plot_df) -> None:
     Args:
         plot_df: The DataFrame containing the approximation qualities.
     """
-    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    fig, ax = plt.subplots(1, 1, figsize=(4, 7))
 
-    # get an sorted list of the approximations to plot
+    # get a sorted list of the approximations to plot
     approx_order_to_plot = [
         "GraphSHAPIQ",
         "KernelSHAPIQ",
@@ -248,13 +245,15 @@ def make_errors_at_exact_plot(plot_df) -> None:
 
     ax.set_xticks(range(len(APPROX_TO_PLOT)))
     ax.set_xticklabels(sorted_approx)
+    plt.xticks(rotation=45)
+
+    # add grid
+    ax.yaxis.grid(True)
 
     ax.set_ylabel(PLOT_METRIC)
-    title = (
-        f"{INDEX} of order {MAX_ORDER} for {DATASET_NAME} with {MODEL_ID} and {N_LAYERS} layers\n"
-        f"(small graph: {SMALL_GRAPH}, neighbors size: {MAX_SIZE})"
-    )
-    ax.set_title(title)
+    ax.set_title(TITLE)
+    plt.tight_layout()
+    plt.savefig(f"plots/{SAVE_NAME_PREFIX}_errors_at_exact.pdf")
     plt.show()
 
 
@@ -262,7 +261,7 @@ if __name__ == "__main__":
 
     # setting parameters
     MODEL_ID = "GAT"  # GCN GIN GAT
-    DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS
+    DATASET_NAME = "BZR"  # Mutagenicity PROTEINS
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
     INDEX = "k-SII"  # k-SII
@@ -285,7 +284,7 @@ if __name__ == "__main__":
 
     PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
     LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
-    MAX_INTERACTION_SIZES_TO_DROP = 2  # None n (drop the interaction sizes higher than max - n)
+    MIN_ESTIMATES = 3  # n drop all max_interaction_sizes with less than n estimates
 
     # scatter plot parameters
     SCATTER_PLOT = True  # True False (plot the approximation qualities as a scatter plot)
@@ -297,10 +296,12 @@ if __name__ == "__main__":
     # box plot parameters
     BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
     # None [n, m] (remove the interaction sizes not to plot)
-    INTERACTION_SIZE_NOT_TO_PLOT = [1, 2, 3]
+    INTERACTION_SIZE_NOT_TO_PLOT = None  # [1, 2, 3]
 
     # errors at exact plot
     PLOT_ERRORS_AT_EXACT = True  # True False (plot the errors at the exact values)
+
+    SAVE_NAME_PREFIX = f"{DATASET_NAME}_{MODEL_ID}_{N_LAYERS}_{INDEX}_{MAX_ORDER}"
 
     df, moebius_df, exact_df = get_plot_df(
         index=INDEX,
@@ -323,6 +324,28 @@ if __name__ == "__main__":
         .agg(aggregation)
         .reset_index()
     )
+
+    # drop all max_interaction_sizes with less than n estimates
+    rows_to_drop = (
+        df.groupby(["max_interaction_size", "approximation"])[[PLOT_METRIC, "instance_id"]]
+        .agg({PLOT_METRIC: "count", "instance_id": "first"})
+        .reset_index()
+    )
+    rows_to_drop = rows_to_drop[rows_to_drop[PLOT_METRIC] < MIN_ESTIMATES]
+    for _, row in rows_to_drop.iterrows():
+        df = df[
+            ~(
+                (df["max_interaction_size"] == row["max_interaction_size"])
+                & (df["approximation"] == row["approximation"])
+                & (df["instance_id"] == row["instance_id"])
+            )
+        ]
+
+    # create the titles
+    INDEX_TITLE = INDEX
+    if INDEX == "k-SII":
+        rf"${MAX_ORDER}$-SII"
+    TITLE = INDEX_TITLE + f" for {DATASET_NAME} with {N_LAYERS}-layer {MODEL_ID}"
 
     if SCATTER_PLOT:
         make_scatter_plot(df)

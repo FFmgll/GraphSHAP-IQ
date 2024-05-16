@@ -18,6 +18,10 @@ ALL_SUPPORTED_BASELINE_METHODS = [
     "PermutationSamplingSII",
     "PermutationSamplingSV",
     "L_Shapley",
+    "InconsistentKernelSHAPIQ",
+    "kADDSHAP",
+    "UnbiasedKernelSHAP",
+    "SHAPIQ",
 ]
 
 # create directories
@@ -189,6 +193,7 @@ def save_interaction_value(
     Returns:
         The file name of the saved interaction values.
     """
+    os.makedirs(save_directory, exist_ok=True)
     if budget is None:
         budget = interaction_values.estimation_budget
     save_name = create_file_name(
