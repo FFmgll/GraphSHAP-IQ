@@ -86,7 +86,10 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
         # Fit and plot the logarithmic trend curve
 
         if scatter:
-            plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            try:
+                plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            except:
+                print("No trend curve fitted")
             # Plot the median as line plot
             ax.scatter(
                 plot_dataset_layer["n_players"],
@@ -97,7 +100,10 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
                 label=plot_label,
             )
         else:
-            plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            try:
+                plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            except:
+                print("No trend curve fitted")
             # Plot the median as line plot
             ax.plot(
                 plot_medians.index,
@@ -260,10 +266,12 @@ if __name__ == "__main__":
     budget_ratio_perc_median = np.round(df.groupby(["dataset_name", "n_layers"])["budget_ratio_perc"].median(),4)
 
     for dataset in df["dataset_name"].unique():
-        # Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
-        plot_dataset = df[df["dataset_name"] == dataset]
-        plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
-        plot_complexity_by_layers(plot_dataset, dataset, scatter=False)
+        if dataset != "WaterQuality":
+            # Do not plot Water quality
+            # Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
+            plot_dataset = df[df["dataset_name"] == dataset]
+            plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
+            plot_complexity_by_layers(plot_dataset, dataset, scatter=False)
 
     # Graph Density Plot
     dataset_name = "Mutagenicity"
