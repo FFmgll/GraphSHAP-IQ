@@ -332,8 +332,8 @@ if __name__ == "__main__":
         if not APPROXIMATE_REGARDLESS:
             approximate_baselines(
                 model_id=MODEL_ID,
-                n_layers=N_LAYERS,  # 2 3
-                dataset_name=DATASET_NAME,  # PROTEINS Mutagenicity BZR
+                n_layers=N_LAYERS,
+                dataset_name=DATASET_NAME,
                 iterations=ITERATIONS,
                 index=INDEX,
                 max_order=MAX_ORDER,
@@ -343,10 +343,12 @@ if __name__ == "__main__":
             )
     else:
         # example setting for the command line:
+
+        # PROTEINS 2 layers
         # k-SII order 2
-        # python approximation_run_baselines.py --model_id GCN --dataset_name PROTEINS --approximators_to_use KernelSHAPIQ PermutationSamplingSII SVARMIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GAT --dataset_name PROTEINS --approximators_to_use SHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
         # SV order 1
-        # python approximation_run_baselines.py --model_id GCN --dataset_name PROTEINS --approximators_to_use KernelSHAP PermutationSamplingSV SVARM --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GAT --dataset_name PROTEINS --approximators_to_use UnbiasedKernelSHAP --n_layers 2 --iterations 1 2 --index SV --max_order 1
 
         parser = argparse.ArgumentParser()
         parser.add_argument("--model_id", type=str, required=True)
