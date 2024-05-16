@@ -27,7 +27,7 @@ def plot_trend_curve(x_values, values, color, type="log"):
         popt, pcov = curve_fit(logarithmic_function, x_val, y_val)
         y_fit = logarithmic_function(x_val, *popt)
         #
-        idx_to_plot = y_fit < x_val*np.log10(2)
+        idx_to_plot = y_fit < x_val * np.log10(2)
         plot_y = y_fit[idx_to_plot]
         plot_x = x_val[idx_to_plot]
 
@@ -116,8 +116,8 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
             )
 
     # Axis customization
-    min_x = plot_dataset["n_players"].min()
-    max_x = min(plot_dataset["n_players"].max(), 150)
+    min_x = plot_dataset["n_players"].min()-2
+    max_x = min(plot_dataset["n_players"].max()+2, 150)
     node_range = np.arange(min_x - min_x % 5, max_x, max_x // 10)
     plot_naive_budget(node_range)
     plt.xlim(min_x, max_x)
@@ -196,14 +196,17 @@ if __name__ == "__main__":
     }
 
     DATASETS = [
-        "AIDS",
-        "DHFR",
+        # "AIDS",
+        # "DHFR",
         "COX2",
         "BZR",
         "PROTEINS",
         "ENZYMES",
-        "MUTAG",
+        # "MUTAG",
         "Mutagenicity",
+        "FluorideCarbonyl",
+        "Benzene",
+        "AlkaneCarbonyl",
     ]
 
     LAYERS = ["1", "2", "3", "4"]
