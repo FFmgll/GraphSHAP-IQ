@@ -116,8 +116,8 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
             )
 
     # Axis customization
-    min_x = plot_dataset["n_players"].min()-2
-    max_x = min(plot_dataset["n_players"].max()+2, 150)
+    min_x = plot_dataset["n_players"].min() - 2
+    max_x = min(plot_dataset["n_players"].max() + 2, 150)
     node_range = np.arange(min_x - min_x % 5, max_x, max_x // 10)
     plot_naive_budget(node_range)
     plt.xlim(min_x, max_x)
@@ -235,6 +235,17 @@ if __name__ == "__main__":
             )
             results[file_name] = result
 
+    all_datasets = pd.concat(dataset_statistics.values(), keys=dataset_statistics.keys())
+
+    # Rename unnamed index column and introduce dataset_name column
+    all_datasets["dataset_name"] = all_datasets.index.get_level_values(0)
+    # Compute counts of graphs and means of graph statistics
+    dataset_counts = all_datasets.groupby(["dataset_name"]).count()
+    dataset_means = all_datasets.groupby(["dataset_name"]).mean()
+    # Round and transform to percentages for better readability
+    dataset_means["avg_num_nodes"] =  np.round(dataset_means["0"],2)
+    dataset_means["avg_graph_density"] = np.round(dataset_means["graph_density"]*100,2)
+
     df = pd.concat(results.values(), keys=results.keys())
     df["log10_budget"] = np.log10(df["budget"].astype(float))
     df["log10_budget_capped"] = df["log10_budget"].clip(upper=df["n_players"] * np.log10(2))
@@ -244,6 +255,10 @@ if __name__ == "__main__":
     q3 = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].quantile(0.75)
     medians = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].median()
     stds = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].std()
+
+    # We compute budget ratios in log-scale for numerical stability and report median of those values
+    df["budget_ratio_perc"] = np.exp((np.log(df["budget"].astype(float)) - df["n_players"]*np.log(2)))*100
+    budget_ratio_perc_median = np.round(df.groupby(["dataset_name", "n_layers"])["budget_ratio_perc"].median(),4)
 
     for dataset in df["dataset_name"].unique():
         # Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
