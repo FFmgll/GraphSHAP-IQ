@@ -85,12 +85,6 @@ class GraphGame(Game):
         if instance_id is not None:
             self.game_id = instance_id
 
-    def _precompute_baseline_value(self, x_graph: Data, y_index: np.ndarray) -> float:
-        # Mask all nodes for emptyset prediction
-        x_graph_empty = self.masking(np.zeros(len(x_graph.x)))
-        baseline_value = self.model(x_graph_empty.x, x_graph_empty.edge_index, x_graph_empty.batch)
-        return baseline_value.detach().numpy()[:, y_index]
-
     def mask_input(self, coalition: np.ndarray) -> Data:
         """The masking procedure for feature-removal. Masks all feature values of masked nodes.
 
@@ -158,11 +152,19 @@ class GraphGame(Game):
         masked_batch = Batch.from_data_list(graph_list)
 
         # Call model once using the batch
-        masked_predictions = self.model(
-            x=masked_batch.x,
-            edge_index=masked_batch.edge_index,
-            batch=masked_batch.batch,
-        )
+        try:
+            masked_predictions = self.model(
+                x=masked_batch.x,
+                edge_index=masked_batch.edge_index,
+                batch=masked_batch.batch,
+            )
+        except TypeError:
+            masked_predictions = self.model(
+                x=masked_batch.x,
+                edge_index=masked_batch.edge_index,
+                batch=masked_batch.batch,
+                edge_features=masked_batch.edge_features,
+            )
         return masked_predictions.detach().numpy()[:, self.y_index]
 
 

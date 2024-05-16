@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 from ..interaction_values import InteractionValues
 from ._config import get_color
 
-NORMAL_NODE_SIZE = 0.125
+NORMAL_NODE_SIZE = 0.125  # 0.125
 BASE_ALPHA_VALUE = 1.0  # the transparency level for the highest interaction
 BASE_SIZE = 0.05  # the size of the highest interaction edge (with scale factor 1)
 ADJUST_NODE_ALPHA = True
@@ -275,6 +275,23 @@ def _draw_graph_labels(
         )
 
 
+def _adjust_position(pos: dict, graph: nx.Graph) -> dict:
+    """Moves the nodes in the graph further apart if they are too close together."""
+    # get the minimum distance between two nodes
+    min_distance = 1e10
+    for u, v in graph.edges:
+        distance = np.linalg.norm(pos[u] - pos[v])
+        min_distance = min(min_distance, distance)
+
+    # adjust the positions if the nodes are too close together
+    min_edge_distance = NORMAL_NODE_SIZE + NORMAL_NODE_SIZE / 2
+    if min_distance < min_edge_distance:
+        for node in pos:
+            pos[node] = pos[node] * min_edge_distance / min_distance
+
+    return pos
+
+
 def explanation_graph_plot(
     interaction_values: InteractionValues,
     graph: Union[list[tuple], nx.Graph],
@@ -286,6 +303,8 @@ def explanation_graph_plot(
     compactness: float = 1.0,
     label_mapping: Optional[dict] = None,
     cubic_scaling: bool = False,
+    pos: Optional[dict] = None,
+    node_size_scaling: float = 1.0,
 ) -> tuple[plt.figure, plt.axis]:
     """Plots the interaction values as an explanation graph.
 
@@ -316,10 +335,19 @@ def explanation_graph_plot(
         cubic_scaling: Whether to scale the size of explanations cubically (`True`) or linearly
             (`False`). Cubic scaling puts more emphasis on larger interactions in the plot.
             Defaults to `False`.
+        pos: The positions of the nodes in the graph. If `None`, the spring layout is used to
+            position the nodes. Defaults to `None`.
+        node_size_scaling: The scaling factor for the node sizes. This can be used to make the nodes
+            larger or smaller depending on how the graph looks. Defaults to 1.0 (no scaling).
+            Negative values will make the nodes smaller, positive values will make the nodes larger.
 
     Returns:
         The figure and axis of the plot.
     """
+
+    global NORMAL_NODE_SIZE, BASE_SIZE
+    NORMAL_NODE_SIZE = NORMAL_NODE_SIZE * node_size_scaling
+    BASE_SIZE = BASE_SIZE * node_size_scaling
 
     # fill the original graph with the edges and nodes
     if isinstance(graph, nx.Graph):
@@ -352,8 +380,8 @@ def explanation_graph_plot(
         if len(interaction) == 0:
             continue
         interaction_value = interaction_values.values[interaction_pos]
-        min_interaction = min(interaction_value, min_interaction)
-        max_interaction = max(interaction_value, max_interaction)
+        min_interaction = min(abs(interaction_value), min_interaction)
+        max_interaction = max(abs(interaction_value), max_interaction)
         if abs(interaction_value) > draw_threshold:
             interactions_to_plot[interaction] = interaction_value
 
@@ -394,7 +422,17 @@ def explanation_graph_plot(
                 explanation_graph.add_edge(player, player_last, **attributes)
 
     # position first the original graph structure
-    pos = nx.spring_layout(original_graph, seed=random_seed)
+    if pos is None:
+        pos = nx.spring_layout(original_graph, seed=random_seed)
+    else:
+        pass
+        # pos is given but we need to scale the positions potentially
+        min_pos = np.min(list(pos.values()), axis=0)
+        max_pos = np.max(list(pos.values()), axis=0)
+        pos = {node: (pos[node] - min_pos) / (max_pos - min_pos) for node in pos}
+
+    # adjust pos such that the nodes are at least NORMAL_NODE_SIZE apart
+    # pos = _adjust_position(pos, original_graph)
 
     # create the plot
     fig, ax = plt.subplots(figsize=(7, 7))

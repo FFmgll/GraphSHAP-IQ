@@ -3,7 +3,6 @@ approximation methods and budgets."""
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 from approximation_utils_plot import get_plot_df
 
@@ -15,7 +14,8 @@ COLORS = {
     "KernelSHAP": "#ff6f00",
     "SVARMIQ": "#00b4d8",
     "SVARM": "#00b4d8",
-    "GraphSHAPIQ": "#ef27a6",
+    "SHAPIQ": "#ef27a6",
+    "GraphSHAPIQ": "#7DCE82",
     "L_Shapley": hex_black,
 }
 
@@ -26,6 +26,7 @@ MARKERS = {
     "KernelSHAP": "o",
     "SVARMIQ": "d",
     "SVARM": "d",
+    "SHAPIQ": "o",
     "GraphSHAPIQ": "o",
     "L_Shapley": "o",
 }
@@ -260,8 +261,8 @@ def make_errors_at_exact_plot(plot_df) -> None:
 if __name__ == "__main__":
 
     # setting parameters
-    MODEL_ID = "GAT"  # GCN GIN GAT
-    DATASET_NAME = "BZR"  # Mutagenicity PROTEINS
+    MODEL_ID = "GIN"  # GCN GIN GAT
+    DATASET_NAME = "Mutagenicity"  # Mutagenicity PROTEINS
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
     INDEX = "k-SII"  # k-SII
@@ -283,7 +284,7 @@ if __name__ == "__main__":
         ]
 
     PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
-    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
+    LOAD_FROM_CSV = False  # True False (load the results from a csv file or build it from scratch)
     MIN_ESTIMATES = 3  # n drop all max_interaction_sizes with less than n estimates
 
     # scatter plot parameters

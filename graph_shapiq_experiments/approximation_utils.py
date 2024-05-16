@@ -32,7 +32,7 @@ OVERVIEW_CSV_FILE = os.path.join(APPROXIMATION_DIR, "graph_shapiq_runs.csv")
 BASELINES_DIR = os.path.join(APPROXIMATION_DIR, "baselines")
 GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "GraphSHAPIQ")
 L_SHAPLEY_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "L_Shapley")
-EXACT_DIR = os.path.join("exact")
+EXACT_DIR = os.path.join(APPROXIMATION_DIR, "exact")
 ALL_BASELINE_DIRECTORIES = [
     os.path.join(BASELINES_DIR, method) for method in ALL_SUPPORTED_BASELINE_METHODS
 ]
@@ -212,6 +212,7 @@ def save_interaction_value(
         iteration,
     )
     save_path = os.path.join(save_directory, save_name)
+    print(save_path)
     interaction_values.save(save_path)
     # check if GT values are available and save them accordingly
     if not interaction_values.estimated and save_exact:
