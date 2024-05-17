@@ -3,6 +3,7 @@ approximation methods and budgets."""
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from approximation_utils_plot import get_plot_df
 
@@ -15,6 +16,7 @@ COLORS = {
     "SVARMIQ": "#00b4d8",
     "SVARM": "#00b4d8",
     "SHAPIQ": "#ef27a6",
+    "UnbiasedKernelSHAP": "#ef27a6",
     "GraphSHAPIQ": "#7DCE82",
     "L_Shapley": hex_black,
 }
@@ -192,61 +194,81 @@ def make_scatter_plot(plot_df) -> None:
     plt.show()
 
 
-def make_errors_at_exact_plot(plot_df) -> None:
+def make_errors_at_exact_plot(sv_plot_df, k_sii_plot_df) -> None:
     """Plots the errors of the baseline approximations at the sizes where GraphSHAP-IQ has exact
     values.
 
     The errors are plotted for each approximation method.
 
     Args:
-        plot_df: The DataFrame containing the approximation qualities.
+        sv_plot_df: The DataFrame containing the approximation of SV estimates.
+        k_sii_plot_df: The DataFrame containing the approximation of k-SII estimates.
     """
-    fig, ax = plt.subplots(1, 1, figsize=(4, 7))
+    fig, ax = plt.subplots(1, 1, figsize=(5, 7))
 
     # get a sorted list of the approximations to plot
-    approx_order_to_plot = [
-        "GraphSHAPIQ",
-        "KernelSHAPIQ",
-        "KernelSHAP",
-        "PermutationSamplingSII",
-        "PermutationSamplingSV",
-        "SVARMIQ",
-        "SVARM",
-        "L_Shapley",
-    ]
-    sorted_approx = []
-    for approx in approx_order_to_plot:
-        if approx in plot_df["approximation"].unique() and approx in APPROX_TO_PLOT:
-            sorted_approx.append(approx)
-    # add the rest that is missing
-    for approx in plot_df["approximation"].unique():
-        if approx not in sorted_approx and approx in APPROX_TO_PLOT:
-            sorted_approx.append(approx)
+    approx_to_plot = {
+        "SV": [
+            "GraphSHAPIQ",
+            "KernelSHAP",
+            "PermutationSamplingSV",
+            "SVARM",
+            "UnbiasedKernelSHAP",
+            "L_Shapley",
+        ],
+        "k-SII": [
+            "GraphSHAPIQ",
+            "KernelSHAPIQ",
+            "PermutationSamplingSII",
+            "SVARMIQ",
+            "SHAPIQ",
+        ],
+    }
+    exact_dfs = {"SV": sv_plot_df, "k-SII": k_sii_plot_df}
+    n_approx_max = max(len(approx_to_plot["SV"]), len(approx_to_plot["k-SII"]))
 
-    for position, approx_method in enumerate(sorted_approx):
-        approx_df = plot_df[plot_df["approximation"] == approx_method]
-        if approx_df.empty:
-            continue
-        errors = approx_df[PLOT_METRIC]
-        # plot a boxplot
-        color = COLORS[approx_method] + "33"
-        edge_color = COLORS[approx_method]
-        ax.boxplot(
-            errors,
-            positions=[position],
-            widths=0.6,
-            showfliers=False,
-            patch_artist=True,
-            boxprops=dict(edgecolor=edge_color, facecolor=color),
-            whiskerprops=dict(color=edge_color),
-            capprops=dict(color=edge_color),
-            medianprops=dict(color=edge_color),
-            meanprops=dict(marker="o", markerfacecolor=edge_color, markeredgecolor="black"),
-        )
+    # print the avg number of budgets for SV and k-SII
+    print("SV avg number of budgets:", sv_plot_df["budget"].mean())
+    print("k-SII avg number of budgets:", k_sii_plot_df["budget"].mean())
 
-    ax.set_xticks(range(len(APPROX_TO_PLOT)))
-    ax.set_xticklabels(sorted_approx)
-    plt.xticks(rotation=45)
+    widths = 0.6
+    x_ticks, x_tick_labels = [], []
+    for position in range(n_approx_max):
+        for index, df_exact in exact_dfs.items():
+            try:
+                approx_method = approx_to_plot[index][position]
+            except IndexError:  # not enough approximations in this index
+                continue
+            approx_df = df_exact[df_exact["approximation"] == approx_method]
+            if approx_df.empty:
+                continue
+            if index == "SV":
+                approx_pos = position * 1.5 - widths / 2
+                errors = approx_df[PLOT_METRIC]
+            else:
+                approx_pos = position * 1.5 + widths / 2
+                errors = approx_df[PLOT_METRIC]
+            # plot a boxplot
+            color = COLORS[approx_method] + "33"
+            edge_color = COLORS[approx_method]
+            ax.boxplot(
+                errors,
+                positions=[approx_pos],
+                widths=widths,
+                showfliers=False,
+                patch_artist=True,
+                boxprops=dict(edgecolor=edge_color, facecolor=color),
+                whiskerprops=dict(color=edge_color),
+                capprops=dict(color=edge_color),
+                medianprops=dict(color=edge_color),
+                meanprops=dict(marker="o", markerfacecolor=edge_color, markeredgecolor="black"),
+            )
+            x_ticks.append(approx_pos)
+            x_tick_labels.append(index)
+
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_tick_labels)
+    # plt.xticks(rotation=45)
 
     # add grid
     ax.yaxis.grid(True)
@@ -262,7 +284,7 @@ if __name__ == "__main__":
 
     # setting parameters
     MODEL_ID = "GIN"  # GCN GIN GAT
-    DATASET_NAME = "Mutagenicity"  # Mutagenicity PROTEINS
+    DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS BZR
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
     INDEX = "k-SII"  # k-SII
@@ -283,19 +305,19 @@ if __name__ == "__main__":
             "GraphSHAPIQ",
         ]
 
-    PLOT_METRIC = "SSE"  # MSE, SSE, MAE, Precision@10
-    LOAD_FROM_CSV = False  # True False (load the results from a csv file or build it from scratch)
-    MIN_ESTIMATES = 3  # n drop all max_interaction_sizes with less than n estimates
+    PLOT_METRIC = "SAE@5"  # MSE, SSE, MAE, Precision@10
+    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
+    MIN_ESTIMATES = 2  # n drop all max_interaction_sizes with less than n estimates
 
     # scatter plot parameters
-    SCATTER_PLOT = True  # True False (plot the approximation qualities as a scatter plot)
+    SCATTER_PLOT = False  # True False (plot the approximation qualities as a scatter plot)
     MAX_SIZE = None  # None -n to n (select the maximum neighborhood size to plot)
     Y_LIM = None  # None (set the y-axis limits)
     LOG_SCALE = True  # True False (set the y-axis to log scale)
     MAX_BUDGET = 2**15  # 2**15 10_000
 
     # box plot parameters
-    BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
+    BOX_PLOTS = False  # True False (plot the approximation qualities as box plots)
     # None [n, m] (remove the interaction sizes not to plot)
     INTERACTION_SIZE_NOT_TO_PLOT = None  # [1, 2, 3]
 
@@ -304,8 +326,8 @@ if __name__ == "__main__":
 
     SAVE_NAME_PREFIX = f"{DATASET_NAME}_{MODEL_ID}_{N_LAYERS}_{INDEX}_{MAX_ORDER}"
 
-    df, moebius_df, exact_df = get_plot_df(
-        index=INDEX,
+    k_sii_df, k_sii_moebius_df, k_sii_exact_df = get_plot_df(
+        index="k-SII",
         max_order=MAX_ORDER,
         dataset_name=DATASET_NAME,
         n_layers=N_LAYERS,
@@ -313,22 +335,40 @@ if __name__ == "__main__":
         small_graph=SMALL_GRAPH,
         load_from_csv=LOAD_FROM_CSV,
     )
+    sv_df, sv_moebius_df, sv_exact_df = get_plot_df(
+        index="SV",
+        max_order=1,
+        dataset_name=DATASET_NAME,
+        n_layers=N_LAYERS,
+        model_id=MODEL_ID,
+        small_graph=SMALL_GRAPH,
+        load_from_csv=LOAD_FROM_CSV,
+    )
+
+    df = pd.concat([k_sii_df, sv_df])
 
     # average the PLOT METRIC over ["instance_id", "budget", "approximation"] but keep all other
     # the df should then be smaller (only average rows)
+
     aggregation = {PLOT_METRIC: "mean"}
     for column in df.columns:
-        if column not in ["instance_id", "max_interaction_size", "approximation", PLOT_METRIC]:
+        if column not in [
+            "instance_id",
+            "max_interaction_size",
+            "approximation",
+            "index",
+            PLOT_METRIC,
+        ]:
             aggregation[column] = "first"
     df = (
-        df.groupby(["instance_id", "max_interaction_size", "approximation"])
+        df.groupby(["instance_id", "max_interaction_size", "approximation", "index"])
         .agg(aggregation)
         .reset_index()
     )
 
     # drop all max_interaction_sizes with less than n estimates
     rows_to_drop = (
-        df.groupby(["max_interaction_size", "approximation"])[[PLOT_METRIC, "instance_id"]]
+        df.groupby(["max_interaction_size", "approximation", "index"])[[PLOT_METRIC, "instance_id"]]
         .agg({PLOT_METRIC: "count", "instance_id": "first"})
         .reset_index()
     )
@@ -339,8 +379,19 @@ if __name__ == "__main__":
                 (df["max_interaction_size"] == row["max_interaction_size"])
                 & (df["approximation"] == row["approximation"])
                 & (df["instance_id"] == row["instance_id"])
+                & (df["index"] == row["index"])
             )
         ]
+
+    sv_df = df[df["index"] == "SV"]
+    k_sii_df = df[df["index"] == "k-SII"]
+
+    if INDEX == "SV":
+        df = sv_df
+        moebius_df = sv_moebius_df
+    else:
+        df = k_sii_df
+        moebius_df = k_sii_moebius_df
 
     # create the titles
     INDEX_TITLE = INDEX
@@ -355,4 +406,4 @@ if __name__ == "__main__":
         make_box_plots(df, moebius_df)
 
     if PLOT_ERRORS_AT_EXACT:
-        make_errors_at_exact_plot(exact_df)
+        make_errors_at_exact_plot(sv_exact_df, k_sii_exact_df)

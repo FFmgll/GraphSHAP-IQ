@@ -79,6 +79,8 @@ def _draw_fancy_hyper_edges(
             color = graph.nodes.get(hyper_edge)["color"]
             alpha = graph.nodes.get(hyper_edge)["alpha"]
 
+        alpha = min(1.0, max(0.0, alpha))
+
         # draw the connection point of the hyper-edge
         circle = mpath.Path.circle(center_pos, radius=node_size / 2)
         all_paths.append(circle)
@@ -151,6 +153,7 @@ def _draw_graph_nodes(
     pos: dict,
     graph: nx.Graph,
     nodes: Optional[list] = None,
+    normal_node_size: float = NORMAL_NODE_SIZE,
 ) -> None:
     """Draws the nodes of the graph as circles with a fixed size.
 
@@ -159,13 +162,14 @@ def _draw_graph_nodes(
         pos: The positions of the nodes.
         graph: The graph to draw the nodes on.
         nodes: The nodes to draw. If `None`, all nodes are drawn. Defaults to `None`.
+        normal_node_size: The size of the nodes. Defaults to `NORMAL_NODE_SIZE`.
     """
     for node in graph.nodes:
         if nodes is not None and node not in nodes:
             continue
 
         position = pos[node]
-        circle = mpath.Path.circle(position, radius=NORMAL_NODE_SIZE / 2)
+        circle = mpath.Path.circle(position, radius=normal_node_size / 2)
         patch = mpatches.PathPatch(circle, facecolor="white", lw=1, alpha=1, edgecolor="black")
         ax.add_patch(patch)
 
@@ -178,6 +182,7 @@ def _draw_explanation_nodes(
     pos: dict,
     graph: nx.Graph,
     nodes: Optional[list] = None,
+    normal_node_size: float = NORMAL_NODE_SIZE,
 ) -> None:
     """Adds the node level explanations to the graph as circles with varying sizes.
 
@@ -186,6 +191,7 @@ def _draw_explanation_nodes(
         pos: The positions of the nodes.
         graph: The graph to draw the nodes on.
         nodes: The nodes to draw. If `None`, all nodes are drawn. Defaults to `None`.
+        normal_node_size: The size of the nodes. Defaults to `NORMAL_NODE_SIZE`.
     """
     for node in graph.nodes:
         if isinstance(node, tuple):
@@ -199,10 +205,12 @@ def _draw_explanation_nodes(
         if ADJUST_NODE_ALPHA:
             alpha = graph.nodes.get(node)["alpha"]
 
-        radius = NORMAL_NODE_SIZE / 2 + explanation_size / 2
+        alpha = min(1.0, max(0.0, alpha))
+
+        radius = normal_node_size / 2 + explanation_size / 2
         if SCALE_NODE_EXPLANATIONS_BY_AREA:
             # get the radius of a circle with the same area as the combined area
-            normal_node_area = math.pi * (NORMAL_NODE_SIZE / 2) ** 2
+            normal_node_area = math.pi * (normal_node_size / 2) ** 2
             this_node_area = math.pi * (explanation_size / 2) ** 2
             combined_area = normal_node_area + this_node_area
             radius = math.sqrt(combined_area / math.pi)
@@ -215,7 +223,11 @@ def _draw_explanation_nodes(
 
 
 def _draw_graph_edges(
-    ax: plt.axis, pos: dict, graph: nx.Graph, edges: Optional[list[tuple]] = None
+    ax: plt.axis,
+    pos: dict,
+    graph: nx.Graph,
+    edges: Optional[list[tuple]] = None,
+    normal_node_size: float = NORMAL_NODE_SIZE,
 ) -> None:
     """Draws black lines between the nodes.
 
@@ -224,6 +236,7 @@ def _draw_graph_edges(
         pos: The positions of the nodes.
         graph: The graph to draw the edges on.
         edges: The edges to draw. If `None`, all edges are drawn. Defaults to `None`.
+        normal_node_size: The size of the nodes. Defaults to `NORMAL_NODE_SIZE`.
     """
     for u, v in graph.edges:
 
@@ -236,8 +249,8 @@ def _draw_graph_edges(
         direction = v_pos - u_pos
         direction = direction / np.linalg.norm(direction)
 
-        start_point = u_pos + direction * NORMAL_NODE_SIZE / 2
-        end_point = v_pos - direction * NORMAL_NODE_SIZE / 2
+        start_point = u_pos + direction * normal_node_size / 2
+        end_point = v_pos - direction * normal_node_size / 2
 
         connection = mpath.Path(
             [start_point, end_point],
@@ -275,7 +288,9 @@ def _draw_graph_labels(
         )
 
 
-def _adjust_position(pos: dict, graph: nx.Graph) -> dict:
+def _adjust_position(
+    pos: dict, graph: nx.Graph, normal_node_size: float = NORMAL_NODE_SIZE
+) -> dict:
     """Moves the nodes in the graph further apart if they are too close together."""
     # get the minimum distance between two nodes
     min_distance = 1e10
@@ -284,7 +299,7 @@ def _adjust_position(pos: dict, graph: nx.Graph) -> dict:
         min_distance = min(min_distance, distance)
 
     # adjust the positions if the nodes are too close together
-    min_edge_distance = NORMAL_NODE_SIZE + NORMAL_NODE_SIZE / 2
+    min_edge_distance = normal_node_size + normal_node_size / 2
     if min_distance < min_edge_distance:
         for node in pos:
             pos[node] = pos[node] * min_edge_distance / min_distance
@@ -305,6 +320,9 @@ def explanation_graph_plot(
     cubic_scaling: bool = False,
     pos: Optional[dict] = None,
     node_size_scaling: float = 1.0,
+    min_max_interactions: Optional[tuple[float, float]] = None,
+    adjust_node_pos: bool = False,
+    spring_k: Optional[float] = None,
 ) -> tuple[plt.figure, plt.axis]:
     """Plots the interaction values as an explanation graph.
 
@@ -340,14 +358,20 @@ def explanation_graph_plot(
         node_size_scaling: The scaling factor for the node sizes. This can be used to make the nodes
             larger or smaller depending on how the graph looks. Defaults to 1.0 (no scaling).
             Negative values will make the nodes smaller, positive values will make the nodes larger.
+        min_max_interactions: The minimum and maximum interaction values to use for scaling the
+            interactions as a tuple (min, max). If `None`, the minimum and maximum interaction
+            values are used. Defaults to `None`.
+        adjust_node_pos: Whether to adjust the node positions such that the nodes are at least
+            `NORMAL_NODE_SIZE` apart. Defaults to `False`.
+        spring_k: The spring constant for the spring layout. If `None`, the spring constant is
+            calculated based on the number of nodes in the graph. Defaults to `None`.
 
     Returns:
         The figure and axis of the plot.
     """
 
-    global NORMAL_NODE_SIZE, BASE_SIZE
-    NORMAL_NODE_SIZE = NORMAL_NODE_SIZE * node_size_scaling
-    BASE_SIZE = BASE_SIZE * node_size_scaling
+    normal_node_size = NORMAL_NODE_SIZE * node_size_scaling
+    base_size = BASE_SIZE * node_size_scaling
 
     # fill the original graph with the edges and nodes
     if isinstance(graph, nx.Graph):
@@ -385,6 +409,9 @@ def explanation_graph_plot(
         if abs(interaction_value) > draw_threshold:
             interactions_to_plot[interaction] = interaction_value
 
+    if min_max_interactions is not None:
+        min_interaction, max_interaction = min_max_interactions
+
     # create explanation graph
     explanation_graph, explanation_nodes, explanation_edges = nx.Graph(), [], []
     for interaction, interaction_value in interactions_to_plot.items():
@@ -399,7 +426,7 @@ def explanation_graph_plot(
             "interaction": interaction,
             "weight": interaction_strength * compactness,
             "size": _normalize_value(
-                interaction_value, max_interaction, BASE_SIZE * size_factor, cubic_scaling
+                interaction_value, max_interaction, base_size * size_factor, cubic_scaling
             ),
         }
 
@@ -423,7 +450,8 @@ def explanation_graph_plot(
 
     # position first the original graph structure
     if pos is None:
-        pos = nx.spring_layout(original_graph, seed=random_seed)
+        pos = nx.spring_layout(original_graph, seed=random_seed, k=spring_k)
+        pos = nx.kamada_kawai_layout(original_graph, scale=1.0, pos=pos)
     else:
         pass
         # pos is given but we need to scale the positions potentially
@@ -432,7 +460,8 @@ def explanation_graph_plot(
         pos = {node: (pos[node] - min_pos) / (max_pos - min_pos) for node in pos}
 
     # adjust pos such that the nodes are at least NORMAL_NODE_SIZE apart
-    # pos = _adjust_position(pos, original_graph)
+    if adjust_node_pos:
+        pos = _adjust_position(pos, original_graph)
 
     # create the plot
     fig, ax = plt.subplots(figsize=(7, 7))
@@ -443,11 +472,13 @@ def explanation_graph_plot(
         )
         pos.update(pos_explain)
         _draw_fancy_hyper_edges(ax, pos, explanation_graph, hyper_edges=explanation_edges)
-        _draw_explanation_nodes(ax, pos, explanation_graph, nodes=explanation_nodes)
+        _draw_explanation_nodes(
+            ax, pos, explanation_graph, nodes=explanation_nodes, normal_node_size=normal_node_size
+        )
 
     # add the original graph structure on top
-    _draw_graph_nodes(ax, pos, original_graph)
-    _draw_graph_edges(ax, pos, original_graph)
+    _draw_graph_nodes(ax, pos, original_graph, normal_node_size=normal_node_size)
+    _draw_graph_edges(ax, pos, original_graph, normal_node_size=normal_node_size)
     _draw_graph_labels(ax, pos, original_graph)
 
     # tidy up the plot

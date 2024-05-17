@@ -12,7 +12,7 @@ from shapiq.moebius_converter import MoebiusConverter
 
 
 class GraphSHAPIQ:
-    def __init__(self, game: Union[GraphGame, GraphNodeGame]):
+    def __init__(self, game: Union[GraphGame, GraphNodeGame], verbose: bool = False):
         self._last_n_model_calls: Optional[int] = None
         self.edge_index = game.edge_index
         self.n_players = game.n_players
@@ -21,7 +21,8 @@ class GraphSHAPIQ:
         self._grand_coalition_set = game._grand_coalition_set
         self.n_jobs = mp.cpu_count() - 1
         self.neighbors, self.max_size_neighbors = self._get_neighborhoods()
-        print(f"Max size neighbors: {self.max_size_neighbors}")
+        if verbose:
+            print(f"Max size neighbors: {self.max_size_neighbors}")
         self.output_dim = game.output_dim
         self.game = game
         self._grand_coalition_prediction = game(np.ones(self.game.n_players))
@@ -39,7 +40,9 @@ class GraphSHAPIQ:
                 self.total_budget += 2 ** (len(self.neighbors[node]))
                 self.budget_estimated = True
             self.total_budget = int(min(2**self.n_players, self.total_budget))
-        print(f"Total budget: {self.total_budget}")
+        if verbose:
+            print(f"Total budget: {self.total_budget}")
+        self.verbose = verbose
 
     def _get_neighborhoods(self):
         """Computes the neighborhoods of each node and caps the max_interaction_size at the size of

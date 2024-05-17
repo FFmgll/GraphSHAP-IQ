@@ -31,14 +31,13 @@ APPROXIMATION_DIR = os.path.join(this_file_path, "..", "results", "approximation
 OVERVIEW_CSV_FILE = os.path.join(APPROXIMATION_DIR, "graph_shapiq_runs.csv")
 BASELINES_DIR = os.path.join(APPROXIMATION_DIR, "baselines")
 GRAPHSHAPIQ_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "GraphSHAPIQ")
-L_SHAPLEY_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "L_Shapley")
+L_SHAPLEY_APPROXIMATION_DIR = os.path.join(APPROXIMATION_DIR, "baselines", "L_Shapley")
 EXACT_DIR = os.path.join(APPROXIMATION_DIR, "exact")
 ALL_BASELINE_DIRECTORIES = [
     os.path.join(BASELINES_DIR, method) for method in ALL_SUPPORTED_BASELINE_METHODS
 ]
 ALL_DIRECTORIES = ALL_BASELINE_DIRECTORIES + [
     GRAPHSHAPIQ_APPROXIMATION_DIR,
-    L_SHAPLEY_APPROXIMATION_DIR,
     EXACT_DIR,
     APPROXIMATION_DIR,
 ]
@@ -212,7 +211,6 @@ def save_interaction_value(
         iteration,
     )
     save_path = os.path.join(save_directory, save_name)
-    print(save_path)
     interaction_values.save(save_path)
     # check if GT values are available and save them accordingly
     if not interaction_values.estimated and save_exact:
@@ -529,8 +527,10 @@ def pre_select_data_ids(
         sort_budget: Whether to sort the data ids by the budget (ascending) or not. Default is
             False.
     """
-
-    save_directory = "../results/complexity_analysis"
+    # this file path
+    this_file_path = os.path.abspath(__file__)
+    this_file_path = os.path.dirname(this_file_path)
+    save_directory = os.path.join(this_file_path, "..", "results", "complexity_analysis")
 
     DATASETS = [
         "AIDS",
@@ -541,6 +541,9 @@ def pre_select_data_ids(
         "ENZYMES",
         "MUTAG",
         "Mutagenicity",
+        "AlkaneCarbonyl",
+        "Benzene",
+        "FluorideCarbonyl",
     ]
 
     # Import dataset statistics

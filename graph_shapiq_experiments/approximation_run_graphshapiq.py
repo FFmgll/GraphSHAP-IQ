@@ -172,7 +172,7 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
 
 if __name__ == "__main__":
 
-    RUN_L_SHAPLEY = False
+    RUN_L_SHAPLEY = True
     L_SHAPLEY_BREAK_ON_EXCEEDING_BUDGET = False  # stops the L-Shapley approximation if necessary
 
     # run setup
@@ -180,10 +180,10 @@ if __name__ == "__main__":
     MAX_N_PLAYERS = 40
     MIN_N_PLAYERS = 30
 
-    MODEL_ID = "GAT"  # one of GCN GIN GAT
-    DATASET_NAME = "PROTEINS"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
-    SORT_PLAYER = True
-    N_LAYERS = 1  # one of 1 2 3
+    MODEL_ID = "GCN"  # one of GCN GIN GAT
+    DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
+    SORT_PLAYER = False
+    N_LAYERS = 2  # one of 1 2 3
     EFFICIENCY_MODE = True  # one of True False
 
     max_budget = 2**15
@@ -203,6 +203,13 @@ if __name__ == "__main__":
             max_budget = 10_000
         else:
             raise ValueError(f"Wrong Setup for {DATASET_NAME} and {N_LAYERS}")
+    if DATASET_NAME == "BZR":
+        SORT_PLAYER = True
+        if N_LAYERS == 2:
+            max_budget = 2**15
+        else:
+            raise ValueError(f"Wrong Setup for {DATASET_NAME} and {N_LAYERS}")
+
     MAX_BUDGET = max_budget
 
     data_ids = pre_select_data_ids(
