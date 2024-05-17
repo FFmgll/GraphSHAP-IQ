@@ -7,6 +7,7 @@ from .utils import (
     get_tu_instances,
     get_explanation_instances,
     load_graph_model,
+    get_water_quality_graph
 )
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "get_tu_instances",
     "get_explanation_instances",
     "load_graph_model",
-    "L_Shapley"
+    "L_Shapley",
+    "get_water_quality_graph"
 ]

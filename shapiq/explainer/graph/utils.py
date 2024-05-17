@@ -11,12 +11,18 @@ from shapiq.explainer.graph.graph_models import GNN
 
 GRAPH_DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "graph_datasets")
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ckpt", "graph_prediction")
+from .graph_datasets import WaterQuality
 
 
 def _compute_baseline_value(x_graph):
     # This function computes the baseline value for the masked features, i.e. mean over nodes.
     return x_graph.x.mean(0)
 
+def get_water_quality_graph():
+    ds = WaterQuality(subset="train")
+    ds = DataLoader(ds, batch_size=1, shuffle=True, pin_memory_device="cpu")
+    graph = next(iter(ds))
+    return [graph]
 
 def get_tu_instances(name):
     """Get the instances to explain for the given TU dataset."""

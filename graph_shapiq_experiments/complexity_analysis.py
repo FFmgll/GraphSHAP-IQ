@@ -3,19 +3,21 @@ import pandas as pd
 from shapiq.explainer.graph import GraphSHAPIQ
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.explainer.graph import get_explanation_instances
+from shapiq.explainer.graph.utils import get_water_quality_graph
 
 import torch
 import numpy as np
 import os
 
 
-
-def dummy_model(x,edge_index,batch):
+def dummy_model(x, edge_index, batch):
     # return 20 dummy classes
-    return torch.zeros((x.shape[0],20))
+    return torch.zeros((x.shape[0], 20))
+
 
 def dummy_eval():
     return None
+
 
 def evaluate_complexity(
     dataset_name, n_layers, all_samples_to_explain, masking_mode="feature-removal"
@@ -27,7 +29,7 @@ def evaluate_complexity(
 
     for data_id, x_graph in enumerate(all_samples_to_explain):
         dummy_module = torch.nn.Module()
-        dummy_module.__call__ = dummy_model
+        dummy_module.forward = dummy_model
         dummy_module.eval = dummy_eval
         game = GraphGame(
             dummy_module,
@@ -60,21 +62,26 @@ def evaluate_complexity(
 
 if __name__ == "__main__":
     DATASET_NAMES = [
-        #"AIDS",
-        #"DHFR",
-        #"COX2",
-        #"BZR",
-        #"PROTEINS",
-        #"ENZYMES",
-        #"MUTAG",
-        #"Mutagenicity",
-        'FluorideCarbonyl',
-        'Benzene',
-        'AlkaneCarbonyl'
+        # "AIDS",
+        # "DHFR",
+        # "COX2",
+        # "BZR",
+        # "PROTEINS",
+        # "ENZYMES",
+        # "MUTAG",
+        # "Mutagenicity",
+        #'FluorideCarbonyl',
+        #'Benzene',
+        #'AlkaneCarbonyl',
+        "WaterQuality"
     ]  # ["AIDS","DHFR","COX2","BZR","PROTEINS", "ENZYMES", "MUTAG", "Mutagenicity"]
     N_LAYERS = [1, 2, 3, 4]
 
     for dataset_name in DATASET_NAMES:
-        all_samples_to_explain = get_explanation_instances(dataset_name)
+        if dataset_name == "WaterQuality":
+            # For water quality we only have a single graph
+            all_samples_to_explain = get_water_quality_graph()
+        else:
+            all_samples_to_explain = get_explanation_instances(dataset_name)
         for n_layers in N_LAYERS:
             evaluate_complexity(dataset_name, n_layers, all_samples_to_explain)

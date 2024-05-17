@@ -86,7 +86,10 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
         # Fit and plot the logarithmic trend curve
 
         if scatter:
-            plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            try:
+                plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            except:
+                print("No trend curve fitted")
             # Plot the median as line plot
             ax.scatter(
                 plot_dataset_layer["n_players"],
@@ -97,7 +100,10 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
                 label=plot_label,
             )
         else:
-            plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            try:
+                plot_trend_curve(plot_medians.index, plot_medians, plot_color, type="log")
+            except:
+                print("No trend curve fitted")
             # Plot the median as line plot
             ax.plot(
                 plot_medians.index,
@@ -196,17 +202,15 @@ if __name__ == "__main__":
     }
 
     DATASETS = [
-        # "AIDS",
-        # "DHFR",
         "COX2",
         "BZR",
         "PROTEINS",
         "ENZYMES",
-        # "MUTAG",
         "Mutagenicity",
         "FluorideCarbonyl",
         "Benzene",
         "AlkaneCarbonyl",
+        "WaterQuality"
     ]
 
     LAYERS = ["1", "2", "3", "4"]
@@ -224,16 +228,17 @@ if __name__ == "__main__":
         file_name = file_path.split("/")[-1][:-4]  # remove path and ending .csv
         if file_name.split("_")[0] == "complexity":
             dataset_name = file_name.split("_")[1]
-            result["dataset_name"] = dataset_name
-            result["n_layers"] = file_name.split("_")[2]
-            result = pd.merge(
-                result,
-                dataset_statistics[dataset_name],
-                left_index=True,
-                right_index=True,
-                how="inner",
-            )
-            results[file_name] = result
+            if dataset_name in DATASETS:
+                result["dataset_name"] = dataset_name
+                result["n_layers"] = file_name.split("_")[2]
+                result = pd.merge(
+                    result,
+                    dataset_statistics[dataset_name],
+                    left_index=True,
+                    right_index=True,
+                    how="inner",
+                )
+                results[file_name] = result
 
     all_datasets = pd.concat(dataset_statistics.values(), keys=dataset_statistics.keys())
 
@@ -261,10 +266,12 @@ if __name__ == "__main__":
     budget_ratio_perc_median = np.round(df.groupby(["dataset_name", "n_layers"])["budget_ratio_perc"].median(),4)
 
     for dataset in df["dataset_name"].unique():
-        # Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
-        plot_dataset = df[df["dataset_name"] == dataset]
-        plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
-        plot_complexity_by_layers(plot_dataset, dataset, scatter=False)
+        if dataset != "WaterQuality":
+            # Do not plot Water quality
+            # Plots the dataset with a scatter plot and a line plot (median) with bands (Q1,Q3)
+            plot_dataset = df[df["dataset_name"] == dataset]
+            plot_complexity_by_layers(plot_dataset, dataset, scatter=True)
+            plot_complexity_by_layers(plot_dataset, dataset, scatter=False)
 
     # Graph Density Plot
     dataset_name = "Mutagenicity"
