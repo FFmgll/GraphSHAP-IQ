@@ -16,7 +16,7 @@ from torch_geometric.nn.models import MLP
 
 class GNN(Module):
 	def __init__(self, model_type, in_channels, hidden_channels, out_channels, n_layers, node_bias=True,
-	             graph_bias=True, dropout=True, batch_norm=True, jumping_knowledge=False):
+				 graph_bias=True, dropout=True, batch_norm=True, jumping_knowledge=False, deep_readout=False):
 		super(GNN, self).__init__()
 
 		layers = {
@@ -37,7 +37,7 @@ class GNN(Module):
 		self.p = 0.5 if dropout else 0
 		self.batch_norm = batch_norm
 		self.jumping_knowledge = jumping_knowledge
-
+		self.deep_readout = deep_readout
 
 		# Build model architecture
 		self.layers = OrderedDict()
@@ -64,6 +64,14 @@ class GNN(Module):
 		else:
 			self.lin = Linear(hidden_channels, out_channels, bias=graph_bias)
 
+		# Add a deep readout as MLP if required
+		if deep_readout:
+			self.lin = Seq(self.lin,
+						   LeakyReLU(),
+						   Linear(out_channels, out_channels, bias=graph_bias),
+						   LeakyReLU(),
+						   Linear(out_channels, out_channels, bias=graph_bias))
+
 		self.node_model = Sequential('x, edge_index', self.layers)
 
 		# Initialize parameters
@@ -73,8 +81,13 @@ class GNN(Module):
 		for layer in self.layers:
 			if hasattr(layer, 'reset_parameters'):
 				layer.reset_parameters()
-
-		self.lin.reset_parameters()
+		try:
+			self.lin.reset_parameters()
+		except AttributeError:
+			if isinstance(self.lin, Seq):
+				for layer in self.lin:
+					if hasattr(layer, 'reset_parameters'):
+						layer.reset_parameters()
 
 	def init_GIN(self, in_channels, out_channels, **kwargs):
 		mlp = MLP([in_channels, 32, out_channels], dropout=self.p)

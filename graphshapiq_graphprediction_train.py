@@ -27,6 +27,7 @@ if __name__ == "__main__":
 	DROPOUT = [True]  # False, True
 	BATCH_NORM = [True]  # False, True
 	JUMPING_KNOWLEDGE = [True]  # False, True
+	DR = False # False, True
 	RETRAIN = True  # False, True
 
 	for dataset_name in DATASET_NAMES:
@@ -39,4 +40,4 @@ if __name__ == "__main__":
 								for batch_norm in BATCH_NORM:
 									for jumping_knowledge in JUMPING_KNOWLEDGE:
 											train_gnn(dataset_name, model_type, n_layers, node_bias, graph_bias, hidden,
-											          dropout, batch_norm, jumping_knowledge, RETRAIN)
+											          dropout, batch_norm, jumping_knowledge, DR, RETRAIN)

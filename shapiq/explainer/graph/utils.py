@@ -55,6 +55,7 @@ def load_graph_model_architecture(
 		dropout: bool = True,
 		batch_norm: bool = True,
 		jumping_knowledge: bool = True,
+		deep_readout: bool = False,
 		device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 		) -> tuple[torch.nn.Module, str]:
 	"""Loads a graph model architecture, whose weights have to be further trained or loaded.
@@ -94,22 +95,27 @@ def load_graph_model_architecture(
 		hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)][
 			"hidden"
 		]
-	else:
-		hidden = 16
+		if deep_readout:
+			hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)][
+				"hidden_dr"
+			]
+	# otherwise check if hidden is a valid integer
+	elif not isinstance(hidden, int):
+		raise ValueError(
+				"Hidden size must be an integer or check if the model has been trained with the given configuration.")
 
 	if model_type in ["GCN", "GIN", "GAT"]:
-		model = GNN(
-				model_type=model_type,
-				in_channels=num_nodes_features,
-				hidden_channels=hidden,
-				out_channels=num_classes,
-				n_layers=n_layers,
-				node_bias=node_bias,
-				graph_bias=graph_bias,
-				dropout=dropout,
-				batch_norm=batch_norm,
-				jumping_knowledge=jumping_knowledge,
-				).to(device)
+		model = GNN(model_type=model_type,
+		            in_channels=num_nodes_features,
+		            hidden_channels=hidden,
+		            out_channels=num_classes,
+		            n_layers=n_layers,
+		            node_bias=node_bias,
+		            graph_bias=graph_bias,
+		            dropout=dropout,
+		            batch_norm=batch_norm,
+		            jumping_knowledge=jumping_knowledge,
+		            deep_readout=deep_readout).to(device)
 		model.node_model.to(device)
 	else:
 		raise ValueError("Model type not supported.")
@@ -128,6 +134,8 @@ def load_graph_model_architecture(
 					]
 			)
 
+	model_id += "_DR" if deep_readout else ""
+
 	return model, model_id
 
 
@@ -141,6 +149,7 @@ def load_graph_model(
 		dropout: bool = True,
 		batch_norm: bool = True,
 		jumping_knowledge: bool = True,
+		deep_readout: bool = False,
 		device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 		) -> torch.nn.Module:
 	"""Loads a pre-trained graph model from disk with the given configuration.
@@ -173,6 +182,7 @@ def load_graph_model(
 				dropout=dropout,
 				batch_norm=batch_norm,
 				jumping_knowledge=jumping_knowledge,
+				deep_readout=deep_readout,
 				device=device,
 				)
 
@@ -271,16 +281,16 @@ _best_hyperparameters = {
 				"PROTEINS": {
 						"n_layers": {
 								"1": {"hidden": 64},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
+								"2": {"hidden": 64, "hidden_dr": 32},
+								"3": {"hidden": 128, "hidden_dr": 32},
 								"4": {"hidden": 32},
 								},
 						},
 				"ENZYMES": {
 						"n_layers": {
 								"1": {"hidden": 128},
-								"2": {"hidden": 64},
-								"3": {"hidden": 32},
+								"2": {"hidden": 64, "hidden_dr": 32},
+								"3": {"hidden": 32, "hidden_dr": 32},
 								"4": {"hidden": 64},
 								},
 						},

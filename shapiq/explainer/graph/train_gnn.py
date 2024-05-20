@@ -53,7 +53,7 @@ def get_TU_dataset(device, name):
 		root=DATASET_PATH, name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
 
 	try:
-		train_loader = DataLoader(dataset[dataset.train_index], batch_size=64, shuffle=True)
+		train_loader = DataLoader(dataset[dataset.train_index], batch_size=64, shuffle=True, drop_last=True)
 		val_loader = DataLoader(dataset[dataset.val_index], batch_size=64, shuffle=False)
 		test_loader = DataLoader(dataset[dataset.test_index], batch_size=64, shuffle=False)
 
@@ -144,13 +144,14 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
 			{'model': model_name, 'dataset': dataset_name, 'n_layers': model.n_layers, 'hidden': model.hidden_channels,
 			 'node_bias': model.node_bias, 'graph_bias': model.graph_bias, 'dropout': model.dropout,
 			 'batch_norm': model.batch_norm,
-			 'jumping_knowledge': model.jumping_knowledge},
+			 'jumping_knowledge': model.jumping_knowledge,
+			 'deep_readout': model.deep_readout},
 			{'hparam/val_acc': best_val_acc, 'hparam/train_acc': best_train_acc, 'hparam/test_acc': best_test_acc})
 	writer.close()
 
 
 def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=True, hidden=True, dropout=True, batch_norm=True, jumping_knowledge=True,
-			  enforce_retrain=False):
+			  deep_readout=False, enforce_retrain=False):
 	if dataset_name in ["AIDS", "DHFR", "COX2", "BZR", "MUTAG", "BENZENE", "PROTEINS", "ENZYMES", "Mutagenicity",
 	                    "FluorideCarbonyl", "Benzene", "AlkaneCarbonyl"]:
 		train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(device,
@@ -159,7 +160,7 @@ def train_gnn(dataset_name, model_type, n_layers, node_bias=True, graph_bias=Tru
 		raise Exception("Dataset not found")
 
 	model, model_id = load_graph_model_architecture(model_type, dataset_name, n_layers, hidden, node_bias, graph_bias, dropout,
-										  batch_norm, jumping_knowledge, device)
+										  batch_norm, jumping_knowledge, deep_readout, device)
 	# Construct the path to the target directory
 	target_dir = Path(MODEL_DIR, model_type, dataset_name).resolve()
 	save_path = Path(target_dir, model_id + ".pth").resolve()
