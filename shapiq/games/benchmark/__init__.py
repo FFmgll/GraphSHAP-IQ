@@ -42,13 +42,7 @@ from .local_xai.benchmark_tabular import BikeSharing as BikeSharingLocalXAI
 from .local_xai.benchmark_tabular import CaliforniaHousing as CaliforniaHousingLocalXAI
 
 # metrics
-from .metrics import (
-    compute_kendall_tau,
-    compute_mae,
-    compute_mse,
-    compute_precision_at_k,
-    get_all_metrics,
-)
+from .metrics import get_all_metrics
 
 # precompute util functions
 from .precompute import (

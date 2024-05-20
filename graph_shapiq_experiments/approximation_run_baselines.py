@@ -349,8 +349,29 @@ if __name__ == "__main__":
         # PROTEINS 2 layers
         # k-SII order 2
         # python approximation_run_baselines.py --model_id GAT --dataset_name PROTEINS --approximators_to_use SHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GAT --dataset_name PROTEINS --approximators_to_use InconsistentKernelSHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GAT --dataset_name PROTEINS --approximators_to_use SVARMIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GIN --dataset_name PROTEINS --approximators_to_use SHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GIN --dataset_name PROTEINS --approximators_to_use InconsistentKernelSHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GIN --dataset_name PROTEINS --approximators_to_use SVARMIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+
+        # Mutagenicity 2 layers
+
+        # k-SII order 2
+        # python approximation_run_baselines.py --model_id GAT --dataset_name Mutagenicity --approximators_to_use SHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GAT --dataset_name Mutagenicity --approximators_to_use InconsistentKernelSHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GAT --dataset_name Mutagenicity --approximators_to_use SVARMIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GIN --dataset_name Mutagenicity --approximators_to_use SHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GIN --dataset_name Mutagenicity --approximators_to_use InconsistentKernelSHAPIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+        # python approximation_run_baselines.py --model_id GIN --dataset_name Mutagenicity --approximators_to_use SVARMIQ --n_layers 2 --iterations 1 2 --index k-SII --max_order 2
+
         # SV order 1
-        # python approximation_run_baselines.py --model_id GAT --dataset_name PROTEINS --approximators_to_use UnbiasedKernelSHAP --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GAT --dataset_name Mutagenicity --approximators_to_use UnbiasedKernelSHAP --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GAT --dataset_name Mutagenicity --approximators_to_use kADDSHAP --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GAT --dataset_name Mutagenicity --approximators_to_use SVARM --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GIN --dataset_name Mutagenicity --approximators_to_use UnbiasedKernelSHAP --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GIN --dataset_name Mutagenicity --approximators_to_use kADDSHAP --n_layers 2 --iterations 1 2 --index SV --max_order 1
+        # python approximation_run_baselines.py --model_id GIN --dataset_name Mutagenicity --approximators_to_use SVARM --n_layers 2 --iterations 1 2 --index SV --max_order 1
 
         parser = argparse.ArgumentParser()
         parser.add_argument("--model_id", type=str, required=True)

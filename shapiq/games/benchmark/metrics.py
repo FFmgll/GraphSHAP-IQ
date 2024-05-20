@@ -1,4 +1,6 @@
-"""Metrics for evaluating the performance of interaction values."""
+"""Metrics for evaluating the performance of interaction values.
+# TODO: make this more efficient
+"""
 
 from typing import Optional
 
@@ -9,8 +11,6 @@ from ...interaction_values import InteractionValues
 from ...utils.sets import powerset, count_interactions
 
 __all__ = [
-    "compute_mse",
-    "compute_mae",
     "compute_kendall_tau",
     "compute_precision_at_k",
     "get_all_metrics",
@@ -34,57 +34,87 @@ def _remove_empty_value(interaction: InteractionValues) -> InteractionValues:
         return interaction
 
 
-def compute_mse(ground_truth: InteractionValues, estimated: InteractionValues) -> float:
-    """Compute the mean squared error between two interaction values.
+def compute_top_k_metrics(
+    ground_truth: InteractionValues, estimated: InteractionValues, k: int = 10
+) -> dict[str, float]:
+    """Computes the MSE, MAE, and SSE between the top k interaction values in the ground truth.
+
+    Args:
+        ground_truth: The ground truth interaction values.
+        estimated: The estimated interaction values.
+        k: The top k interactions to consider. Defaults to 10.
+
+    Returns:
+        The mean squared error, mean absolute error, and sum of squared errors between the top k
+        interaction values in the ground truth and estimated interaction values.
+    """
+    mse, mae, sse, sae = 0.0, 0.0, 0.0, 0.0
+    top_k_gt = ground_truth.get_top_k(k=k, as_interaction_values=True)
+    for interaction in top_k_gt.interaction_lookup.keys():
+        gt_value = top_k_gt[interaction]
+        diff = gt_value - estimated[interaction]
+        mse += diff**2
+        mae += abs(diff)
+        sse += diff**2
+        sae += abs(diff)
+    mse /= k
+    mae /= k
+    return {f"MSE@{k}": mse, f"MAE@{k}": mae, f"SSE@{k}": sse, f"SAE@{k}": sae}
+
+
+def compute_non_trivial_metrics(
+    ground_truth: InteractionValues, estimated: InteractionValues
+) -> dict[str, float]:
+    """Computes the MSE, MAE, and SSE between two interaction values, excluding the trivial
+    interactions (where the ground truth value is zero).
 
     Args:
         ground_truth: The ground truth interaction values.
         estimated: The estimated interaction values.
 
     Returns:
-        The mean squared error between the ground truth and estimated interaction values.
+        The mean squared error between the ground truth and estimated interaction values, excluding
+        the trivial interactions.
+    """
+    mse, mae, sse, sae = 0.0, 0.0, 0.0, 0.0
+    n_seen = 0
+    for interaction, position in ground_truth.interaction_lookup.items():
+        gt_value = ground_truth.values[position]
+        if gt_value != 0:
+            n_seen += 1
+            diff = gt_value - estimated[interaction]
+            mse += diff**2
+            mae += abs(diff)
+            sse += diff**2
+            sae += abs(diff)
+    mse /= n_seen
+    mae /= n_seen
+    return {"NonTrivialMSE": mse, "NonTrivialMAE": mae, "NonTrivialSSE": sse, "NonTrivialSAE": sae}
+
+
+def compute_metrics(ground_truth: InteractionValues, estimated: InteractionValues) -> dict:
+    """Compute the MSE (mean squared error), MAE (mean absolute error), SSE (sum of squared errors),
+     and the SAE (sum of absolute errors) between two interaction values.
+
+    Args:
+        ground_truth: The ground truth interaction values.
+        estimated: The estimated interaction values.
+
+    Returns:
+        The metrics between the ground truth and estimated interaction values.
     """
     difference = ground_truth - estimated
     diff_values = _remove_empty_value(difference).values
-    sum_of_squares = np.sum(diff_values**2)
     n_values = count_interactions(
         ground_truth.n_players, ground_truth.max_order, ground_truth.min_order
     )
-    return sum_of_squares / n_values
-
-
-def compute_sse(ground_truth: InteractionValues, estimated: InteractionValues) -> float:
-    """Compute the sum of squared errors between two interaction values.
-
-    Args:
-        ground_truth: The ground truth interaction values.
-        estimated: The estimated interaction values.
-
-    Returns:
-        The sum of squared errors between the ground truth and estimated interaction values.
-    """
-    difference = ground_truth - estimated
-    diff_values = _remove_empty_value(difference).values
-    return np.sum(diff_values**2)
-
-
-def compute_mae(ground_truth: InteractionValues, estimated: InteractionValues) -> float:
-    """Compute the mean absolute error between two interaction values.
-
-    Args:
-        ground_truth: The ground truth interaction values.
-        estimated: The estimated interaction values.
-
-    Returns:
-        The mean absolute error between the ground truth and estimated interaction values.
-    """
-    difference = ground_truth - estimated
-    diff_values = _remove_empty_value(difference).values
-    sum_of_abs = np.sum(np.abs(diff_values))
-    n_values = count_interactions(
-        ground_truth.n_players, ground_truth.max_order, ground_truth.min_order
-    )
-    return sum_of_abs / n_values
+    metrics = {
+        "MSE": np.sum(diff_values**2) / n_values,
+        "MAE": np.sum(np.abs(diff_values)) / n_values,
+        "SSE": np.sum(diff_values**2),
+        "SAE": np.sum(np.abs(diff_values)),
+    }
+    return metrics
 
 
 def compute_kendall_tau(
@@ -163,13 +193,20 @@ def get_all_metrics(
         order_indicator += "_"
 
     metrics = {
-        order_indicator + "MSE": compute_mse(ground_truth, estimated),
-        order_indicator + "MAE": compute_mae(ground_truth, estimated),
         order_indicator + "Precision@10": compute_precision_at_k(ground_truth, estimated, k=10),
         order_indicator + "Precision@5": compute_precision_at_k(ground_truth, estimated, k=5),
         order_indicator + "KendallTau": compute_kendall_tau(ground_truth, estimated),
         order_indicator + "KendallTau@10": compute_kendall_tau(ground_truth, estimated, k=10),
         order_indicator + "KendallTau@50": compute_kendall_tau(ground_truth, estimated, k=50),
-        order_indicator + "SSE": compute_sse(ground_truth, estimated),
     }
+    # get normal metrics
+    metrics_normal = compute_metrics(ground_truth, estimated)
+    metrics.update(metrics_normal)
+    # get non-trivial metrics
+    metrics_non_trivial = compute_non_trivial_metrics(ground_truth, estimated)
+    metrics.update(metrics_non_trivial)
+    # compute top-k metrics
+    metrics.update(compute_top_k_metrics(ground_truth, estimated, k=10))
+    metrics.update(compute_top_k_metrics(ground_truth, estimated, k=5))
+
     return metrics

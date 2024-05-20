@@ -75,21 +75,21 @@ class GraphGame(Game):
         else:
             self.y_index = int(class_id)
 
-        # Compute emptyset prediction
-        normalization_value = float(self.value_function(np.zeros(len(x_graph.x))))
-        # call the super constructor
-        super().__init__(
-            n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
-        )
+        if normalize:
+            # Compute emptyset prediction
+            normalization_value = float(self.value_function(np.zeros(len(x_graph.x))))
+            # call the super constructor
+            super().__init__(
+                n_players=len(x_graph.x), normalize=normalize, normalization_value=normalization_value
+            )
+        else:
+            # call the super constructor
+            super().__init__(
+                n_players=len(x_graph.x), normalize=normalize
+            )
         self._grand_coalition_set = set(range(self.n_players))
         if instance_id is not None:
             self.game_id = instance_id
-
-    def _precompute_baseline_value(self, x_graph: Data, y_index: np.ndarray) -> float:
-        # Mask all nodes for emptyset prediction
-        x_graph_empty = self.masking(np.zeros(len(x_graph.x)))
-        baseline_value = self.model(x_graph_empty.x, x_graph_empty.edge_index, x_graph_empty.batch)
-        return baseline_value.detach().numpy()[:, y_index]
 
     def mask_input(self, coalition: np.ndarray) -> Data:
         """The masking procedure for feature-removal. Masks all feature values of masked nodes.
@@ -158,11 +158,19 @@ class GraphGame(Game):
         masked_batch = Batch.from_data_list(graph_list)
 
         # Call model once using the batch
-        masked_predictions = self.model(
-            x=masked_batch.x,
-            edge_index=masked_batch.edge_index,
-            batch=masked_batch.batch,
-        )
+        try:
+            masked_predictions = self.model(
+                x=masked_batch.x,
+                edge_index=masked_batch.edge_index,
+                batch=masked_batch.batch,
+            )
+        except TypeError:
+            masked_predictions = self.model(
+                x=masked_batch.x,
+                edge_index=masked_batch.edge_index,
+                batch=masked_batch.batch,
+                edge_features=masked_batch.edge_features,
+            )
         return masked_predictions.detach().numpy()[:, self.y_index]
 
 

@@ -1,17 +1,13 @@
 """This script runs baseline approximation methods on all datasets that we currently have."""
 
-from shapiq.approximator import (
-    KernelSHAPIQ,
-    PermutationSamplingSII,
-    PermutationSamplingSV,
-    KernelSHAP,
-)
 from approximation_run_baselines import approximate_baselines
-
 
 if __name__ == "__main__":
 
-    ITERATIONS = [1, 2]
+    ITERATIONS = [
+        1,
+        # 2,
+    ]
     MODEL_IDS = [
         "GCN",
         "GAT",
@@ -36,25 +32,33 @@ if __name__ == "__main__":
             if index == "SV":
                 MAX_ORDER = 1
                 APPROXIMATORS_TO_RUN = [
-                    PermutationSamplingSV.__name__,
-                    KernelSHAP.__name__,
+                    # "KernelSHAP",
+                    "PermutationSamplingSV",
+                    # "SVARM",
+                    "UnbiasedKernelSHAP",
+                    # "kADDSHAP",
                 ]
             else:
                 MAX_ORDER = 2
                 APPROXIMATORS_TO_RUN = [
-                    PermutationSamplingSII.__name__,
-                    KernelSHAPIQ.__name__,
+                    # "KernelSHAPIQ",
+                    "PermutationSamplingSII",
+                    # "SVARMIQ",
+                    # "InconsistentKernelSHAPIQ",
+                    "SHAPIQ",
                 ]
             for model_id in MODEL_IDS:
                 for n_layer in N_LAYERS:
-                    approximate_baselines(
-                        dataset_name=dataset_name,
-                        model_id=model_id,
-                        n_layers=n_layer,
-                        iterations=ITERATIONS,
-                        index=index,
-                        max_order=MAX_ORDER,
-                        small_graph=False,
-                        max_approx_budget=2**15,
-                        approximators_to_run=APPROXIMATORS_TO_RUN,
-                    )
+                    for approx_name in APPROXIMATORS_TO_RUN:
+                        approx_run = [approx_name]
+                        approximate_baselines(
+                            dataset_name=dataset_name,
+                            model_id=model_id,
+                            n_layers=n_layer,
+                            iterations=ITERATIONS,
+                            index=index,
+                            max_order=MAX_ORDER,
+                            small_graph=False,
+                            max_approx_budget=2**15,
+                            approximators_to_run=approx_run,
+                        )

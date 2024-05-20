@@ -7,12 +7,18 @@ from shapiq.explainer.graph import get_explanation_instances
 import torch
 import numpy as np
 import os
+import tqdm
 
 
+class dummyModel(torch.nn.Module):
+    def __init__(self, num_classes=20):
+        super(dummyModel, self).__init__()
+        self.num_classes = 20
+    def forward(self, x, edge_index, batch):
+        # Output dummy predictions for number of classes
+        return torch.zeros((1,self.num_classes), dtype=float)
 
-def dummy_model(x,edge_index,batch):
-    # return 20 dummy classes
-    return torch.zeros((x.shape[0],20))
+
 
 def evaluate_complexity(
     dataset_name, n_layers, all_samples_to_explain, masking_mode="feature-removal"
@@ -22,7 +28,8 @@ def evaluate_complexity(
     players = {}
     max_neighborhood_size = {}
 
-    for data_id, x_graph in enumerate(all_samples_to_explain):
+    for data_id, x_graph in tqdm.tqdm(enumerate(all_samples_to_explain),total=len(all_samples_to_explain),desc=dataset_name+" ("+str(n_layers)+" Layers)"):
+        dummy_model = dummyModel()
         game = GraphGame(
             dummy_model,
             x_graph=x_graph,
@@ -54,14 +61,14 @@ def evaluate_complexity(
 
 if __name__ == "__main__":
     DATASET_NAMES = [
-        "AIDS",
-        "DHFR",
-        "COX2",
-        "BZR",
-        "PROTEINS",
-        "ENZYMES",
-        "MUTAG",
-        "Mutagenicity",
+         "COX2",
+         "BZR",
+         "PROTEINS",
+         "ENZYMES",
+         "Mutagenicity",
+        "FluorideCarbonyl",
+        "Benzene",
+        "AlkaneCarbonyl",
     ]  # ["AIDS","DHFR","COX2","BZR","PROTEINS", "ENZYMES", "MUTAG", "Mutagenicity"]
     N_LAYERS = [1, 2, 3, 4]
 
