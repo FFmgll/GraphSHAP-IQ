@@ -206,6 +206,22 @@ _best_hyperparameters = {
                                 "4": {"hidden": 128},
                                 }
                         },
+                "AlkaneCarbonyl": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 64},
+                                "4": {"hidden": 128},
+                                }
+                        },
+                "Benzene": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 0},
+                                }
+                        },
                 "DHFR": {
                         "n_layers": {
                                 "1": {"hidden": 64},
@@ -229,6 +245,14 @@ _best_hyperparameters = {
                                 "3": {"hidden": 128},
                                 "4": {"hidden": 128},
                                 },
+                        },
+                "FluorideCarbonyl": {
+                            "n_layers": {
+                                    "1": {"hidden": 16},
+                                    "2": {"hidden": 64},
+                                    "3": {"hidden": 32},
+                                    "4": {"hidden": 0},
+                                    }
                         },
                 "PROTEINS": {
                         "n_layers": {
@@ -257,6 +281,22 @@ _best_hyperparameters = {
                         },
                 },
         "GIN": {
+                "AlkaneCarbonyl": {
+                        "n_layers": {
+                                "1": {"hidden": 16},
+                                "2": {"hidden": 64},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 0},
+                                }
+                        },
+                "Benzene": {
+                        "n_layers": {
+                                "1": {"hidden": 16},
+                                "2": {"hidden": 128},
+                                "3": {"hidden": 128},
+                                "4": {"hidden": 0},
+                                },
+                        },
                 "BZR": {
                         "n_layers": {
                                 "1": {"hidden": 64},
@@ -281,6 +321,14 @@ _best_hyperparameters = {
                                 "4": {"hidden": 128},
                                 },
                         },
+                "FluorideCarbonyl": {
+                        "n_layers": {
+                                "1": {"hidden": 64},
+                                "2": {"hidden": 32},
+                                "3": {"hidden": 32},
+                                "4": {"hidden": 0},
+                                }
+                        },
                 "Mutagenicity": {
                         "n_layers": {
                                 "1": {"hidden": 128},
@@ -299,6 +347,22 @@ _best_hyperparameters = {
                         },
                 },
         "GAT": {
+                "AlkaneCarbonyl": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 16},
+                                "3": {"hidden": 64},
+                                "4": {"hidden": 0},
+                                }
+                        },
+                "Benzene": {
+                        "n_layers": {
+                                "1": {"hidden": 128},
+                                "2": {"hidden": 128},
+                                "3": {"hidden": 64},
+                                "4": {"hidden": 0},
+                                },
+                        },
                 "BZR": {
                         "n_layers": {
                                 "1": {"hidden": 128},
@@ -322,6 +386,14 @@ _best_hyperparameters = {
                                 "3": {"hidden": 64},
                                 "4": {"hidden": 32},
                                 }
+                        },
+                "FluorideCarbonyl": {
+                            "n_layers": {
+                                    "1": {"hidden": 16},
+                                    "2": {"hidden": 16},
+                                    "3": {"hidden": 16},
+                                    "4": {"hidden": 0},
+                                    }
                         },
                 "Mutagenicity": {
                         "n_layers": {
