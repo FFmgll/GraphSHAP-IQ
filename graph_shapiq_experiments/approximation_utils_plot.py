@@ -2,6 +2,7 @@ import copy
 import os
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 from tqdm.asyncio import tqdm
 
@@ -89,16 +90,21 @@ def load_interactions_to_plot(
         )
 
     # add approximator
-    approximator_names = overview_table[
-        (overview_table["index"] == index) & (overview_table["order"] == max_order)
-    ]["approximation"].unique()
+    approximator_names = overview_table["approximation"].unique()
     for approx_name in approximator_names:
+        if approx_name in ("exact", "GraphSHAPIQ"):
+            continue
         approx: dict[str, InteractionValues] = {}  # instance_id - InteractionValues
+        selection_index = "kADD-SHAP" if approx_name == "kADDSHAP" else index
+        max_order_selection = 2 if approx_name == "kADDSHAP" else max_order
         approx_df = overview_table[
             (overview_table["approximation"] == approx_name)
-            & (overview_table["index"] == index)
-            & (overview_table["order"] == max_order)
+            & (overview_table["index"] == selection_index)
+            & (overview_table["order"] == max_order_selection)
         ][["run_id", "instance_id", "budget", "file_path"]]
+        if approx_df.empty:
+            print(f"Skipping {approx_name} because no values are computed.")
+            continue
         for run_id, instance_id, budget, file_path in tqdm(
             approx_df.itertuples(index=False, name=None),
             desc=f"Loading {approx_name} values",
@@ -108,6 +114,20 @@ def load_interactions_to_plot(
                 print(f"Skipping {instance_id} because exact values are not computed.")
                 continue
             approx[instance_id] = InteractionValues.load(file_path)
+            if approx_name == "kADDSHAP":
+                approx[instance_id].index = index
+                # drop all values with size > max_order
+                new_look_up = {
+                    interaction: pos
+                    for interaction, pos in approx[instance_id].interaction_lookup.items()
+                    if len(interaction) <= max_order
+                }
+                new_values = [
+                    approx[instance_id][interaction] for interaction in new_look_up.keys()
+                ]
+                approx[instance_id].interaction_lookup = new_look_up
+                approx[instance_id].values = np.array(new_values)
+
             metrics = get_all_metrics(
                 ground_truth=exact_values_index[instance_id],
                 estimated=approx[instance_id],
@@ -144,7 +164,8 @@ def get_plot_df(
 
     # get the overview table for the specified parameters
     overview_table = create_results_overview_table()
-    interaction_indices_to_select = [index, "Moebius"]
+    # replace "kADD-SHAP" with "SV"
+    interaction_indices_to_select = [index, "Moebius", "kADD-SHAP"]
     overview_table = copy.deepcopy(
         overview_table[
             (overview_table["dataset_name"] == dataset_name)

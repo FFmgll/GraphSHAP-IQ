@@ -28,10 +28,10 @@ if __name__ == "__main__":
 
     INDEX = "k-SII"
 
-    MODEL_TYPE = "GCN"
-    DATASET_NAME = "Mutagenicity"
+    MODEL_TYPE = "GIN"
+    DATASET_NAME = "Benzene"
     N_LAYER = 2
-    DATA_ID = 71
+    DATA_ID = 2
 
     # for saving the plots
     file_identifier = "_".join([MODEL_TYPE, DATASET_NAME, str(N_LAYER), str(DATA_ID)])
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         graph=graph,
         interaction_values=moebius_values,
         plot_explanation=True,
-        n_interactions=N_INTERACTIONS,
+        n_interactions=5,
         size_factor=SIZE_FACTOR,
         compactness=COMPACTNESS,
         random_seed=RANDOM_SEED,

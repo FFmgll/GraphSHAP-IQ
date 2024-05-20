@@ -170,7 +170,10 @@ def approximate_baselines(
                 unique_instances.add(attributes["data_id"])
 
     if len(parameter_space) == 0:
-        print(f"No instances to compute.")
+        print(
+            f"No instances to compute for {model_id}, {dataset_name}, {n_layers}, {index}, "
+            f"{max_order}, {iterations}, approximators: {approximators_to_run}."
+        )
         return
     print(
         f"Found {len(parameter_space)} instances to compute for {len(unique_instances)} unique "

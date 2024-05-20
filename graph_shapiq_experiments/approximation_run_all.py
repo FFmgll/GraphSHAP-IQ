@@ -5,8 +5,8 @@ from approximation_run_baselines import approximate_baselines
 if __name__ == "__main__":
 
     ITERATIONS = [
-        1,
-        # 2,
+        # 1,
+        2,
     ]
     MODEL_IDS = [
         "GCN",
@@ -15,16 +15,16 @@ if __name__ == "__main__":
     ]
     N_LAYERS = [
         2,
-        3,
+        # 3,
     ]
     INDICES = [
         "k-SII",
         "SV",
     ]
     DATASETS = [
-        "BZR",
-        "PROTEINS",
         "Mutagenicity",
+        "PROTEINS",
+        "BZR",
     ]
 
     for dataset_name in DATASETS:
@@ -32,19 +32,19 @@ if __name__ == "__main__":
             if index == "SV":
                 MAX_ORDER = 1
                 APPROXIMATORS_TO_RUN = [
-                    # "KernelSHAP",
+                    "KernelSHAP",
                     "PermutationSamplingSV",
-                    # "SVARM",
+                    "SVARM",
+                    "kADDSHAP",
                     "UnbiasedKernelSHAP",
-                    # "kADDSHAP",
                 ]
             else:
                 MAX_ORDER = 2
                 APPROXIMATORS_TO_RUN = [
-                    # "KernelSHAPIQ",
+                    "KernelSHAPIQ",
                     "PermutationSamplingSII",
-                    # "SVARMIQ",
-                    # "InconsistentKernelSHAPIQ",
+                    "SVARMIQ",
+                    "InconsistentKernelSHAPIQ",
                     "SHAPIQ",
                 ]
             for model_id in MODEL_IDS:
