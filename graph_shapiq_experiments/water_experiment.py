@@ -19,13 +19,11 @@ if __name__ == "__main__":
 
     USE_GRAPH_SHAPIQ = True  # if False, KernelSHAPIQ is used instead of GraphSHAPIQ
 
-    SAVE_PREFIX = "EMPTY_"
-
-    TIME_STEPS = [0]  # list(range(11, 20))
+    TIME_STEPS = list(range(17, 20))
 
     for TIME_STEP in TIME_STEPS:
 
-        SAVE_PREFIX = SAVE_PREFIX + f"{TIME_STEP}_"
+        SAVE_PREFIX = f"{TIME_STEP}_"
 
         # load the model
         model = load_quality_model()

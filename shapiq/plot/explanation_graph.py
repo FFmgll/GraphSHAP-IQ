@@ -323,6 +323,7 @@ def explanation_graph_plot(
     min_max_interactions: Optional[tuple[float, float]] = None,
     adjust_node_pos: bool = False,
     spring_k: Optional[float] = None,
+    interaction_direction: Optional[str] = None,
 ) -> tuple[plt.figure, plt.axis]:
     """Plots the interaction values as an explanation graph.
 
@@ -365,6 +366,9 @@ def explanation_graph_plot(
             `NORMAL_NODE_SIZE` apart. Defaults to `False`.
         spring_k: The spring constant for the spring layout. If `None`, the spring constant is
             calculated based on the number of nodes in the graph. Defaults to `None`.
+        interaction_direction: The sign of the interaction values to plot. If `None`, all
+            interactions are plotted. Defaults to `None`. Possible values are "positive" and
+            "negative".
 
     Returns:
         The figure and axis of the plot.
@@ -407,6 +411,10 @@ def explanation_graph_plot(
         min_interaction = min(abs(interaction_value), min_interaction)
         max_interaction = max(abs(interaction_value), max_interaction)
         if abs(interaction_value) > draw_threshold:
+            if interaction_direction == "positive" and interaction_value < 0:
+                continue
+            if interaction_direction == "negative" and interaction_value > 0:
+                continue
             interactions_to_plot[interaction] = interaction_value
 
     if min_max_interactions is not None:

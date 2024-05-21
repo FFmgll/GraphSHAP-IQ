@@ -9,8 +9,8 @@ if __name__ == "__main__":
         2,
     ]
     MODEL_IDS = [
-        "GCN",
-        "GAT",
+        # "GCN",
+        # "GAT",
         "GIN",
     ]
     N_LAYERS = [
@@ -19,12 +19,12 @@ if __name__ == "__main__":
     ]
     INDICES = [
         "k-SII",
-        "SV",
+        # "SV",
     ]
     DATASETS = [
         "Mutagenicity",
-        "PROTEINS",
-        "BZR",
+        # "PROTEINS",
+        # "BZR",
     ]
 
     for dataset_name in DATASETS:
@@ -39,13 +39,13 @@ if __name__ == "__main__":
                     "UnbiasedKernelSHAP",
                 ]
             else:
-                MAX_ORDER = 2
+                MAX_ORDER = 3
                 APPROXIMATORS_TO_RUN = [
-                    "KernelSHAPIQ",
                     "PermutationSamplingSII",
-                    "SVARMIQ",
-                    "InconsistentKernelSHAPIQ",
                     "SHAPIQ",
+                    "KernelSHAPIQ",
+                    "InconsistentKernelSHAPIQ",
+                    "SVARMIQ",
                 ]
             for model_id in MODEL_IDS:
                 for n_layer in N_LAYERS:
