@@ -21,8 +21,9 @@ if __name__ == "__main__":
 
     INDEX = "k-SII"
     MAX_ORDER = 2
+    SAVE_FIG = True
 
-    TIME_STEPS = [0]  # list(range(1, 62))
+    TIME_STEPS = [2, 10]  # list(range(1, 62))
     file_names_to_find = [f"{t}_graphshapiq.interaction_values" for t in TIME_STEPS]
 
     # load the model and dataset
@@ -37,7 +38,10 @@ if __name__ == "__main__":
             continue
         time_step = int(file.split("_")[0])
         values = InteractionValues.load(os.path.join(WATER_SAVE_DIR, file))
-        index_values = MoebiusConverter(values)(index=INDEX, order=MAX_ORDER)
+        if INDEX != "Moebius":
+            index_values = MoebiusConverter(values)(index=INDEX, order=MAX_ORDER)
+        else:
+            index_values = values
         all_interactions[time_step] = index_values
 
     # get the max and min absolute interaction value in all_interactions
@@ -87,7 +91,7 @@ if __name__ == "__main__":
         print("Std:", np.abs(interaction.values).std())
         print("Max:", np.abs(interaction.values).max())
         print("Min:", np.abs(interaction.values).min())
-        explanation_graph_plot(
+        fig, axis = explanation_graph_plot(
             interaction,
             graph=graph,
             min_max_interactions=(min_abs, max_abs),
@@ -95,15 +99,19 @@ if __name__ == "__main__":
             n_interactions=100,
             random_seed=200,
             compactness=10,
-            size_factor=20,
+            size_factor=3,
             node_size_scaling=0.5,
         )
         index_title = str(MAX_ORDER) + "-SII" if INDEX == "k-SII" else INDEX
-        plt.title(
-            f"{index_title} Explanation Graph at Time Step {time_step}\n"
-            f"Sum of Interaction Values: {sum_of_interactions:.3f} = {interactions_sum:.3f} + "
-            f"{baseline_value:.3f} (interactions + baseline)\n"
-            f"Predicted Chlorination: {predicted_chlorination.item():.3f}, MAE: {test_loss:.3f}"
-        )
+        if not SAVE_FIG:
+            plt.title(
+                f"{index_title} Explanation Graph at Time Step {time_step}\n"
+                f"Sum of Interaction Values: {sum_of_interactions:.3f} = {interactions_sum:.3f} + "
+                f"{baseline_value:.3f} (interactions + baseline)\n"
+                f"Predicted Chlorination: {predicted_chlorination.item():.3f}, MAE: {test_loss:.3f}"
+            )
+        else:
+            fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+            plt.savefig(os.path.join(WATER_SAVE_DIR, f"water_{time_step}_{INDEX}_{MAX_ORDER}.pdf"))
         plt.show()
         print("\n")

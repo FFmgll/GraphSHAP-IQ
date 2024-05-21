@@ -180,7 +180,7 @@ if __name__ == "__main__":
     MAX_N_PLAYERS = 40
     MIN_N_PLAYERS = 30
 
-    MODEL_ID = "GCN"  # one of GCN GIN GAT
+    MODEL_ID = "GIN"  # one of GCN GIN GAT
     DATASET_NAME = "Mutagenicity"  # one of MUTAG PROTEINS ENZYMES AIDS DHFR COX2 BZR Mutagenicity
     SORT_PLAYER = False
     N_LAYERS = 2  # one of 1 2 3
