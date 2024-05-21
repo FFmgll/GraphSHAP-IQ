@@ -66,11 +66,11 @@ class GNN(Module):
 
 		# Add a deep readout as MLP if required
 		if deep_readout:
-			self.lin = Seq(self.lin,
+			self.lin = Seq(Linear(hidden_channels, hidden_channels, bias=graph_bias),
 						   LeakyReLU(),
-						   Linear(out_channels, out_channels, bias=graph_bias),
+						   Linear(hidden_channels, hidden_channels, bias=graph_bias),
 						   LeakyReLU(),
-						   Linear(out_channels, out_channels, bias=graph_bias))
+						   Linear(hidden_channels, out_channels, bias=graph_bias))
 
 		self.node_model = Sequential('x, edge_index', self.layers)
 
