@@ -280,8 +280,8 @@ _best_hyperparameters = {
 						},
 				"PROTEINS": {
 						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 64, "hidden_dr": 32},
+								"1": {"hidden": 64, "hidden_dr": 64},
+								"2": {"hidden": 64, "hidden_dr": 64},
 								"3": {"hidden": 128, "hidden_dr": 32},
 								"4": {"hidden": 32},
 								},
@@ -363,8 +363,8 @@ _best_hyperparameters = {
 						},
 				"PROTEINS": {
 						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 128, "hidden_dr": 32},
+								"1": {"hidden": 128, "hidden_dr": 32},
+								"2": {"hidden": 128, "hidden_dr": 64},
 								"3": {"hidden": 32, "hidden_dr": 64},
 								"4": {"hidden": 32},
 								},
