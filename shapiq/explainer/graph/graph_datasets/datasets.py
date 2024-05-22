@@ -5,7 +5,7 @@ from typing import Tuple
 
 import numpy as np
 from torch_geometric.utils.convert import to_networkx
-from graphxai_local.utils import Explanation
+from graphxai.utils import Explanation
 
 from torch_geometric.data import Dataset, data
 from torch_geometric.loader import DataLoader
@@ -16,9 +16,9 @@ from sklearn.model_selection import train_test_split
 
 from typing import List, Optional, Callable, Union, Any, Tuple
 
-from graphxai_local.utils.explanation import EnclosingSubgraph
-from graphxai_local.utils import to_networkx_conv
-import graphxai_local.datasets as gxai_data
+from graphxai.utils.explanation import EnclosingSubgraph
+from graphxai.utils import to_networkx_conv
+import graphxai.datasets as gxai_data
 
 
 def get_dataset(dataset, download=False):

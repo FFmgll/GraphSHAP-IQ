@@ -23,7 +23,7 @@ if __name__ == "__main__":
     MAX_ORDER = 2
     SAVE_FIG = True
 
-    TIME_STEPS = [2, 10]  # list(range(1, 62))
+    TIME_STEPS = [1, 2, 5, 10]  # list(range(1, 62))
     file_names_to_find = [f"{t}_graphshapiq.interaction_values" for t in TIME_STEPS]
 
     # load the model and dataset

@@ -50,6 +50,13 @@
          d="M -1070,-416 H 1976 V 1175 H -1070 Z"
          id="path238" />
     </clipPath>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath240-3">
+      <path
+         d="M -1070,-416 H 1976 V 1175 H -1070 Z"
+         id="path238-4" />
+    </clipPath>
   </defs>
   <sodipodi:namedview
      id="namedview4"
@@ -62,14 +69,14 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="1.5282738"
-     inkscape:cx="491.73126"
+     inkscape:cx="838.20059"
      inkscape:cy="167.50925"
      inkscape:window-width="3840"
      inkscape:window-height="2054"
      inkscape:window-x="6901"
      inkscape:window-y="-11"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g10">
+     inkscape:current-layer="g1993">
     <inkscape:page
        x="0"
        y="0"
@@ -254,12 +261,10 @@
           <text
              xml:space="preserve"
              transform="scale(1,-1)"
-             style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             style="font-variant:normal;font-weight:normal;font-size:14px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-style:normal;font-stretch:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
              id="text184"><tspan
-               x="0 8.1059999 13.16 21.742001 30.632 39.521999 43.973999 48.425999 57.316002 67.844002 77.419998"
-               y="0"
                sodipodi:role="line"
-               id="tspan182">k-add. SHAP</tspan></text>
+               id="tspan4887">k-add. KernelSHAP</tspan></text>
         </g>
       </g>
       <g
@@ -459,6 +464,202 @@
                y="0"
                sodipodi:role="line"
                id="tspan156">Baselines</tspan></text>
+        </g>
+      </g>
+      <g
+         id="g5367"
+         transform="translate(23.66107)"
+         inkscape:export-filename=".\legend_sii.pdf"
+         inkscape:export-xdpi="96"
+         inkscape:export-ydpi="96">
+        <rect
+           style="fill:#ffffff;fill-opacity:1;stroke:#cacaca;stroke-width:1.40409;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect1507-4-5"
+           width="850.59271"
+           height="32.440048"
+           x="34.081848"
+           y="-514.34027"
+           transform="scale(1,-1)"
+           inkscape:export-filename="legend_paper.pdf"
+           inkscape:export-xdpi="96"
+           inkscape:export-ydpi="96" />
+        <g
+           id="g226-3"
+           transform="translate(39.681994,489.91443)">
+          <text
+             xml:space="preserve"
+             transform="matrix(1,0,0,-1,0,0.609375)"
+             style="font-variant:normal;font-weight:bold;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text230-7"><tspan
+               x="0 26.926758 37.009766 42.21875"
+               y="0"
+               sodipodi:role="line"
+               id="tspan228-9">2SII</tspan></text>
+          <g
+             id="g232-2"
+             transform="matrix(0.014,0,0,0.014,12.46875,0.609375)">
+            <g
+               id="g234-6">
+              <g
+                 id="g236-6"
+                 clip-path="url(#clipPath240-3)">
+                <path
+                   d="M 106,371 H 732 V 256 H 106 Z"
+                   style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                   id="path242-4" />
+              </g>
+            </g>
+          </g>
+        </g>
+        <g
+           id="g734-4"
+           transform="translate(-203.20631,255.84649)">
+          <path
+             d="m 311.1625,240.2575 h 14 14"
+             style="fill:none;stroke:#ff6f00;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path244-9" />
+          <path
+             d="m 325.1625,236.7575 3.5,7 h -7 z"
+             style="fill:#ff6f00;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path246-0" />
+          <g
+             id="g248-5"
+             transform="translate(350.3625,235.3575)">
+            <text
+               xml:space="preserve"
+               transform="scale(1,-1)"
+               style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text252-9"><tspan
+                 x="0 8.4965 17.106501 22.626125 31.502125 40.112125 44.004124 52.894127 63.422127 72.998123 81.14325 86.19725 90.327248"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan250-7">KernelSHAP-IQ</tspan></text>
+          </g>
+        </g>
+        <g
+           id="g741-8"
+           transform="translate(-47.123786,276.39337)">
+          <path
+             d="m 311.1625,219.71062 h 14 14"
+             style="fill:none;stroke:#ffba08;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path254-5" />
+          <path
+             d="m 325.1625,216.21062 3.5,7 h -7 z"
+             style="fill:#ffba08;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path256-7" />
+          <g
+             id="g258-4"
+             transform="translate(350.3625,214.81062)">
+            <text
+               xml:space="preserve"
+               transform="scale(1,-1)"
+               style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text262-8"><tspan
+                 x="0 4.1300001 13.006 20.705999 25.158001 29.610001 38.106499 46.716499 52.236126 61.112125 69.722122 73.614128 82.504128 93.032127 102.60812 110.75325 115.80725 119.93725"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan260-4">Inc. KernelSHAP-IQ</tspan></text>
+          </g>
+        </g>
+        <g
+           id="g748-8"
+           transform="translate(138.56872,297.49394)">
+          <path
+             d="m 311.1625,199.16375 h 14 14"
+             style="fill:none;stroke:#7d53de;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path264-2" />
+          <path
+             d="m 323.4125,195.66375 1.75,1.75 1.75,-1.75 1.75,1.75 -1.75,1.75 1.75,1.75 -1.75,1.75 -1.75,-1.75 -1.75,1.75 -1.75,-1.75 1.75,-1.75 -1.75,-1.75 z"
+             style="fill:#7d53de;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path266-1" />
+          <g
+             id="g268-4"
+             transform="translate(350.3625,194.26375)">
+            <text
+               xml:space="preserve"
+               transform="scale(1,-1)"
+               style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text272-1"><tspan
+                 x="0 7.9419999 16.552 22.071625 35.707626 44.583626 50.071625 58.653625 64.141624 68.033623 76.601624 85.477623 89.929626 98.819626 107.40163 121.03763 129.92763 133.81963 137.71162 146.58763"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan270-2">Permutation Sampling</tspan></text>
+          </g>
+        </g>
+        <g
+           id="g755-2"
+           transform="translate(348.29346,317.61016)">
+          <path
+             d="m 311.1625,178.61687 h 14 14"
+             style="fill:none;stroke:#ef27a6;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path274-1" />
+          <path
+             d="m 323.99583,175.11687 h 2.33334 v 2.33334 h 2.33333 v 2.33333 h -2.33333 v 2.33333 h -2.33334 v -2.33333 h -2.33333 v -2.33333 h 2.33333 z"
+             style="fill:#ef27a6;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path276-0" />
+          <g
+             id="g278-0"
+             transform="translate(350.3625,173.71687)">
+            <text
+               xml:space="preserve"
+               transform="scale(1,-1)"
+               style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text282-6"><tspan
+                 x="0 8.8900003 19.417999 28.993999 37.139126 42.193127 46.323124"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan280-9">SHAP-IQ</tspan></text>
+          </g>
+        </g>
+        <g
+           id="g762-8"
+           transform="translate(459.30588,337.94155)">
+          <path
+             d="m 311.1625,158.07 h 14 14"
+             style="fill:none;stroke:#00b4d8;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path284-0" />
+          <path
+             d="m 325.1625,153.12025 2.96985,4.94975 -2.96985,4.94975 -2.96985,-4.94975 z"
+             style="fill:#00b4d8;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+             id="path286-0" />
+          <g
+             id="g288-6"
+             transform="translate(350.3625,153.17)">
+            <text
+               xml:space="preserve"
+               transform="scale(1,-1)"
+               style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               id="text292-1"><tspan
+                 x="0 8.8900003 17.575375 27.151375 36.881374 48.963375 54.017376 58.147373"
+                 y="0"
+                 sodipodi:role="line"
+                 id="tspan290-0">SVARM-IQ</tspan></text>
+          </g>
+        </g>
+      </g>
+      <g
+         id="g1910-6"
+         transform="translate(-89.843115,76.566185)">
+        <rect
+           style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:2.625;stroke-linejoin:round;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect1507-8"
+           width="77.53846"
+           height="13.740993"
+           x="534.11316"
+           y="-446.96021"
+           transform="scale(1,-1)" />
+        <g
+           id="g154-1"
+           transform="translate(534.90193,434.51111)">
+          <text
+             xml:space="preserve"
+             transform="matrix(1,0,0,-1,0,0.359375)"
+             style="font-variant:normal;font-weight:bold;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text158-7"><tspan
+               x="0 10.670898 20.118164 28.451172 37.946289 42.745117 47.543945 57.510742 67.005859"
+               y="0"
+               sodipodi:role="line"
+               id="tspan156-3">Baselines</tspan></text>
         </g>
       </g>
     </g>

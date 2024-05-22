@@ -115,7 +115,17 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
         )
         index += 1
         # add empty plot for legend
-        box_axis.plot([], [], color=COLORS[approx], label=approx)
+        if approx == "GraphSHAPIQ":
+            box_axis.plot(
+                [],
+                [],
+                color=COLORS[approx],
+                label=approx,
+                marker=MARKERS[approx],
+                linewidth=LINE_WIDTHS.get(approx, DEFAULT_LINE_WIDTH),
+                markersize=MARKER_SIZES.get(approx, DEFAULT_MARKER_SIZES),
+                mec="white",
+            )
 
     max_size = max(plot_df["max_interaction_size"].unique())
     min_size = min(plot_df["max_interaction_size"].unique())
@@ -150,7 +160,7 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     x_tick_labels = []
     for size in range(min_size, max_size + 1):
         budget = np.mean(plot_df[plot_df["max_interaction_size"] == size]["budget"].values)
-        x_tick_labels.append(rf"$k$={size}")
+        x_tick_labels.append(rf"$\lambda$={size}")
     moebius_axis.set_xticklabels(x_tick_labels)
     moebius_axis.set_xlabel("GraphSHAP-IQ Interaction Order")
     moebius_axis.tick_params(axis="x", which="both", bottom=True, top=True)  # xticks above + below
@@ -164,6 +174,22 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
 
     # add title
     box_axis.set_title(INDEX_TITLE + " for " + TITLE)
+
+    # set moebius to normal notation (not scientific)
+    moebius_axis.ticklabel_format(axis="y", style="plain")
+    # replace the y-ticklabels with 10^x
+    y_ticks = []
+    for tick in moebius_axis.get_yticks():
+        if tick == 0:
+            y_ticks.append("0")
+        if tick > 0:
+            y_ticks.append(f"$10^{{{int(np.log10(tick))}}}$")
+        if tick < 0:
+            y_ticks.append(f"$-10^{{{int(np.log10(-tick))}}}$")
+    moebius_axis.set_yticklabels(y_ticks)
+
+    # make log scale
+    box_axis.set_yscale("log")
 
     # remove white space between the subplots
     plt.tight_layout()
@@ -275,10 +301,6 @@ def make_scatter_plot(
     ax.set_ylabel(PLOT_METRIC)
     ax.set_title(INDEX_TITLE + " for " + TITLE)
 
-    # add x-axis grid
-    ax.xaxis.grid(True)
-    ax.set_axisbelow(True)
-
     # remove the upper and right spines
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -346,7 +368,7 @@ def make_errors_at_exact_plot(
     print("SV avg number of budgets:", sv_plot_df["budget"].mean())
     print("k-SII avg number of budgets:", k_sii_plot_df["budget"].mean())
 
-    widths = 0.6
+    widths = 0.75
     x_ticks, x_tick_labels = [], []
     for position in range(n_approx_max):
         for index, df_exact in exact_dfs.items():
@@ -408,9 +430,11 @@ def make_errors_at_exact_plot(
     )
     x_ticks.append(position)
     x_tick_labels.append("SV")
-
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(x_tick_labels)
+    # scale the fontsize of the x-ticks down by -2
+    ax.tick_params(axis="x", labelsize=plt.rcParams["font.size"] - 2)
+
     ax.set_xlabel("Approximation Methods")
 
     # set log scale
@@ -462,8 +486,8 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------
 
     # setting parameters  --------------------------------------------------------------------------
-    MODEL_ID = "GIN"  # GCN GIN GAT
-    DATASET_NAME = "Mutagenicity"  # Mutagenicity PROTEINS BZR
+    MODEL_ID = "GAT"  # GCN GIN GAT
+    DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS BZR
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
     INDEX = "k-SII"  # k-SII
@@ -492,29 +516,32 @@ if __name__ == "__main__":
     LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
     MIN_ESTIMATES = 2  # n drop all max_interaction_sizes with less than n estimates
     SAVE_FIG = True  # True False (save the figure as a pdf)
-    plt.rcParams.update({"font.size": 14})  # increase the font size of the plot
+    plt.rcParams.update({"font.size": 16})  # increase the font size of the plot
     plt.rcParams["figure.figsize"] = (8, 7)  # set figure size
 
     # scatter plot parameters ----------------------------------------------------------------------
-    SCATTER_PLOT = True  # True False (plot the approximation qualities as a scatter plot)
+    SCATTER_PLOT = False  # True False (plot the approximation qualities as a scatter plot)
     MAX_SIZE = None  # None -n to n (select the maximum neighborhood size to plot)
-    Y_LIM = (1e-11, 2e2)  # None (set the y-axis limits for the scatter plot)
+    Y_LIM = None  # None (set the y-axis limits for the scatter plot)
     LOG_SCALE = True  # True False (set the y-axis to log scale)
-    MIN_SIZE_TO_PLOT_SCATTER = 1  # n (minimum size to plot the scatter plot)
-    MAX_BUDGET = 2**15  # 2**15 10_000
+    MIN_SIZE_TO_PLOT_SCATTER = 2  # n (minimum size to plot the scatter plot)
+    MAX_BUDGET = 2**15
     EXACT_BUDGET = None  # None (set the budget where GraphSHAP-IQ has exact values)
 
     # box plot parameters
-    BOX_PLOTS = False  # True False (plot the approximation qualities as box plots)
+    BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
     # None [n, m] (remove the interaction sizes not to plot)
-    INTERACTION_SIZE_NOT_TO_PLOT = None  # [1, 2, 3]
+    INTERACTION_SIZE_NOT_TO_PLOT = [1, 2]
 
     # errors at exact plot
-    PLOT_ERRORS_AT_EXACT = True  # True False (plot the errors at the exact values)
+    PLOT_ERRORS_AT_EXACT = False  # True False (plot the errors at the exact values)
     Y_LIM_EXACT = (-1e-4, 1e-3)  # None (set the y-axis limits for the errors at the exact values)
 
     # legend plot parameters
-    MAKE_LEGEND_PLOT = True  # True False (make a plot with all the legend elements)
+    MAKE_LEGEND_PLOT = False  # True False (make a plot with all the legend elements)
+
+    # sanity check plots
+    MAKE_SANITY_CHECK_PLOTS = False  # True False (make a plot with all the legend elements)
 
     SAVE_NAME_PREFIX = f"{DATASET_NAME}_{MODEL_ID}_{N_LAYERS}_{INDEX}_{MAX_ORDER}"
 
@@ -605,27 +632,28 @@ if __name__ == "__main__":
         Y_LIM_EXACT = None
         make_errors_at_exact_plot(sv_exact_df, k_sii_exact_df, l_shapley, log_scale=True)
 
-    # plot for k-SII a simple scatter plot for the budgets as a sanity check
-    fig, ax = plt.subplots(1, 1)
-    for approx, approx_df in df.groupby("approximation"):
-        ax.scatter(approx_df["budget"], approx_df[PLOT_METRIC], label=approx, c=COLORS[approx])
-    ax.set_xlabel("Budget")
-    ax.set_ylabel(PLOT_METRIC)
-    ax.set_title(f"k-SII {DATASET_NAME} {MODEL_ID}")
-    ax.set_yscale("log")
-    ax.legend()
-    plt.show()
+    if MAKE_SANITY_CHECK_PLOTS:
+        # plot for k-SII a simple scatter plot for the budgets as a sanity check
+        fig, ax = plt.subplots(1, 1)
+        for approx, approx_df in df.groupby("approximation"):
+            ax.scatter(approx_df["budget"], approx_df[PLOT_METRIC], label=approx, c=COLORS[approx])
+        ax.set_xlabel("Budget")
+        ax.set_ylabel(PLOT_METRIC)
+        ax.set_title(f"k-SII {DATASET_NAME} {MODEL_ID}")
+        ax.set_yscale("log")
+        ax.legend()
+        plt.show()
 
-    # plot for SV a simple scatter plot for the budgets as a sanity check
-    fig, ax = plt.subplots(1, 1)
-    for approx, approx_df in sv_df.groupby("approximation"):
-        ax.scatter(approx_df["budget"], approx_df[PLOT_METRIC], label=approx, c=COLORS[approx])
-    ax.set_xlabel("Budget")
-    ax.set_ylabel(PLOT_METRIC)
-    ax.set_title(f"SV {DATASET_NAME} {MODEL_ID}")
-    ax.set_yscale("log")
-    ax.legend()
-    plt.show()
+        # plot for SV a simple scatter plot for the budgets as a sanity check
+        fig, ax = plt.subplots(1, 1)
+        for approx, approx_df in sv_df.groupby("approximation"):
+            ax.scatter(approx_df["budget"], approx_df[PLOT_METRIC], label=approx, c=COLORS[approx])
+        ax.set_xlabel("Budget")
+        ax.set_ylabel(PLOT_METRIC)
+        ax.set_title(f"SV {DATASET_NAME} {MODEL_ID}")
+        ax.set_yscale("log")
+        ax.legend()
+        plt.show()
 
     # make a plot with all the legend elements
     if MAKE_LEGEND_PLOT:

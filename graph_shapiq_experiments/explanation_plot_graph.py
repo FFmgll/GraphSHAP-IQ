@@ -26,6 +26,8 @@ if __name__ == "__main__":
     # cool insights from the explanation
     # GCN, Mutagenicity, 2, 189, (RANDOM_SEED = 4)  - NO2 group interaction
     # GCN, Mutagenicity, 2, 71, (RANDOM_SEED = 10)  - NO2 group interaction
+    # GAT, GET_PYRIDINE = True (RANDOM_SEED = 1)  - Nitrogen atom interaction
+    # GAT, Benzene, 3, 57 - benzene structure in MI
 
     INDEX = "k-SII"
 
@@ -37,7 +39,7 @@ if __name__ == "__main__":
     GET_PYRIDINE = False  # get a Pyridine molecule
 
     # plot parameter
-    RANDOM_SEED = 1  # random seed for the graph layout
+    RANDOM_SEED = 4  # random seed for the graph layout
     COMPACTNESS = 100  # compactness of the graph layout
     SIZE_FACTOR = 2  # factor to scale the node sizes
     N_INTERACTIONS = 100  # number of interactions/explanations to plot for the graph
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     # increase font size for the plots and set bold
     if INCREASE_FONT_SIZE:
         plt.rcParams["font.size"] = 16
-        plt.rcParams["font.weight"] = "bold"
+        # plt.rcParams["font.weight"] = "bold"
 
     # get the data point the instance --------------------------------------------------------------
 
