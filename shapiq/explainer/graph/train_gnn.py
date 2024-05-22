@@ -10,7 +10,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 
-from graphxai.datasets import (
+from graphxai_local.datasets import (
     MUTAG,
 )
 from shapiq.explainer.graph.graph_datasets import CustomTUDataset
@@ -22,8 +22,12 @@ torch.manual_seed(1234)
 torch.cuda.manual_seed_all(1234)
 
 # Path to store the models
-MODEL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ckpt", "graph_prediction")
-DATASET_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "graph_datasets")
+MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "ckpt", "graph_prediction"
+)
+DATASET_PATH = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "graph_datasets"
+)
 
 
 class EarlyStopper:
@@ -49,19 +53,27 @@ def get_TU_dataset(device, name):
     # Load dataset
     if not os.path.exists(DATASET_PATH):
         os.makedirs(DATASET_PATH)
-    dataset = CustomTUDataset(root=DATASET_PATH, name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1))
+    dataset = CustomTUDataset(
+        root=DATASET_PATH, name=name, seed=1234, split_sizes=(0.8, 0.1, 0.1)
+    )
 
     try:
         train_loader = DataLoader(
             dataset[dataset.train_index], batch_size=64, shuffle=True, drop_last=True
         )
-        val_loader = DataLoader(dataset[dataset.val_index], batch_size=64, shuffle=False)
-        test_loader = DataLoader(dataset[dataset.test_index], batch_size=64, shuffle=False)
+        val_loader = DataLoader(
+            dataset[dataset.val_index], batch_size=64, shuffle=False
+        )
+        test_loader = DataLoader(
+            dataset[dataset.test_index], batch_size=64, shuffle=False
+        )
 
         num_nodes_features = dataset.graphs.num_node_features
         num_classes = dataset.graphs.num_classes
     except TypeError:
-        DataLoader.name = property(lambda self: name)  # Keep track of the dataset name somehow
+        DataLoader.name = property(
+            lambda self: name
+        )  # Keep track of the dataset name somehow
         # Load dataset as list, second element is the Explanation
         train_loader = DataLoader(
             [dataset[i][0] for i in dataset.train_index], batch_size=64, shuffle=True
@@ -74,14 +86,18 @@ def get_TU_dataset(device, name):
         )
 
         num_nodes_features = dataset.graphs[0].num_node_features
-        num_classes = 2  # Binary classification for FluorideCarbonyl, Benzene, AlkaneCarbonyl
+        num_classes = (
+            2  # Binary classification for FluorideCarbonyl, Benzene, AlkaneCarbonyl
+        )
 
     return train_loader, val_loader, test_loader, num_nodes_features, num_classes
 
 
 def train_and_store(model, train_loader, val_loader, test_loader, save_path):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
-    criterion = torch.nn.CrossEntropyLoss() if model.out_channels > 1 else torch.nn.BCELoss()
+    criterion = (
+        torch.nn.CrossEntropyLoss() if model.out_channels > 1 else torch.nn.BCELoss()
+    )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=50, min_lr=1e-5, threshold=1e-3
     )
@@ -112,7 +128,9 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
         for data in train_loader:
             data = data.to(device)
             # Iterate in batches over the training dataset.
-            out = graph_model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+            out = graph_model(
+                data.x, data.edge_index, data.batch
+            )  # Perform a single forward pass.
             loss = criterion(out, data.y)  # Compute the loss.
             loss.backward()  # Derive gradients.
             optimizer.step()  # Update parameters based on gradients.
@@ -129,7 +147,10 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
             loss += criterion(out, data.y).item()
             pred = out.argmax(dim=1)  # Use the class with highest probability.
             correct += int((pred == data.y).sum())  # Check against ground-truth labels.
-        return correct / len(loader.dataset), loss  # Derive ratio of correct predictions.
+        return (
+            correct / len(loader.dataset),
+            loss,
+        )  # Derive ratio of correct predictions.
 
     # Train model
     best_test_acc = 0
@@ -209,9 +230,13 @@ def train_gnn(
         "Benzene",
         "AlkaneCarbonyl",
     ]:
-        train_loader, val_loader, test_loader, num_nodes_features, num_classes = get_TU_dataset(
-            device, dataset_name
-        )
+        (
+            train_loader,
+            val_loader,
+            test_loader,
+            num_nodes_features,
+            num_classes,
+        ) = get_TU_dataset(device, dataset_name)
     else:
         raise Exception("Dataset not found")
 

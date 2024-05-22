@@ -57,6 +57,13 @@
          d="M -1070,-416 H 1976 V 1175 H -1070 Z"
          id="path238-4" />
     </clipPath>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath240-1">
+      <path
+         d="M -1070,-416 H 1976 V 1175 H -1070 Z"
+         id="path238-2" />
+    </clipPath>
   </defs>
   <sodipodi:namedview
      id="namedview4"
@@ -69,11 +76,11 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="1.5282738"
-     inkscape:cx="838.20059"
-     inkscape:cy="167.50925"
+     inkscape:cx="828.38559"
+     inkscape:cy="10.469328"
      inkscape:window-width="3840"
      inkscape:window-height="2054"
-     inkscape:window-x="6901"
+     inkscape:window-x="2293"
      inkscape:window-y="-11"
      inkscape:window-maximized="1"
      inkscape:current-layer="g1993">
@@ -464,6 +471,180 @@
                y="0"
                sodipodi:role="line"
                id="tspan156">Baselines</tspan></text>
+        </g>
+      </g>
+      <rect
+         style="fill:#ffffff;fill-opacity:1;stroke:#cacaca;stroke-width:1.50664;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke markers fill"
+         id="rect1507-4-4"
+         width="900.47382"
+         height="35.282017"
+         x="73.883842"
+         y="-641.88385"
+         transform="scale(1,-1)"
+         inkscape:export-filename="legend_sv.pdf"
+         inkscape:export-xdpi="96"
+         inkscape:export-ydpi="96" />
+      <g
+         id="g160-9"
+         transform="translate(77.96046,614.69838)">
+        <text
+           xml:space="preserve"
+           transform="matrix(1,0,0,-1,0,0.609375)"
+           style="font-variant:normal;font-weight:bold;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text164-1"><tspan
+             x="0 10.083008"
+             y="0"
+             sodipodi:role="line"
+             id="tspan162-0">SV</tspan></text>
+      </g>
+      <g
+         id="g692-4"
+         transform="translate(-190.44682,235.99907)">
+        <path
+           d="m 311.1625,384.08562 h 14 14"
+           style="fill:none;stroke:#ff6f00;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path166-1" />
+        <path
+           d="m 325.1625,380.58562 3.5,7 h -7 z"
+           style="fill:#ff6f00;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path168-5" />
+        <g
+           id="g170-0"
+           transform="translate(350.3625,379.18563)">
+          <text
+             xml:space="preserve"
+             transform="scale(1,-1)"
+             style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text174-1"><tspan
+               x="0 8.4965 17.106501 22.626125 31.502125 40.112125 44.004124 52.894127 63.422127 72.998123"
+               y="0"
+               sodipodi:role="line"
+               id="tspan172-6">KernelSHAP</tspan></text>
+        </g>
+      </g>
+      <g
+         id="g699-9"
+         transform="translate(-34.3643,256.54595)">
+        <path
+           d="m 311.1625,363.53875 h 14 14"
+           style="fill:none;stroke:#ffba08;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path176-2" />
+        <path
+           d="m 325.1625,360.03875 3.5,7 h -7 z"
+           style="fill:#ffba08;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path178-3" />
+        <g
+           id="g180-0"
+           transform="translate(350.3625,358.63875)">
+          <text
+             xml:space="preserve"
+             transform="scale(1,-1)"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text184-8"><tspan
+               sodipodi:role="line"
+               id="tspan4887-5"
+               x="0"
+               y="0">k-add. KernelSHAP</tspan></text>
+        </g>
+      </g>
+      <g
+         id="g706-1"
+         transform="translate(151.32821,278.44977)">
+        <path
+           d="m 311.1625,342.99187 h 14 14"
+           style="fill:none;stroke:#7d53de;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path186-3" />
+        <path
+           d="m 323.4125,339.49187 1.75,1.75 1.75,-1.75 1.75,1.75 -1.75,1.75 1.75,1.75 -1.75,1.75 -1.75,-1.75 -1.75,1.75 -1.75,-1.75 1.75,-1.75 -1.75,-1.75 z"
+           style="fill:#7d53de;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path188-9" />
+        <g
+           id="g190-3"
+           transform="translate(350.3625,338.09187)">
+          <text
+             xml:space="preserve"
+             transform="scale(1,-1)"
+             style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text194-2"><tspan
+               x="0 7.9419999 16.552 22.071625 35.707626 44.583626 50.071625 58.653625 64.141624 68.033623 76.601624 85.477623 89.929626 98.819626 107.40163 121.03763 129.92763 133.81963 137.71162 146.58763"
+               y="0"
+               sodipodi:role="line"
+               id="tspan192-4">Permutation Sampling</tspan></text>
+        </g>
+      </g>
+      <g
+         id="g713-8"
+         transform="translate(361.05295,297.6397)">
+        <path
+           d="m 311.1625,322.445 h 14 14"
+           style="fill:none;stroke:#ef27a6;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path196-6" />
+        <path
+           d="m 323.99583,318.945 h 2.33334 v 2.33333 h 2.33333 v 2.33334 h -2.33333 v 2.33333 h -2.33334 v -2.33333 h -2.33333 v -2.33334 h 2.33333 z"
+           style="fill:#ef27a6;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path198-3" />
+        <g
+           id="g200-4"
+           transform="translate(350.3625,317.545)">
+          <text
+             xml:space="preserve"
+             transform="scale(1,-1)"
+             style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text204-4"><tspan
+               x="0 10.248 19.124001 28.014 31.906 40.487999 47.782001 56.391998 65.281998 69.734001 78.230499 86.8405 92.360123 101.23612 109.84612 113.73813 122.62813 133.15613 142.73213"
+               y="0"
+               sodipodi:role="line"
+               id="tspan202-7">Unbiased KernelSHAP</tspan></text>
+        </g>
+      </g>
+      <g
+         id="g720-6"
+         transform="translate(567.27082,318.50582)">
+        <path
+           d="m 311.1625,301.89812 h 14 14"
+           style="fill:none;stroke:#00b4d8;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path206-6" />
+        <path
+           d="m 325.1625,296.94838 2.96985,4.94974 -2.96985,4.94975 -2.96985,-4.94975 z"
+           style="fill:#00b4d8;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+           id="path208-3" />
+        <g
+           id="g210-3"
+           transform="translate(350.3625,296.99812)">
+          <text
+             xml:space="preserve"
+             transform="scale(1,-1)"
+             style="font-variant:normal;font-weight:normal;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text214-2"><tspan
+               x="0 8.8900003 17.575375 27.151375 36.881374"
+               y="0"
+               sodipodi:role="line"
+               id="tspan212-9">SVARM</tspan></text>
+        </g>
+      </g>
+      <g
+         id="g1910-1"
+         transform="translate(-48.761639,202.19813)">
+        <rect
+           style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:2.625;stroke-linejoin:round;stroke-opacity:1;paint-order:stroke markers fill"
+           id="rect1507-89"
+           width="77.53846"
+           height="13.740993"
+           x="534.11316"
+           y="-446.96021"
+           transform="scale(1,-1)" />
+        <g
+           id="g154-7"
+           transform="translate(534.90193,434.51111)">
+          <text
+             xml:space="preserve"
+             transform="matrix(1,0,0,-1,0,0.359375)"
+             style="font-variant:normal;font-weight:bold;font-size:14px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans-Bold;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             id="text158-9"><tspan
+               x="0 10.670898 20.118164 28.451172 37.946289 42.745117 47.543945 57.510742 67.005859"
+               y="0"
+               sodipodi:role="line"
+               id="tspan156-5">Baselines</tspan></text>
         </g>
       </g>
       <g

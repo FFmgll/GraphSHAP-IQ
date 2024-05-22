@@ -73,11 +73,15 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     # remove outliers for plotting percentile: 0.05 and 0.95
     upper_bound = plot_df[PLOT_METRIC].quantile(0.95)
     lower_bound = plot_df[PLOT_METRIC].quantile(0.05)
-    plot_df = plot_df[(plot_df[PLOT_METRIC] <= upper_bound) & (plot_df[PLOT_METRIC] >= lower_bound)]
+    plot_df = plot_df[
+        (plot_df[PLOT_METRIC] <= upper_bound) & (plot_df[PLOT_METRIC] >= lower_bound)
+    ]
 
     # remove the interaction sizes not to plot
     if INTERACTION_SIZE_NOT_TO_PLOT is not None and INTERACTION_SIZE_NOT_TO_PLOT != []:
-        plot_df = plot_df[~plot_df["max_interaction_size"].isin(INTERACTION_SIZE_NOT_TO_PLOT)]
+        plot_df = plot_df[
+            ~plot_df["max_interaction_size"].isin(INTERACTION_SIZE_NOT_TO_PLOT)
+        ]
 
     # make a single figure with the box plots and the moebius values (shared x-axis)
     fig, axes = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [6, 1]})
@@ -89,7 +93,9 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     box_plot_width = 1 / n_approx - 0.05
     approx_position_offsets = []
     for i in range(n_approx):
-        approx_position_offsets.append(i * box_plot_width - (n_approx - 1) / (2 * n_approx))
+        approx_position_offsets.append(
+            i * box_plot_width - (n_approx - 1) / (2 * n_approx)
+        )
 
     moebius_axis.axhline(0, color="gray", linewidth=0.5)
 
@@ -103,7 +109,8 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
                 approx_df[approx_df["max_interaction_size"] == size][PLOT_METRIC]
                 for size in approx_df["max_interaction_size"].unique()
             ],
-            positions=approx_df["max_interaction_size"].unique() + approx_position_offsets[index],
+            positions=approx_df["max_interaction_size"].unique()
+            + approx_position_offsets[index],
             widths=box_plot_width,
             showfliers=False,
             patch_artist=True,
@@ -111,7 +118,9 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
             whiskerprops=dict(color=COLORS[approx]),
             capprops=dict(color=COLORS[approx]),
             medianprops=dict(color=COLORS[approx]),
-            meanprops=dict(marker="o", markerfacecolor=COLORS[approx], markeredgecolor="black"),
+            meanprops=dict(
+                marker="o", markerfacecolor=COLORS[approx], markeredgecolor="black"
+            ),
         )
         index += 1
         # add empty plot for legend
@@ -159,11 +168,15 @@ def make_box_plots(plot_df, moebius_plot_df) -> None:
     moebius_axis.set_xticks(range(min_size, max_size + 1))
     x_tick_labels = []
     for size in range(min_size, max_size + 1):
-        budget = np.mean(plot_df[plot_df["max_interaction_size"] == size]["budget"].values)
+        budget = np.mean(
+            plot_df[plot_df["max_interaction_size"] == size]["budget"].values
+        )
         x_tick_labels.append(rf"$\lambda$={size}")
     moebius_axis.set_xticklabels(x_tick_labels)
     moebius_axis.set_xlabel("GraphSHAP-IQ Interaction Order")
-    moebius_axis.tick_params(axis="x", which="both", bottom=True, top=True)  # xticks above + below
+    moebius_axis.tick_params(
+        axis="x", which="both", bottom=True, top=True
+    )  # xticks above + below
 
     # add ylabels
     box_axis.set_ylabel(PLOT_METRIC)
@@ -281,7 +294,9 @@ def make_scatter_plot(
         )
 
     if exact_budget is not None:
-        ax.axvline(exact_budget, color=hex_black + "33", linestyle="solid", linewidth=0.75)
+        ax.axvline(
+            exact_budget, color=hex_black + "33", linestyle="solid", linewidth=0.75
+        )
         # add a text label for the exact budget and adjust it to the left
         ax.text(
             exact_budget,
@@ -400,7 +415,9 @@ def make_errors_at_exact_plot(
                 whiskerprops=dict(color=edge_color),
                 capprops=dict(color=edge_color),
                 medianprops=dict(color=edge_color),
-                meanprops=dict(marker="o", markerfacecolor=edge_color, markeredgecolor="black"),
+                meanprops=dict(
+                    marker="o", markerfacecolor=edge_color, markeredgecolor="black"
+                ),
             )
             x_ticks.append(approx_pos)
             x_tick_labels.append(index.replace("k-", f"${MAX_ORDER}$-"))
@@ -410,9 +427,9 @@ def make_errors_at_exact_plot(
     for instance_id in l_shapley_df["instance_id"].unique():
         l_shapley_instance = l_shapley_df[l_shapley_df["instance_id"] == instance_id]
         max_size = l_shapley_instance["max_interaction_size"].max()
-        error = l_shapley_instance[l_shapley_instance["max_interaction_size"] == max_size][
-            PLOT_METRIC
-        ]
+        error = l_shapley_instance[
+            l_shapley_instance["max_interaction_size"] == max_size
+        ][PLOT_METRIC]
         if not error.empty:
             l_shapley_errors.append(error.values[0])
     position = (n_approx_max - 1) * 1.5 - widths / 2
@@ -486,11 +503,11 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------
 
     # setting parameters  --------------------------------------------------------------------------
-    MODEL_ID = "GAT"  # GCN GIN GAT
-    DATASET_NAME = "PROTEINS"  # Mutagenicity PROTEINS BZR
+    MODEL_ID = "GCN"  # GCN GIN GAT
+    DATASET_NAME = "Mutagenicity"  # Mutagenicity PROTEINS BZR
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
-    INDEX = "k-SII"  # k-SII
+    INDEX = "SV"  # k-SII
     MAX_ORDER = 2  # 2
 
     # plot parameters  -----------------------------------------------------------------------------
@@ -513,19 +530,24 @@ if __name__ == "__main__":
     ]
 
     PLOT_METRIC = "MSE"  # MSE, SSE, MAE, Precision@10
-    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
+    LOAD_FROM_CSV = (
+        True  # True False (load the results from a csv file or build it from scratch)
+    )
     MIN_ESTIMATES = 2  # n drop all max_interaction_sizes with less than n estimates
     SAVE_FIG = True  # True False (save the figure as a pdf)
     plt.rcParams.update({"font.size": 16})  # increase the font size of the plot
     plt.rcParams["figure.figsize"] = (8, 7)  # set figure size
 
     # scatter plot parameters ----------------------------------------------------------------------
-    SCATTER_PLOT = False  # True False (plot the approximation qualities as a scatter plot)
+    SCATTER_PLOT = (
+        True  # True False (plot the approximation qualities as a scatter plot)
+    )
+
     MAX_SIZE = None  # None -n to n (select the maximum neighborhood size to plot)
     Y_LIM = None  # None (set the y-axis limits for the scatter plot)
     LOG_SCALE = True  # True False (set the y-axis to log scale)
     MIN_SIZE_TO_PLOT_SCATTER = 2  # n (minimum size to plot the scatter plot)
-    MAX_BUDGET = 2**15
+    MAX_BUDGET = 10_000
     EXACT_BUDGET = None  # None (set the budget where GraphSHAP-IQ has exact values)
 
     # box plot parameters
@@ -535,13 +557,18 @@ if __name__ == "__main__":
 
     # errors at exact plot
     PLOT_ERRORS_AT_EXACT = False  # True False (plot the errors at the exact values)
-    Y_LIM_EXACT = (-1e-4, 1e-3)  # None (set the y-axis limits for the errors at the exact values)
+    Y_LIM_EXACT = (
+        -1e-4,
+        1e-3,
+    )  # None (set the y-axis limits for the errors at the exact values)
 
     # legend plot parameters
     MAKE_LEGEND_PLOT = False  # True False (make a plot with all the legend elements)
 
     # sanity check plots
-    MAKE_SANITY_CHECK_PLOTS = False  # True False (make a plot with all the legend elements)
+    MAKE_SANITY_CHECK_PLOTS = (
+        False  # True False (make a plot with all the legend elements)
+    )
 
     SAVE_NAME_PREFIX = f"{DATASET_NAME}_{MODEL_ID}_{N_LAYERS}_{INDEX}_{MAX_ORDER}"
 
@@ -588,7 +615,9 @@ if __name__ == "__main__":
 
     # drop all max_interaction_sizes with less than n estimates
     rows_to_drop = (
-        df.groupby(["max_interaction_size", "approximation", "index"])[[PLOT_METRIC, "instance_id"]]
+        df.groupby(["max_interaction_size", "approximation", "index"])[
+            [PLOT_METRIC, "instance_id"]
+        ]
         .agg({PLOT_METRIC: "count", "instance_id": "first"})
         .reset_index()
     )
@@ -630,13 +659,20 @@ if __name__ == "__main__":
         l_shapley = sv_df[sv_df["approximation"] == "L_Shapley"]
         make_errors_at_exact_plot(sv_exact_df, k_sii_exact_df, l_shapley)
         Y_LIM_EXACT = None
-        make_errors_at_exact_plot(sv_exact_df, k_sii_exact_df, l_shapley, log_scale=True)
+        make_errors_at_exact_plot(
+            sv_exact_df, k_sii_exact_df, l_shapley, log_scale=True
+        )
 
     if MAKE_SANITY_CHECK_PLOTS:
         # plot for k-SII a simple scatter plot for the budgets as a sanity check
         fig, ax = plt.subplots(1, 1)
         for approx, approx_df in df.groupby("approximation"):
-            ax.scatter(approx_df["budget"], approx_df[PLOT_METRIC], label=approx, c=COLORS[approx])
+            ax.scatter(
+                approx_df["budget"],
+                approx_df[PLOT_METRIC],
+                label=approx,
+                c=COLORS[approx],
+            )
         ax.set_xlabel("Budget")
         ax.set_ylabel(PLOT_METRIC)
         ax.set_title(f"k-SII {DATASET_NAME} {MODEL_ID}")
@@ -647,7 +683,12 @@ if __name__ == "__main__":
         # plot for SV a simple scatter plot for the budgets as a sanity check
         fig, ax = plt.subplots(1, 1)
         for approx, approx_df in sv_df.groupby("approximation"):
-            ax.scatter(approx_df["budget"], approx_df[PLOT_METRIC], label=approx, c=COLORS[approx])
+            ax.scatter(
+                approx_df["budget"],
+                approx_df[PLOT_METRIC],
+                label=approx,
+                c=COLORS[approx],
+            )
         ax.set_xlabel("Budget")
         ax.set_ylabel(PLOT_METRIC)
         ax.set_title(f"SV {DATASET_NAME} {MODEL_ID}")

@@ -5,7 +5,7 @@ from typing import Tuple
 
 import numpy as np
 from torch_geometric.utils.convert import to_networkx
-from graphxai.utils import Explanation
+from graphxai_local.utils import Explanation
 
 from torch_geometric.data import Dataset, data
 from torch_geometric.loader import DataLoader
@@ -16,9 +16,9 @@ from sklearn.model_selection import train_test_split
 
 from typing import List, Optional, Callable, Union, Any, Tuple
 
-from graphxai.utils.explanation import EnclosingSubgraph
-from graphxai.utils import to_networkx_conv
-import graphxai.datasets as gxai_data
+from graphxai_local.utils.explanation import EnclosingSubgraph
+from graphxai_local.utils import to_networkx_conv
+import graphxai_local.datasets as gxai_data
 
 
 def get_dataset(dataset, download=False):
@@ -38,7 +38,11 @@ def get_dataset(dataset, download=False):
 
 class NodeDataset:
     def __init__(
-        self, name, num_hops: int, download: Optional[bool] = False, root: Optional[str] = None
+        self,
+        name,
+        num_hops: int,
+        download: Optional[bool] = False,
+        root: Optional[str] = None,
     ):
         self.name = name
         self.num_hops = num_hops
@@ -106,7 +110,8 @@ class NodeDataset:
                     stratify=self.graph.y[test_mask].tolist() if stratify else None,
                 )
                 self.graph.valid_mask = torch.tensor(
-                    [i in valid_mask for i in range(self.graph.num_nodes)], dtype=torch.bool
+                    [i in valid_mask for i in range(self.graph.num_nodes)],
+                    dtype=torch.bool,
                 )
 
             self.graph.train_mask = torch.tensor(
@@ -248,7 +253,9 @@ class NodeDataset:
             t_label = self.nodes_with_label(label=label, make=mask)
 
             # Joint masking over shapes and labels:
-            to_choose = torch.as_tensor([n.item() for n in t_label if n in t_inshape]).long()
+            to_choose = torch.as_tensor(
+                [n.item() for n in t_label if n in t_inshape]
+            ).long()
 
         assert_fmt = "Could not find a node in {} with inshape={}, label={}"
         assert to_choose.nelement() > 0, assert_fmt.format(self.name, inshape, label)
@@ -361,7 +368,9 @@ class GraphDataset:
 
     def get_train_w_label(self, label):
         inds_to_choose = (self.Y[self.train_index] == label).nonzero(as_tuple=True)[0]
-        in_train_idx = inds_to_choose[torch.randint(low=0, high=inds_to_choose.shape[0], size=(1,))]
+        in_train_idx = inds_to_choose[
+            torch.randint(low=0, high=inds_to_choose.shape[0], size=(1,))
+        ]
         chosen = self.train_index[in_train_idx.item()]
 
         return self.graphs[chosen], self.explanations[chosen]
@@ -369,7 +378,9 @@ class GraphDataset:
     def get_test_w_label(self, label):
         assert self.test_index is not None, "test_index is None"
         inds_to_choose = (self.Y[self.test_index] == label).nonzero(as_tuple=True)[0]
-        in_test_idx = inds_to_choose[torch.randint(low=0, high=inds_to_choose.shape[0], size=(1,))]
+        in_test_idx = inds_to_choose[
+            torch.randint(low=0, high=inds_to_choose.shape[0], size=(1,))
+        ]
         chosen = self.test_index[in_test_idx.item()]
 
         return self.graphs[chosen], self.explanations[chosen]
