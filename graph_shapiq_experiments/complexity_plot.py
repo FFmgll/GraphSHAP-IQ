@@ -59,7 +59,7 @@ def plot_naive_budget(node_range):
         linestyle="--",
         linewidth=1,
         color="black",
-        label="All Model Calls",
+        label="Baseline",
     )
 
 
@@ -82,7 +82,10 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
         plot_q3 = q3[dataset, n_layers, :]
         # Labels for legend and colors
         plot_color = COLORS[n_layers]
-        plot_label = n_layers + "-Layer GNN"
+        if n_layers == "1":
+            plot_label = n_layers + " Layer"
+        else:
+            plot_label = n_layers + " Layers"
         # Fit and plot the logarithmic trend curve
 
         if scatter:
@@ -124,6 +127,11 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
     # Axis customization
     min_x = plot_dataset["n_players"].min() - 2
     max_x = min(plot_dataset["n_players"].max() + 2, 150)
+
+    if max_x > 40:
+        legend_loc = "lower right"
+    else:
+        legend_loc = "upper left"
     node_range = np.arange(min_x - min_x % 5, max_x, max_x // 10)
     plot_naive_budget(node_range)
     plt.xlim(min_x, max_x)
@@ -133,8 +141,8 @@ def plot_complexity_by_layers(plot_dataset, dataset, scatter=False):
     # Title and descriptions
     plt.ylabel(budget_label())
     plt.xlabel(node_label())
-    ax.legend()
-    plt.title("Exact Shapley Explanations on " + dataset)
+    ax.legend(loc=legend_loc)
+    plt.title(dataset)
     plt.grid(True, linestyle=":")
     plt.tight_layout()
     if scatter:
@@ -193,13 +201,17 @@ if __name__ == "__main__":
 
     COLOR_LIST = ["#ef27a6", "#7d53de", "#00b4d8", "#ff6f00", "#ffba08"]
     params = {
-        "legend.fontsize": "x-large",
-        "figure.figsize": (7, 5),
-        "axes.labelsize": "x-large",
-        "axes.titlesize": "x-large",
-        "xtick.labelsize": "x-large",
-        "ytick.labelsize": "x-large",
+        #"legend.fontsize": "x-large",
+        "figure.figsize": (8, 7),
+        #"axes.labelsize": "x-large",
+        #"axes.titlesize": "x-large",
+        #"xtick.labelsize": "x-large",
+        #"ytick.labelsize": "x-large",
+        "font.size": 20
     }
+
+    #plt.rcParams.update({"font.size": 20})  # increase the font size of the plot
+    #plt.rcParams["figure.figsize"] = (8, 7)  # set figure size
 
     DATASETS = [
         "COX2",
@@ -261,9 +273,15 @@ if __name__ == "__main__":
     medians = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].median()
     stds = df.groupby(["dataset_name", "n_layers", "n_players"])["log10_budget"].std()
 
+
+    # Set global display format to suppress scientific notation
+    pd.options.display.float_format = '{:.0e}'.format
+
     # We compute budget ratios in log-scale for numerical stability and report median of those values
     df["budget_ratio_perc"] = np.exp((np.log(df["budget"].astype(float)) - df["n_players"]*np.log(2)))*100
     budget_ratio_perc_median = np.round(df.groupby(["dataset_name", "n_layers"])["budget_ratio_perc"].median(),4)
+    # Compute the multiplier reported in Table 1.
+    budget_speedup_multiplier = np.round(100/df.groupby(["dataset_name", "n_layers"])["budget_ratio_perc"].median(),0)
 
     for dataset in df["dataset_name"].unique():
         if dataset != "WaterQuality":
@@ -288,7 +306,7 @@ if __name__ == "__main__":
     max_y = 6.5
     statistic = "graph_density"
     clabel = "Graph Density"
-    title = "Exact Shapley Explanations on Mutagenicity (2-Layer GNN)"
+    title = "Mutagenicity (2-Layer GNN)"#"Exact Shapley Explanations on Mutagenicity (2-Layer GNN)"
     plot_complexity_by_statistic(
         save_id,
         plot_dataset,
