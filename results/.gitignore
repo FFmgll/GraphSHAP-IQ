@@ -1,10 +1,1 @@
-approximation/baselines
-approximation/exact
-approximation/L_Shapley
-approximation/GraphSHAPIQ
-explanation_graphs/*
-explanation_graphs
-approximation_old/*
-approximation_old
-approximation_fuckup
-approximation_fuckup/*
+*.interaction_values
