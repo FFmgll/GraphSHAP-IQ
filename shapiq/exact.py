@@ -338,7 +338,8 @@ class ExactComputer:
             An InteractionValues object containing the base interactions.
         """
 
-        base_interaction_values = np.zeros(self._n_interactions[order])
+        n_interactions = np.sum([binom(self.n,size) for size in range(0,order+1)]).astype(int)
+        base_interaction_values = np.zeros(n_interactions)
         base_weights = self._get_base_weights(index, order)
         for coalition in powerset(self._grand_coalition_set):
             coalition_size = len(coalition)
