@@ -271,4 +271,4 @@ def train_gnn(
 
 
 if __name__ == "__main__":
-    model, model_id = train_gnn("FluorideCarbonyl", "GCN", 1, hidden=False)
+    model, model_id = train_gnn("Mutagenicity", "GCN", n_layers=3, hidden=128, jumping_knowledge=False, deep_readout=True)
