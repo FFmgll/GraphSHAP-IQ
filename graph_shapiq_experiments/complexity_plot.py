@@ -321,3 +321,35 @@ if __name__ == "__main__":
         max_y,
         cmap="plasma",
     )
+
+
+    # Graph Density Plot
+    dataset_name = "Mutagenicity"
+    n_layers = "2"
+    plot_dataet = df.copy()
+    plot_dataset = df[df["n_layers"] == n_layers]
+    plot_dataset = plot_dataset[plot_dataset["dataset_name"] == dataset_name]
+    save_id = "complexity_by_max_degree_" + dataset_name + "_" + n_layers
+    min_x = max(plot_dataset["n_players"].min(), 5)
+    max_x = min(plot_dataset["n_players"].max(), 65)
+    min_v = 10
+    max_v = 65
+    min_y = 1.5
+    max_y = 6.5
+    statistic = "max_node_degree"
+    clabel = "Maximum Node Degree"
+    title = "Exact Shapley Explanations on Mutagenicity (2-Layer GNN)"
+    plot_complexity_by_statistic(
+        save_id,
+        plot_dataset,
+        statistic,
+        title,
+        clabel,
+        min_x,
+        max_x,
+        min_v,
+        max_v,
+        min_y,
+        max_y,
+        cmap="plasma",
+    )
