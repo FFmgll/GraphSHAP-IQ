@@ -197,7 +197,7 @@ def load_graph_model(
         model.load_state_dict(torch.load(save_path, map_location=device))
 
     except FileNotFoundError as error:
-        raise FileNotFoundError("Model not found. Are you sure you trained the model?") from error
+        raise FileNotFoundError(f"Model {model_id} not found. Are you sure you trained the model?") from error
     print(f"Model {model_id} loaded.")
     return model
 

@@ -9,7 +9,11 @@ import torch
 from matplotlib import pyplot as plt
 from torch_geometric.utils import to_networkx
 
-from shapiq.explainer.graph import _compute_baseline_value, GraphSHAPIQ, load_graph_model
+from shapiq.explainer.graph import (
+    _compute_baseline_value,
+    GraphSHAPIQ,
+    load_graph_model,
+)
 from shapiq.games.benchmark.local_xai import GraphGame
 from shapiq.explainer.graph import get_explanation_instances
 from shapiq.interaction_values import InteractionValues
@@ -31,21 +35,25 @@ if __name__ == "__main__":
 
     INDEX = "k-SII"
 
-    MODEL_TYPE = "GAT"
-    DATASET_NAME = "Benzene"
-    N_LAYER = 3
-    DATA_ID = 57
+    MODEL_TYPE = "GCN"
+    DATASET_NAME = "Mutagenicity"
+    N_LAYER = 2
+    DATA_ID = 71
+    RANDOM_SEED = 10  # random seed for the graph layout
 
     GET_PYRIDINE = False  # get a Pyridine molecule
 
     # plot parameter
-    RANDOM_SEED = 4  # random seed for the graph layout
     COMPACTNESS = 100  # compactness of the graph layout
     SIZE_FACTOR = 2  # factor to scale the node sizes
     N_INTERACTIONS = 100  # number of interactions/explanations to plot for the graph
     CUBIC_SCALING = False  # uses cubic scaling for the node sizes (True) or not (False)
-    ADJUST_MIN_MAX = False  # scales the explanation sizes across plots (True) or not (False)
-    ADJUST_NODE_POS = False  # adjusts the node positions in the plots (True) or not (False)
+    ADJUST_MIN_MAX = (
+        False  # scales the explanation sizes across plots (True) or not (False)
+    )
+    ADJUST_NODE_POS = (
+        False  # adjusts the node positions in the plots (True) or not (False)
+    )
     NODE_SIZE_SCALING = 1.0  # scales the node sizes in the plots
     SPRING_K = None  # (None) spring constant for the layout increase for more space between nodes
     INTERACTION_DIRECTION = None  # "positive", "negative", None
@@ -53,8 +61,11 @@ if __name__ == "__main__":
 
     RUN_MODEL = False
     SAVE_FIG = True
-    PLOT_TITLE = False
-    INCREASE_FONT_SIZE = True
+    PLOT_TITLE = True
+    INCREASE_FONT_SIZE = False
+    APPROXIMATE_SVARMIQ = True
+    APPROXIMATE_KERNELSHAPIQ = False
+    APPROXIMATION_ORDER = 2
 
     # for saving the plots
     file_identifier = "_".join([MODEL_TYPE, DATASET_NAME, str(N_LAYER), str(DATA_ID)])
@@ -88,7 +99,9 @@ if __name__ == "__main__":
         fig, ax = plt.subplots()
         graph = to_networkx(graph_instance, to_undirected=True)
         pos = nx.spring_layout(graph, seed=RANDOM_SEED)
-        nx.draw(graph, pos, ax=ax, with_labels=True, node_size=1000, node_color="lightblue")
+        nx.draw(
+            graph, pos, ax=ax, with_labels=True, node_size=1000, node_color="lightblue"
+        )
         ax.set_title("Original Graph")
         plt.show()
     else:
@@ -104,11 +117,15 @@ if __name__ == "__main__":
     )
     model.eval()
     with torch.no_grad():
-        prediction = model(graph_instance.x, graph_instance.edge_index, graph_instance.batch)
+        prediction = model(
+            graph_instance.x, graph_instance.edge_index, graph_instance.batch
+        )
     original_class = int(graph_instance.y.item())
     predicted_class = int(torch.argmax(prediction).item())
     predicted_logits = float(prediction[0, predicted_class])
-    predicted_prob = float(torch.nn.functional.softmax(prediction, dim=1)[0, predicted_class])
+    predicted_prob = float(
+        torch.nn.functional.softmax(prediction, dim=1)[0, predicted_class]
+    )
     print("Original class: ", original_class)
     print("Predicted class: ", predicted_class)
     print("Predicted logits: ", predicted_logits)
@@ -175,12 +192,25 @@ if __name__ == "__main__":
     print(f"Running the explanation...")
     explainer = GraphSHAPIQ(game=game, verbose=True)
     moebius_values, _ = explainer.explain()
+    used_budget = int(explainer.last_n_model_calls)
+    print(f"Used budget: {used_budget}")
     if SAVE_FIG:
-        moebius_values.save(os.path.join(PLOT_DIR, f"{file_identifier}.interaction_values"))
+        moebius_values.save(
+            os.path.join(PLOT_DIR, f"{file_identifier}.interaction_values")
+        )
 
     # create the interaction values to plot --------------------------------------------------------
 
     converter = MoebiusConverter(moebius_coefficients=moebius_values)
+
+    # create the scaled SII interaction values by dividing each interaction with the sum of all
+    # SIIs and multiplying it with the prediction
+    scaled_sii_2 = converter(index="SII", order=2)
+    scaled_sii_2.values = (scaled_sii_2.values / sum(scaled_sii_2.values)) * predicted_logits
+
+    scaled_sii_3 = converter(index="SII", order=3)
+    scaled_sii_3.values = (scaled_sii_3.values / sum(scaled_sii_3.values)) * predicted_logits
+
     interactions: dict[str, InteractionValues] = {
         "n-SII": copy.deepcopy(moebius_values),
         "6-SII": converter(index=INDEX, order=6),
@@ -190,16 +220,25 @@ if __name__ == "__main__":
         "2-STII": converter(index="STII", order=2),
         "6-STII": converter(index="STII", order=6),
         "SII-2": converter(index="SII", order=2),
+        "SII-3": converter(index="SII", order=3),
         "SII-6": converter(index="SII", order=6),
         "2-FSII": converter(index="FSII", order=2),
         "6-FSII": converter(index="FSII", order=6),
+        "scaled-SII-2": scaled_sii_2,
+        "scaled-SII-3": scaled_sii_3,
     }
     # get min and max values for the color mapping
     min_value = min(
-        [np.abs(interaction_values.values).min() for interaction_values in interactions.values()]
+        [
+            np.abs(interaction_values.values).min()
+            for interaction_values in interactions.values()
+        ]
     )
     max_value = max(
-        [np.abs(interaction_values.values).max() for interaction_values in interactions.values()]
+        [
+            np.abs(interaction_values.values).max()
+            for interaction_values in interactions.values()
+        ]
     )
     min_max_interactions = None
     if ADJUST_MIN_MAX:
@@ -211,16 +250,135 @@ if __name__ == "__main__":
     if DATASET_NAME == "MUTAG":
         atom_names = ["C", "N", "O", "F", "I", "Cl", "Br"]
     if DATASET_NAME == "Mutagenicity":
-        atom_names = ["C", "O", "Cl", "H", "N", "F", "Br", "S", "P", "I", "Na", "K", "Li", "Ca"]
+        atom_names = [
+            "C",
+            "O",
+            "Cl",
+            "H",
+            "N",
+            "F",
+            "Br",
+            "S",
+            "P",
+            "I",
+            "Na",
+            "K",
+            "Li",
+            "Ca",
+        ]
     if DATASET_NAME in ("Benzene", "FluorideCarbonyl", "AlkaneCarbonyl"):
         # link to source: https://github.com/google-research/graph-attribution/blob/main/graph_attribution/featurization.py#L37C1-L41C71
-        atom_names = ["C", "N", "O", "S", "F", "P", "Cl", "Br", "Na", "Ca", "I", "B", "H", "*"]
+        atom_names = [
+            "C",
+            "N",
+            "O",
+            "S",
+            "F",
+            "P",
+            "Cl",
+            "Br",
+            "Na",
+            "Ca",
+            "I",
+            "B",
+            "H",
+            "*",
+        ]
 
     if atom_names is not None:
         graph_labels = {
             node_id: atom_names[np.argmax(atom)]
             for node_id, atom in enumerate(graph_instance.x.numpy())
         }
+
+    # run approximation methods as comparison ------------------------------------------------------
+    if APPROXIMATE_SVARMIQ:
+        from shapiq.approximator import SVARMIQ
+
+        # approx with SVARMIQ
+        approx = SVARMIQ(
+            n=game.n_players,
+            max_order=APPROXIMATION_ORDER,
+            index="k-SII",
+            random_state=RANDOM_SEED,
+        )
+        approx_values = approx.approximate(budget=used_budget, game=game)
+        if SAVE_FIG:
+            approx_values.save(
+                os.path.join(PLOT_DIR, f"{file_identifier}_approximation.interaction_values")
+            )
+
+        # visualize the approximation
+        fig, _ = explanation_graph_plot(
+            graph=graph,
+            interaction_values=approx_values,
+            plot_explanation=True,
+            n_interactions=N_INTERACTIONS,
+            size_factor=SIZE_FACTOR,
+            compactness=COMPACTNESS,
+            random_seed=RANDOM_SEED,
+            label_mapping=graph_labels,
+            cubic_scaling=CUBIC_SCALING,
+            min_max_interactions=min_max_interactions,
+            adjust_node_pos=ADJUST_NODE_POS,
+            node_size_scaling=NODE_SIZE_SCALING,
+            spring_k=SPRING_K,
+            interaction_direction=INTERACTION_DIRECTION,
+            draw_threshold=DRAW_THRESHOLD,
+        )
+        title = "SVARM-IQ Approximation\n" + title_suffix
+        if PLOT_TITLE:
+            plt.title(title)
+            plt.tight_layout()
+        else:
+            fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+        if SAVE_FIG:
+            plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SVARM-IQ.pdf"))
+        plt.show()
+
+    if APPROXIMATE_KERNELSHAPIQ:
+        from shapiq.approximator import KernelSHAPIQ
+
+        # approx with KernelSHAPIQ
+        approx = KernelSHAPIQ(
+            n=game.n_players,
+            max_order=APPROXIMATION_ORDER,
+            index="k-SII",
+            random_state=RANDOM_SEED,
+        )
+        approx_values = approx.approximate(budget=used_budget, game=game)
+        if SAVE_FIG:
+            approx_values.save(
+                os.path.join(PLOT_DIR, f"{file_identifier}_approximation.interaction_values")
+            )
+
+        # visualize the approximation
+        fig, _ = explanation_graph_plot(
+            graph=graph,
+            interaction_values=approx_values,
+            plot_explanation=True,
+            n_interactions=N_INTERACTIONS,
+            size_factor=SIZE_FACTOR,
+            compactness=COMPACTNESS,
+            random_seed=RANDOM_SEED,
+            label_mapping=graph_labels,
+            cubic_scaling=CUBIC_SCALING,
+            min_max_interactions=min_max_interactions,
+            adjust_node_pos=ADJUST_NODE_POS,
+            node_size_scaling=NODE_SIZE_SCALING,
+            spring_k=SPRING_K,
+            interaction_direction=INTERACTION_DIRECTION,
+            draw_threshold=DRAW_THRESHOLD,
+        )
+        title = "KernelSHAPIQ Approximation\n" + title_suffix
+        if PLOT_TITLE:
+            plt.title(title)
+            plt.tight_layout()
+        else:
+            fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+        if SAVE_FIG:
+            plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_KernelSHAPIQ.pdf"))
+        plt.show()
 
     # plot full graph explanation ------------------------------------------------------------------
     moebius_values = interactions["n-SII"]
@@ -488,6 +646,36 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SII2.pdf"))
     plt.show()
 
+    # plot SII-2 explanation ----------------------------------------------------------------------
+    sii_3_values = interactions["SII-3"]
+    print(sii_3_values)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=sii_3_values,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "SII-3 Explanation\n" + title_suffix
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SII2.pdf"))
+    plt.show()
+
     # plot SII-6 explanation -----------------------------------------------------------------------
     sii_6_values = interactions["SII-6"]
     print(sii_6_values)
@@ -576,4 +764,64 @@ if __name__ == "__main__":
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
         plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_6FSII.pdf"))
+    plt.show()
+
+    # plot scaled-SII-2 explanation ----------------------------------------------------------------
+    scaled_sii_2_values = interactions["scaled-SII-2"]
+    print(scaled_sii_2_values)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=scaled_sii_2_values,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "Scaled-SII-2 Explanation\n" + title_suffix
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_scaledSII2.pdf"))
+    plt.show()
+
+    # plot scaled-SII-2 explanation ----------------------------------------------------------------
+    scaled_sii_3_values = interactions["scaled-SII-3"]
+    print(scaled_sii_3_values)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=scaled_sii_3_values,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "Scaled-SII-3 Explanation\n" + title_suffix
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_scaledSII3.pdf"))
     plt.show()
