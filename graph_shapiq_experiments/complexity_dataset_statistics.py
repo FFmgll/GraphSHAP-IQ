@@ -55,8 +55,8 @@ if __name__ == "__main__":
 
             node_degrees = dict(g.degree()).values()
             avg_node_degree[data_id] = np.mean(list(node_degrees))
-            max_node_degree[data_id] = np.max(node_degrees)
-            min_node_degree[data_id] = np.min(node_degrees)
+            max_node_degree[data_id] = np.max(list(node_degrees))
+            min_node_degree[data_id] = np.min(list(node_degrees))
             num_edges[data_id] = explain_instance.num_edges
             graph_density[data_id] = (
                 2
