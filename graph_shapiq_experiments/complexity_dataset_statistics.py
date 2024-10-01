@@ -17,8 +17,8 @@ if __name__ == "__main__":
         #"Mutagenicity",
         #"FluorideCarbonyl",
         #"Benzene",
-        #"AlkaneCarbonyl",
-        "WaterQuality"
+        "AlkaneCarbonyl",
+        #"WaterQuality"
     ]  # ["AIDS","DHFR","COX2","BZR","PROTEINS", "ENZYMES", "MUTAG", "Mutagenicity", "FluorideCarbonyl", "Benzene", "AlkaneCarbonyl",]
 
     for dataset_name in DATASET_NAMES:
@@ -40,7 +40,7 @@ if __name__ == "__main__":
             enumerate(all_samples_to_explain), total=len(all_samples_to_explain), desc=dataset_name
         ):
             num_nodes[data_id] = explain_instance.num_nodes
-            g = to_networkx(explain_instance, to_undirected=False)  # converts into graph
+            g = to_networkx(explain_instance, to_undirected=True)  # converts into graph
             curvature = OllivierRicci(g)
             curvature_graph = curvature.compute_ricci_curvature()
             g_curvature = np.zeros(len(curvature_graph.nodes))
@@ -53,9 +53,10 @@ if __name__ == "__main__":
             min_curvature[data_id] = np.min(g_curvature)
             max_curvature[data_id] = np.max(g_curvature)
 
-            avg_node_degree[data_id] = np.mean(g.degree())
-            max_node_degree[data_id] = np.max(g.degree())
-            min_node_degree[data_id] = np.min(g.degree())
+            node_degrees = dict(g.degree()).values()
+            avg_node_degree[data_id] = np.mean(list(node_degrees))
+            max_node_degree[data_id] = np.max(list(node_degrees))
+            min_node_degree[data_id] = np.min(list(node_degrees))
             num_edges[data_id] = explain_instance.num_edges
             graph_density[data_id] = (
                 2
