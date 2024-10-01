@@ -324,6 +324,8 @@ def explanation_graph_plot(
     adjust_node_pos: bool = False,
     spring_k: Optional[float] = None,
     interaction_direction: Optional[str] = None,
+    color_interactions: Optional[dict[int, tuple[int, ...]]] = None,
+    remove_colored: bool = False
 ) -> tuple[plt.figure, plt.axis]:
     """Plots the interaction values as an explanation graph.
 
@@ -369,6 +371,10 @@ def explanation_graph_plot(
         interaction_direction: The sign of the interaction values to plot. If `None`, all
             interactions are plotted. Defaults to `None`. Possible values are "positive" and
             "negative".
+        color_interactions: A mapping from the nodes to other nodes to color. If `None`, the
+            interactions are colored based on the sign of the interaction values. Defaults to
+            `None`. If provided, only the interactions reachable from the nodes in the mapping are
+            colored and the rest are colored in gray.
 
     Returns:
         The figure and axis of the plot.
@@ -426,11 +432,22 @@ def explanation_graph_plot(
         interaction_size = len(interaction)
         interaction_strength = abs(interaction_value)
 
-        attributes = {
-            "color": get_color(interaction_value),
-            "alpha": _normalize_value(
+        color = get_color(interaction_value)
+        alpha = _normalize_value(
                 interaction_value, max_interaction, BASE_ALPHA_VALUE, cubic_scaling
-            ),
+        )
+        if color_interactions is not None:
+            node_in_interaction = interaction[0]
+            receptive_field = set(color_interactions.get(node_in_interaction, []))
+            if len(receptive_field) > 0:
+                if not all([node in receptive_field for node in interaction]):
+                    color = "lightgray"
+                elif remove_colored:
+                    continue
+
+        attributes = {
+            "color": color,
+            "alpha": alpha,
             "interaction": interaction,
             "weight": interaction_strength * compactness,
             "size": _normalize_value(

@@ -1,4 +1,6 @@
 """This script shows the differences between deep read-out and linear."""
+import networkx as nx
+import torch_geometric
 
 from shapiq import ExactComputer
 
@@ -18,6 +20,7 @@ from shapiq.explainer.graph import get_explanation_instances
 from shapiq.plot.explanation_graph import explanation_graph_plot
 
 
+# {39: 11, 293: 11, 410: 10, 438: 7, 524: 9, 648: 7, 935: 9, 1036: 10, 1158: 12, 1255: 10, 1432: 11, 1437: 11, 1446: 10, 1737: 5, 1857: 10, 2012: 11, 2020: 12, 2149: 9, 2358: 10, 2881: 10, 2938: 8, 2997: 7, 3014: 6, 3055: 11, 3285: 10, 3464: 7, 3552: 11, 3616: 11, 4156: 7, 4210: 8}
 def print_predictions_players():
     instances = {}
     for i, graph_in in enumerate(get_explanation_instances(DATASET_NAME)):
@@ -38,27 +41,57 @@ def print_predictions_players():
             print(f"{i} {num_nodes}, {prob_deep}, {prob_linear}, {og_class}")
     print(instances)
 
-# {39: 11, 293: 11, 410: 10, 438: 7, 524: 9, 648: 7, 935: 9, 1036: 10, 1158: 12, 1255: 10, 1432: 11, 1437: 11, 1446: 10, 1737: 5, 1857: 10, 2012: 11, 2020: 12, 2149: 9, 2358: 10, 2881: 10, 2938: 8, 2997: 7, 3014: 6, 3055: 11, 3285: 10, 3464: 7, 3552: 11, 3616: 11, 4156: 7, 4210: 8}
 
-PLOT_DIR = os.path.join("..", "results", "deep_ro")
-if not os.path.exists(PLOT_DIR):
-    os.makedirs(PLOT_DIR)
+def get_receptive_field(
+        gnn_depth: int, graph_instance: torch_geometric.data.Data
+) -> dict[int, tuple[int, ...]]:
+    """Computes the receptive field for each node in the graph.
+
+    Args:
+        gnn_depth: The depth of the GNN model.
+        graph_instance: The graph instance for which to compute the mask.
+
+    Returns:
+        A dictionary containing all nodes as keys and their receptive field (nodes that are
+            reachable via message passing) as values.
+    """
+
+    def _receptive_field_mask(node_id: int, depth: int) -> list[int]:
+        mask, _rf = [node_id], [node_id]
+        for _ in range(depth):
+            new_mask = []
+            for node in mask:
+                connected_nodes = graph_instance.edge_index[1, graph_instance.edge_index[0] == node]
+                connected_nodes = connected_nodes.tolist()
+                new_mask.extend(connected_nodes)
+            mask = list(set(new_mask))
+            _rf.extend(mask)
+        return list(set(_rf))
+    _receptive_field = {
+        node_id: tuple(_receptive_field_mask(node_id, gnn_depth))
+        for node_id in range(graph_instance.num_nodes)
+    }
+    return _receptive_field
 
 
 if __name__ == '__main__':
+
+    PLOT_DIR = os.path.join("..", "results", "deep_ro")
+    if not os.path.exists(PLOT_DIR):
+        os.makedirs(PLOT_DIR)
 
     # model / data parameters
     MODEL_TYPE = "GCN"
     DATASET_NAME = "Mutagenicity"
     N_LAYER = 3
     # 1158 interesting
-    DATA_ID = 2149
+    DATA_ID = 3552
     RANDOM_SEED = 42
 
     # plot parameter
     COMPACTNESS = 100  # compactness of the graph layout
     SIZE_FACTOR = 2  # factor to scale the node sizes
-    N_INTERACTIONS = 100  # number of interactions/explanations to plot for the graph
+    N_INTERACTIONS = 200  # number of interactions/explanations to plot for the graph
     CUBIC_SCALING = False  # uses cubic scaling for the node sizes (True) or not (False)
     ADJUST_MIN_MAX = (
         False  # scales the explanation sizes across plots (True) or not (False)
@@ -69,19 +102,30 @@ if __name__ == '__main__':
     NODE_SIZE_SCALING = 1.0  # scales the node sizes in the plots
     SPRING_K = None  # (None) spring constant for the layout increase for more space between nodes
     INTERACTION_DIRECTION = None  # "positive", "negative", None
-    DRAW_THRESHOLD = 0.0  # threshold for the interaction values to draw the edges
+    DRAW_THRESHOLD = 0.02  # threshold for the interaction values to draw the edges
 
     SAVE_FIG = True
-    PLOT_TITLE = True
-    INCREASE_FONT_SIZE = False
+    PLOT_TITLE = False
+    INCREASE_FONT_SIZE = True
+    if INCREASE_FONT_SIZE:
+        plt.rcParams["font.size"] = 16
     APPROXIMATE_SVARMIQ = True
     APPROXIMATE_KERNELSHAPIQ = False
     APPROXIMATION_ORDER = 2
 
     # get the data point the instance --------------------------------------------------------------
-    file_identifier = "_".join([MODEL_TYPE, DATASET_NAME, str(N_LAYER), "Pyridine"])
+    file_identifier = "_".join([MODEL_TYPE, DATASET_NAME, str(N_LAYER), str(DATA_ID)])
     explanation_instances = get_explanation_instances(DATASET_NAME)
     graph_instance = explanation_instances[DATA_ID]
+    receptive_field = get_receptive_field(N_LAYER, graph_instance)
+
+    # plot the graph -------------------------------------------------------------------------------
+    fig, ax = plt.subplots()
+    graph = to_networkx(graph_instance, to_undirected=True)
+    pos = nx.spring_layout(graph, seed=RANDOM_SEED, k=SPRING_K)
+    pos = nx.kamada_kawai_layout(graph, scale=1.0, pos=pos)
+    nx.draw(graph, pos, ax=ax, with_labels=True)
+    plt.show()
 
     # get the graph labels -------------------------------------------------------------------------
     graph = to_networkx(graph_instance, to_undirected=True)
@@ -292,7 +336,7 @@ if __name__ == '__main__':
     else:
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
-        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_nSII.pdf"))
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_DR_plot_nSII.pdf"))
     plt.show()
 
     mi_linear = interactions["MI_LINEAR"]
@@ -321,7 +365,7 @@ if __name__ == '__main__':
     else:
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
-        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_nSII.pdf"))
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_LR_plot_nSII.pdf"))
     plt.show()
 
     # plot sv --------------------------------------------------------------------------------------
@@ -352,7 +396,7 @@ if __name__ == '__main__':
     else:
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
-        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_DR_plot_SV.pdf"))
     plt.show()
 
     sv_values_linear = interactions["SV_LINEAR"]
@@ -381,7 +425,7 @@ if __name__ == '__main__':
     else:
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
-        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_LR_plot_SV.pdf"))
     plt.show()
 
     # plot 2-sii -----------------------------------------------------------------------------------
@@ -412,7 +456,7 @@ if __name__ == '__main__':
     else:
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
-        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_DR_plot_2SII.pdf"))
     plt.show()
 
     two_sii_values_linear = interactions["2-SII_LINEAR"]
@@ -441,6 +485,122 @@ if __name__ == '__main__':
     else:
         fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
     if SAVE_FIG:
-        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_LR_plot_2SII.pdf"))
     plt.show()
 
+    # plot the MI with all interactions outside the receptive fields greyed out --------------------
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=mi_deep,
+        plot_explanation=True,
+        n_interactions=2**game_deep.n_players,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS * 1000,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=0,
+        color_interactions=receptive_field,
+        remove_colored=True
+    )
+    title = "n-SII/MI Explanation (DR, RF)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_DR_plot_nSII_receptive_field.pdf"))
+    plt.show()
+
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=two_sii_values_deep,
+        plot_explanation=True,
+        n_interactions=2**game_deep.n_players,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=0,
+        color_interactions=receptive_field,
+        remove_colored=True
+    )
+    title = "2-SII Explanation (DR, RF)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_DR_plot_2SII_receptive_field_removed.pdf"))
+    plt.show()
+
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=two_sii_values_deep,
+        plot_explanation=True,
+        n_interactions=2 ** game_deep.n_players,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=0,
+        color_interactions=receptive_field,
+        remove_colored=False
+    )
+    title = "2-SII Explanation (DR, RF)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_DR_plot_2SII_receptive_field.pdf"))
+    plt.show()
+
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=mi_linear,
+        plot_explanation=True,
+        n_interactions=game_linear.n_players,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=0,
+        color_interactions=receptive_field,
+        remove_colored=True
+    )
+    title = "n-SII/MI Explanation (LR, RF)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_LR_plot_nSII_receptive_field.pdf"))
+    plt.show()
