@@ -52,7 +52,7 @@ if __name__ == '__main__':
     DATASET_NAME = "Mutagenicity"
     N_LAYER = 3
     # 1158 interesting
-    DATA_ID = 1446
+    DATA_ID = 2149
     RANDOM_SEED = 42
 
     # plot parameter
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     )
 
     # show_all_predictions
-    #print_predictions_players()
+    print_predictions_players()
 
     # compute möebius ------------------------------------------------------------------------------
     print("Model and Data Loaded")
@@ -209,10 +209,14 @@ if __name__ == '__main__':
     print("Computing Deep Explanations")
     computer_deep = ExactComputer(game_fun=game_deep, n_players=game_deep.n_players)
     interactions["MI_DEEP"] = computer_deep(index="Moebius", order=game_deep.n_players)
+    interactions["SV_DEEP"] = computer_deep(index="SV", order=1)
+    interactions["2-SII_DEEP"] = computer_deep(index="k-SII", order=2)
 
     print("Computing Linear Explanations")
     computer_linear = ExactComputer(game_fun=game_linear, n_players=game_linear.n_players)
     interactions["MI_LINEAR"] = computer_linear(index="Moebius", order=game_linear.n_players)
+    interactions["SV_LINEAR"] = computer_linear(index="SV", order=1)
+    interactions["2-SII_LINEAR"] = computer_linear(index="k-SII", order=2)
 
     # plot the interactions ------------------------------------------------------------------------
 
@@ -261,6 +265,7 @@ if __name__ == '__main__':
     if ADJUST_MIN_MAX:
         min_max_interactions = (min_value, max_value)
 
+    # plot möebius interactions --------------------------------------------------------------------
     mi_deep = interactions["MI_DEEP"]
     print(mi_deep)
     fig, _ = explanation_graph_plot(
@@ -280,7 +285,7 @@ if __name__ == '__main__':
         interaction_direction=INTERACTION_DIRECTION,
         draw_threshold=DRAW_THRESHOLD,
     )
-    title = "n-SII/MI Explanation\n" + title_suffix_deep
+    title = "n-SII/MI Explanation (DR)\n" + title_suffix_deep
     if PLOT_TITLE:
         plt.title(title)
         plt.tight_layout()
@@ -309,7 +314,7 @@ if __name__ == '__main__':
         interaction_direction=INTERACTION_DIRECTION,
         draw_threshold=DRAW_THRESHOLD,
     )
-    title = "n-SII/MI Explanation\n" + title_suffix_linear
+    title = "n-SII/MI Explanation (LR)\n" + title_suffix_linear
     if PLOT_TITLE:
         plt.title(title)
         plt.tight_layout()
@@ -318,3 +323,124 @@ if __name__ == '__main__':
     if SAVE_FIG:
         plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_nSII.pdf"))
     plt.show()
+
+    # plot sv --------------------------------------------------------------------------------------
+
+    sv_values_deep = interactions["SV_DEEP"]
+    print(sv_values_deep)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=sv_values_deep,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "SV Explanation (DR)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+    plt.show()
+
+    sv_values_linear = interactions["SV_LINEAR"]
+    print(sv_values_linear)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=sv_values_linear,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "SV Explanation (LR)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+    plt.show()
+
+    # plot 2-sii -----------------------------------------------------------------------------------
+
+    two_sii_values_deep = interactions["2-SII_DEEP"]
+    print(two_sii_values_deep)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=two_sii_values_deep,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "2-SII Explanation (DR)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+    plt.show()
+
+    two_sii_values_linear = interactions["2-SII_LINEAR"]
+    print(two_sii_values_linear)
+    fig, _ = explanation_graph_plot(
+        graph=graph,
+        interaction_values=two_sii_values_linear,
+        plot_explanation=True,
+        n_interactions=N_INTERACTIONS,
+        size_factor=SIZE_FACTOR,
+        compactness=COMPACTNESS,
+        random_seed=RANDOM_SEED,
+        label_mapping=graph_labels,
+        cubic_scaling=CUBIC_SCALING,
+        min_max_interactions=min_max_interactions,
+        adjust_node_pos=ADJUST_NODE_POS,
+        node_size_scaling=NODE_SIZE_SCALING,
+        spring_k=SPRING_K,
+        interaction_direction=INTERACTION_DIRECTION,
+        draw_threshold=DRAW_THRESHOLD,
+    )
+    title = "2-SII Explanation (LR)"
+    if PLOT_TITLE:
+        plt.title(title)
+        plt.tight_layout()
+    else:
+        fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
+    if SAVE_FIG:
+        plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SV.pdf"))
+    plt.show()
+
