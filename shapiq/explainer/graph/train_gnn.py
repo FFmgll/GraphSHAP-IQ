@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 
 from graphxai_local.datasets import (
@@ -120,7 +120,7 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
         dataset_name,
     ).resolve()
     log_dir.mkdir(parents=True, exist_ok=True)
-    writer = SummaryWriter(log_dir=log_dir)
+    #writer = SummaryWriter(log_dir=log_dir)
 
     # Train and test functions
     def train(graph_model):
@@ -181,26 +181,26 @@ def train_and_store(model, train_loader, val_loader, test_loader, save_path):
             print(f"Early stopping at epoch {epoch}")
             break
 
-    writer.add_hparams(
-        {
-            "model": model_name,
-            "dataset": dataset_name,
-            "n_layers": model.n_layers,
-            "hidden": model.hidden_channels,
-            "node_bias": model.node_bias,
-            "graph_bias": model.graph_bias,
-            "dropout": model.dropout,
-            "batch_norm": model.batch_norm,
-            "jumping_knowledge": model.jumping_knowledge,
-            "deep_readout": model.deep_readout,
-        },
-        {
-            "hparam/val_acc": best_val_acc,
-            "hparam/train_acc": best_train_acc,
-            "hparam/test_acc": best_test_acc,
-        },
-    )
-    writer.close()
+    # writer.add_hparams(
+    #     {
+    #         "model": model_name,
+    #         "dataset": dataset_name,
+    #         "n_layers": model.n_layers,
+    #         "hidden": model.hidden_channels,
+    #         "node_bias": model.node_bias,
+    #         "graph_bias": model.graph_bias,
+    #         "dropout": model.dropout,
+    #         "batch_norm": model.batch_norm,
+    #         "jumping_knowledge": model.jumping_knowledge,
+    #         "deep_readout": model.deep_readout,
+    #     },
+    #     {
+    #         "hparam/val_acc": best_val_acc,
+    #         "hparam/train_acc": best_train_acc,
+    #         "hparam/test_acc": best_test_acc,
+    #     },
+    # )
+    # writer.close()
 
 
 def train_gnn(
@@ -271,4 +271,4 @@ def train_gnn(
 
 
 if __name__ == "__main__":
-    model, model_id = train_gnn("Mutagenicity", "GCN", n_layers=3, hidden=128, jumping_knowledge=False, deep_readout=True)
+    model, model_id = train_gnn("Mutagenicity", "GCN", n_layers=2, hidden=128, jumping_knowledge=False, deep_readout=True)

@@ -324,7 +324,7 @@ def explanation_graph_plot(
     adjust_node_pos: bool = False,
     spring_k: Optional[float] = None,
     interaction_direction: Optional[str] = None,
-    color_interactions: Optional[dict[int, tuple[int, ...]]] = None,
+    color_interactions: Optional[set[tuple[int, ...]]] = None,
     remove_colored: bool = False
 ) -> tuple[plt.figure, plt.axis]:
     """Plots the interaction values as an explanation graph.
@@ -431,19 +431,15 @@ def explanation_graph_plot(
     for interaction, interaction_value in interactions_to_plot.items():
         interaction_size = len(interaction)
         interaction_strength = abs(interaction_value)
-
         color = get_color(interaction_value)
         alpha = _normalize_value(
-                interaction_value, max_interaction, BASE_ALPHA_VALUE, cubic_scaling
+            interaction_value, max_interaction, BASE_ALPHA_VALUE, cubic_scaling
         )
         if color_interactions is not None:
-            node_in_interaction = interaction[0]
-            receptive_field = set(color_interactions.get(node_in_interaction, []))
-            if len(receptive_field) > 0:
-                if not all([node in receptive_field for node in interaction]):
-                    color = "lightgray"
-                elif remove_colored:
-                    continue
+            if interaction not in color_interactions:
+                color = "lightgray"
+            elif remove_colored:
+                continue
 
         attributes = {
             "color": color,
