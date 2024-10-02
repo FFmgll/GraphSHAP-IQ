@@ -3142,7 +3142,7 @@
      id="layer1" /><g
      id="g13445"
      transform="translate(0,20.039969)"
-     inkscape:export-filename="..\..\..\..\..\Users\Max\dr_results.pdf"
+     inkscape:export-filename="dr_results.pdf"
      inkscape:export-xdpi="96"
      inkscape:export-ydpi="96"><g
        id="g144"
@@ -8319,10 +8319,7 @@
      y="-65.46637"
      id="text21015-7-2-2-8"><tspan
        sodipodi:role="line"
-       id="tspan4520"
-       x="343.89493"
-       y="-65.46637"
-       style="stroke-width:0.35269">(top 100 MIs; MIs recolored)</tspan></text><text
+       id="tspan47779">(top 100 MIs; recolored)</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:16.9333px;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif, Medium';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#101810;stroke-width:0.35269;stroke-linejoin:round;stroke-opacity:0;paint-order:stroke markers fill"
      x="122.02201"
