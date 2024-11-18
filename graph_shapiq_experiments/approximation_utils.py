@@ -558,7 +558,7 @@ def pre_select_data_ids(
     for file_path in glob.glob(os.path.join(save_directory, "*.csv")):
         result = pd.read_csv(file_path)
         file_name = file_path.split(os.sep)[-1][:-4]  # remove path and ending .csv
-        if file_name.split("_")[0] == "complexity":
+        if file_name.split("_")[0] == "complexity" and file_name.split("_")[1] in DATASETS:
             dataset_name = file_name.split("_")[1]
             result["dataset_name"] = dataset_name
             result["n_layers"] = file_name.split("_")[2]

@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 from tqdm.auto import tqdm
 
-from approximation_utils import (
+from graph_shapiq_experiments.approximation_utils import (
     is_game_computed,
     save_interaction_value,
     BudgetError,
