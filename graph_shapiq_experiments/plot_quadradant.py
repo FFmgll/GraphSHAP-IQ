@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
-    add_inset = False
+    add_inset = True
     plt.rcParams.update({"font.size": 20})  # increase the font size of the plot
     plt.rcParams["figure.figsize"] = (8, 7)
     MARKER_SIZE = 18
@@ -97,6 +97,7 @@ if __name__ == '__main__':
     # adjust the scale of the plot
     ax.set_xscale("log")
     ax.set_ylim(0.01, 10**4)
+    ax_graphsahpiq.set_ylim(-0.025, 0.04)
     ax.set_yscale("log")
     plt.minorticks_off()
 
@@ -113,13 +114,13 @@ if __name__ == '__main__':
             mec="white",
             markersize=MARKER_SIZE
         )
-    ax_graphsahpiq.hlines(0, 0, 1000, colors="gray", linestyles="solid", lw=1, zorder=0)
+    ax_graphsahpiq.hlines(0, 0, 1000, colors="gray", linestyles="solid", lw=0.5, zorder=0)
     ax_graphsahpiq.set_yticks([0.0])
     ax_graphsahpiq.set_yticklabels(["exact"])
 
     # add a minature plot only of graphshapiq
     if add_inset:
-        ax_inset = fig.add_axes([0.415, 0.169, 0.3, 0.11])
+        ax_inset = fig.add_axes([0.48, 0.191, 0.2, 0.09])
         for order in ORDERS.keys():
             data_order = ORDERS[order]
             runtime_avg = float(data_order["runtime_GraphSHAPIQ"].mean())
@@ -134,9 +135,11 @@ if __name__ == '__main__':
             )
         ax_inset.set_yticks([])
         ax_inset.set_yticklabels([])
-        ax_inset.set_xlim(1.88, 2.053)
-        ax_inset.hlines(0, 0, 1000, colors="gray", linestyles="solid", lw=1, zorder=0)
-        ax_inset.tick_params(axis='x', direction='in', pad=-16, labelsize=plt.rcParams["font.size"] - 4)
+        ax_inset.set_xticks([1.9, 2.0])
+        ax_inset.set_xticklabels(["1.9s", "2.0s"])
+        ax_inset.set_xlim(1.86, 2.07)
+        ax_inset.hlines(0, 0, 1000, colors="gray", linestyles="solid", lw=0.5, zorder=0)
+        ax_inset.tick_params(axis='x', direction='in', pad=-15, labelsize=plt.rcParams["font.size"] - 6)
 
     # show where the inset came from and draw a rectangle around it in the main plot
     if add_inset:
@@ -144,16 +147,16 @@ if __name__ == '__main__':
         ax_graphsahpiq.add_patch(
             plt.Polygon(
                 np.array([
-                    [2.39, -0.015],
-                    [4.77, -0.0375],
-                    [5, -0.0375],
-                    [5, 0.0375],
-                    [4.77, 0.0375],
-                    [2.39, 0.015],
-                    [2.39, -0.015],
-                    [1.6, -0.015],
-                    [1.6, 0.015],
-                    [2.39, 0.015],
+                    [2.5, -0.01],
+                    [4.9, -0.0059],
+                    [5, -0.0059],
+                    [5, 0.0339],
+                    [4.77, 0.0339],
+                    [2.5, 0.01],
+                    [2.5, -0.01],
+                    [1.62, -0.01],
+                    [1.62, 0.01],
+                    [2.5, 0.01],
                 ]),
                 closed=False,
                 fill=False,
@@ -179,10 +182,10 @@ if __name__ == '__main__':
             label=ORDER_NAMES[order],
             lw=0
         )
-    ax.legend(title="$\\bf{Order}$", loc="upper left")
+    first_legend = ax.legend(title="$\\bf{Order}$", loc="upper left")
 
-    # add graphshapiq name to legend
-    ax_graphsahpiq.plot(
+    # add graphshapiq name to legend as a second legend
+    graphshapiq_legend = ax.plot(
         [],
         [],
         color=COLORS["GraphSHAPIQ"],
@@ -192,10 +195,14 @@ if __name__ == '__main__':
         label="GraphSHAPIQ",
         lw=0
     )
-    ax_graphsahpiq.legend(loc="lower right")
+    second_legend = ax.legend(handles=graphshapiq_legend, loc="lower right")
+    ax.add_artist(second_legend)
+    ax.add_artist(first_legend)
 
     ax_graphsahpiq.set_xlabel("Average Runtime in Seconds (log)")
     ax.set_ylabel("Average MSE (log)")
+    # add title to the main plot
+    ax.set_title("Mutagenicity with 2-layer GCN")
 
     # remove all white space between the plots
     plt.tight_layout()
