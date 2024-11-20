@@ -48,11 +48,15 @@ def runtime_analysis(INTERACTION_ORDER):
 
         APPROXIMATOR_LIST = [KernelSHAPIQ, SVARMIQ, InconsistentKernelSHAPIQ, SHAPIQ, PermutationSamplingSII]
 
+        if GRAPH_INFORMED == True:
+            interaction_lookup = moebius.interaction_lookup
+        else:
+            interaction_lookup = None
 
         for approximator_class in APPROXIMATOR_LIST:
             approximator_name = approximator_class.__name__
             start_approximator = time.time()
-            approximator = approximator_class(n=game.n_players, index="k-SII", max_order=INTERACTION_ORDER, moebius_lookup=moebius.interaction_lookup)
+            approximator = approximator_class(n=game.n_players, index="k-SII", max_order=INTERACTION_ORDER, moebius_lookup=interaction_lookup)
             approx_shapley_interactions = approximator.approximate(game=game, budget=total_budget)
             end_approximator = time.time()
             results.loc[game.game_id,"mse_"+approximator_name] = np.mean((approx_shapley_interactions-gt_shapley_interactions).values**2)
@@ -112,8 +116,7 @@ if __name__ == "__main__":
     MIN_N_PLAYERS = 20
     SORT_PLAYER = False
 
-    GRAPH_INFORMED = True
-
+    GRAPH_INFORMED = False
 
     RUN_ID = 0
 
@@ -161,5 +164,5 @@ if __name__ == "__main__":
     print(f"Game_ids: {[game.game_id for game in games_to_run]}")
 
     #runtime_analysis(INTERACTION_ORDER=1)
-    #runtime_analysis(INTERACTION_ORDER=2)
-    runtime_analysis(INTERACTION_ORDER=3)
+    runtime_analysis(INTERACTION_ORDER=2)
+    #runtime_analysis(INTERACTION_ORDER=3)
