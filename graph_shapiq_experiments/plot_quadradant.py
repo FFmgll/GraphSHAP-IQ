@@ -48,6 +48,8 @@ if __name__ == '__main__':
     # load informed data
     path = os.path.join(data_folder, "GCN_Mutagenicity_2_2_0_True_runtime_metrics.csv")
     data_second_order_informed = pd.read_csv(path)
+    path = os.path.join(data_folder, "GCN_Mutagenicity_2_3_0_True_runtime_metrics.csv")
+    data_third_order_informed = pd.read_csv(path)
 
     metrics = ["mse", "runtime"]
 
@@ -69,8 +71,9 @@ if __name__ == '__main__':
     # rename columns
     data_first_order = data_first_order.rename(columns=rename_dict)
     data_second_order = data_second_order.rename(columns=rename_dict)
-    data_second_order_informed = data_second_order_informed.rename(columns=rename_dict)
     data_third_order = data_third_order.rename(columns=rename_dict)
+    data_second_order_informed = data_second_order_informed.rename(columns=rename_dict)
+    data_third_order_informed = data_third_order_informed.rename(columns=rename_dict)
 
     ORDERS = {
         1: data_first_order,
@@ -110,8 +113,11 @@ if __name__ == '__main__':
             )
 
             # also add the informed second order data for all baseline methods as a hatched marker
-            if order == 2:
-                data_order = data_second_order_informed
+            if order == 2 or order == 3:
+                if order == 2:
+                    data_order = data_second_order_informed
+                else:
+                    data_order = data_third_order_informed
                 runtime_avg = float(data_order[f"runtime_{method}"].mean())
                 mse_avg = float(data_order[f"mse_{method}"].mean())
                 ax.scatter(
@@ -138,7 +144,7 @@ if __name__ == '__main__':
 
     # adjust the scale of the plot
     ax.set_xscale("log")
-    ax.set_ylim(0.01, 10**4)
+    ax.set_ylim(2e-3, 2e5)
     ax_graphsahpiq.set_ylim(-0.025, 0.04)
     ax.set_yscale("log")
     plt.minorticks_off()
@@ -236,7 +242,7 @@ if __name__ == '__main__':
         label="GraphSHAP-IQ",
         lw=0
     )
-    second_legend = ax.legend(handles=graphshapiq_legend, loc="lower right")
+    second_legend = ax.legend(handles=graphshapiq_legend, loc="upper right")
     ax.add_artist(second_legend)
     ax.add_artist(first_legend)
 

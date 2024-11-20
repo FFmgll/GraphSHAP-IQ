@@ -172,7 +172,7 @@ def run_l_shapley_approximations(games: list[GraphGame]) -> None:
 
 if __name__ == "__main__":
 
-    RUN_L_SHAPLEY = True
+    RUN_L_SHAPLEY = False
     L_SHAPLEY_BREAK_ON_EXCEEDING_BUDGET = False  # stops the L-Shapley approximation if necessary
 
     # run setup

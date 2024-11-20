@@ -12,16 +12,21 @@ from shapiq.interaction_values import InteractionValues
 
 ALL_SUPPORTED_BASELINE_METHODS = [
     "KernelSHAPIQ",
+    "KernelSHAPIQ_informed",
     "KernelSHAP",
     "SVARMIQ",
+    "SVARMIQ_informed",
     "SVARM",
     "PermutationSamplingSII",
+    "PermutationSamplingSII_informed",
     "PermutationSamplingSV",
     "L_Shapley",
     "InconsistentKernelSHAPIQ",
+    "InconsistentKernelSHAPIQ_informed",
     "kADDSHAP",
     "UnbiasedKernelSHAP",
     "SHAPIQ",
+    "SHAPIQ_informed",
 ]
 
 # create directories

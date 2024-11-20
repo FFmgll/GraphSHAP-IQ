@@ -5,10 +5,12 @@ import copy
 import os
 import argparse
 import sys
+from typing import Any
 
 import pandas as pd
 from tqdm.auto import tqdm
 
+from shapiq import InteractionValues
 from shapiq.explainer.graph import get_explanation_instances
 from shapiq.approximator import (
     KernelSHAPIQ,
@@ -42,6 +44,7 @@ def run_baseline(
     index: str,
     max_order: int,
     interaction_size: int,
+    graph_informed: bool = True,
 ) -> None:
     """Run the baseline approximation on the given game.
 
@@ -54,6 +57,7 @@ def run_baseline(
         index: The index for which the approximator is to be run.
         max_order: The maximum approximation order.
         interaction_size: The interaction size of the graph-shapiq approximation.
+        graph_informed: Flag to indicate whether the baseline approximation is graph-informed.
 
     Returns:
         The interaction values of the baseline approximation.
@@ -62,17 +66,28 @@ def run_baseline(
     game = get_game_from_file_name(file_name, x_graph)
     game_settings = parse_file_name(file_name)
 
+    kwargs = {"moebius_lookup": None}
+    if graph_informed:
+        # load the file_name as an InteractionValues object
+        gt_values = InteractionValues.load(path=os.path.join(GRAPHSHAPIQ_APPROXIMATION_DIR, file_name))
+        moebius_lookup = gt_values.interaction_lookup
+        kwargs["moebius_lookup"] = moebius_lookup
+
     n_players = game.n_players
     if approx_name == KernelSHAPIQ.__name__:
-        approximator = KernelSHAPIQ(n=n_players, index=index, max_order=max_order)
+        approximator = KernelSHAPIQ(n=n_players, index=index, max_order=max_order, **kwargs)
     elif approx_name == InconsistentKernelSHAPIQ.__name__:
-        approximator = InconsistentKernelSHAPIQ(n=n_players, index=index, max_order=max_order)
+        approximator = InconsistentKernelSHAPIQ(
+            n=n_players, index=index, max_order=max_order, **kwargs
+        )
     elif approx_name == SHAPIQ.__name__:
-        approximator = SHAPIQ(n=n_players, index=index, max_order=max_order)
+        approximator = SHAPIQ(n=n_players, index=index, max_order=max_order, **kwargs)
     elif approx_name == SVARMIQ.__name__:
-        approximator = SVARMIQ(n=n_players, index=index, max_order=max_order)
+        approximator = SVARMIQ(n=n_players, index=index, max_order=max_order, **kwargs)
     elif approx_name == PermutationSamplingSII.__name__:
-        approximator = PermutationSamplingSII(n=n_players, index=index, max_order=max_order)
+        approximator = PermutationSamplingSII(
+            n=n_players, index=index, max_order=max_order, **kwargs
+        )
     elif approx_name == PermutationSamplingSV.__name__ and index == "SV" and max_order == 1:
         approximator = PermutationSamplingSV(n=n_players)
     elif approx_name == KernelSHAP.__name__ and index == "SV" and max_order == 1:
@@ -87,6 +102,8 @@ def run_baseline(
         raise ValueError(f"Approximator {approx_name} not found. Maybe wrong settings?")
     interaction_values = approximator.approximate(budget=budget, game=game)
     # save the resulting InteractionValues
+    if graph_informed:
+        approx_name = f"{approx_name}_informed"
     save_interaction_value(
         interaction_values=interaction_values,
         game=game,
@@ -112,6 +129,7 @@ def approximate_baselines(
     index: str,
     max_order: int,
     max_approx_budget: int,
+    graph_informed: bool = False
 ) -> None:
     """Runs the baseline approximations as specified in the configuration."""
     # get the dataset
@@ -164,6 +182,7 @@ def approximate_baselines(
                     "index": index,
                     "max_order": max_order,
                     "interaction_size": attributes["max_interaction_size"],
+                    "graph_informed": graph_informed,
                 }
                 parameter_space.append(params)
                 total_budget += attributes["budget"]
@@ -191,6 +210,7 @@ def approximate_baselines(
         index,
         max_order,
         max_approx_budget,
+        graph_informed,
     )
     with tqdm(
         total=total_budget, desc="Running the baseline approximations ", unit=" model calls"
@@ -209,11 +229,13 @@ def _print_params(
     index: str,
     max_order: int,
     max_approx_budget: int,
+    graph_informed: bool
 ) -> None:
     print(
         f"Settings: max_budget={max_approx_budget}, iterations={iterations}, "
         f"small_graph={small_graph}, index={index}, max_order={max_order}, "
-        f"dataset={dataset_name}, model={model_id}, n_layers={n_layers}"
+        f"dataset={dataset_name}, model={model_id}, n_layers={n_layers}, "
+        f"graph_informed={graph_informed}."
     )
 
 
@@ -227,6 +249,7 @@ def approximate_parameters(
     index: str,
     max_order: int,
     max_approx_budget: int,
+    graph_informed: bool = False
 ) -> None:
     """Runs the baseline approximations as specified in the configuration regardless of the already
     computed approximations."""
@@ -261,6 +284,7 @@ def approximate_parameters(
                     "index": index,
                     "max_order": max_order,
                     "interaction_size": attributes["max_interaction_size"],
+                    "graph_informed": graph_informed,
                 }
                 parameter_space.append(params)
                 total_budget += attributes["budget"]
@@ -286,6 +310,7 @@ def approximate_parameters(
         index,
         max_order,
         max_approx_budget,
+        graph_informed,
     )
     with tqdm(
         total=total_budget, desc="Running the baseline approximations ", unit=" model calls"
@@ -306,30 +331,31 @@ if __name__ == "__main__":
 
     # parse the parameters from the command line
     if not run_from_command_line:
-        MODEL_ID = "GAT"
+        MODEL_ID = "GIN"
         N_LAYERS = 2
         DATASET_NAME = "Mutagenicity"
         ITERATIONS = [1]
         INDEX = "k-SII"
         MAX_ORDER = 2
         SMALL_GRAPH = False
-        APPROXIMATE_REGARDLESS = False  # if True, approximate regardless of already approximations
+        APPROXIMATE_REGARDLESS = True  # if True, approximate regardless of already approximations
+        GRAPH_INFORMED = True  # if True, the approximations are graph-informed
         if INDEX == "k-SII":
             APPROXIMATORS_TO_RUN = [
-                # "KernelSHAPIQ",
-                # "PermutationSamplingSII",
-                # "SVARMIQ",
-                "InconsistentKernelSHAPIQ",
-                "SHAPIQ",
+                #"KernelSHAPIQ",
+                #"PermutationSamplingSII",
+                "SVARMIQ",
+                # "InconsistentKernelSHAPIQ",
+                #"SHAPIQ",
             ]
         elif INDEX == "SV":
             MAX_ORDER = 1
             APPROXIMATORS_TO_RUN = [
-                "KernelSHAP",
-                "PermutationSamplingSV",
-                "SVARM",
-                "UnbiasedKernelSHAP",
-                "kADDSHAP",
+                # "KernelSHAP",
+                # "PermutationSamplingSV",
+                # "SVARM",
+                # "UnbiasedKernelSHAP",
+                # "kADDSHAP",
             ]
         else:
             raise ValueError(f"Index {INDEX} not found. Maybe wrong settings?")
@@ -345,7 +371,9 @@ if __name__ == "__main__":
                 small_graph=SMALL_GRAPH,
                 max_approx_budget=2**15,
                 approximators_to_run=APPROXIMATORS_TO_RUN,
+                graph_informed=GRAPH_INFORMED,
             )
+            sys.exit(0)  # exit the script after running the approximations from here
     else:
         # example setting for the command line:
 
@@ -385,6 +413,7 @@ if __name__ == "__main__":
         parser.add_argument("--index", type=str, required=True)
         parser.add_argument("--max_order", type=int, required=True)
         parser.add_argument("--small_graph", type=bool, required=False, default=False)
+        parser.add_argument("--graph_informed", type=bool, required=False, default=False)
         args = parser.parse_args()
 
         MODEL_ID: str = args.model_id  # GCN GAT GIN
@@ -395,6 +424,7 @@ if __name__ == "__main__":
         MAX_ORDER: int = args.max_order  # 1 2
         SMALL_GRAPH: bool = args.small_graph  # False True
         APPROXIMATORS_TO_RUN: list[str] = args.approximators_to_use
+        GRAPH_INFORMED: bool = args.graph_informed  # False True
 
     approximate_parameters(
         model_id=MODEL_ID,
@@ -406,4 +436,5 @@ if __name__ == "__main__":
         index=INDEX,
         max_order=MAX_ORDER,
         max_approx_budget=2**15,
+        graph_informed=GRAPH_INFORMED,
     )

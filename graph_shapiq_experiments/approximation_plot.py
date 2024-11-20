@@ -1,7 +1,6 @@
 """This plotting script visualizes the approximation qualities as a scatter plot for different
 approximation methods and budgets."""
 
-from collections import defaultdict
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -13,32 +12,46 @@ from approximation_utils_plot import get_plot_df
 hex_black = "#000000"
 COLORS = {
     "PermutationSamplingSII": "#7d53de",
+    "PermutationSamplingSII_informed": "#7d53de",
     "PermutationSamplingSV": "#7d53de",
     "KernelSHAPIQ": "#ff6f00",
+    "KernelSHAPIQ_informed": "#ff6f00",
     "KernelSHAP": "#ff6f00",
     "InconsistentKernelSHAPIQ": "#ffba08",
+    "InconsistentKernelSHAPIQ_informed": "#ffba08",
     "kADDSHAP": "#ffba08",
     "SVARMIQ": "#00b4d8",
+    "SVARMIQ_informed": "#00b4d8",
     "SVARM": "#00b4d8",
     "SHAPIQ": "#ef27a6",
+    "SHAPIQ_informed": "#ef27a6",
     "UnbiasedKernelSHAP": "#ef27a6",
     "GraphSHAPIQ": "#7DCE82",
     "L_Shapley": hex_black,
+    "informed": hex_black,
+    "baseline": hex_black,
 }
 
 MARKERS = {
     "PermutationSamplingSII": "X",
+    "PermutationSamplingSII_informed": "X",
     "PermutationSamplingSV": "X",
     "KernelSHAPIQ": "v",
+    "KernelSHAPIQ_informed": "v",
     "KernelSHAP": "v",
     "InconsistentKernelSHAPIQ": "v",
+    "InconsistentKernelSHAPIQ_informed": "v",
     "kADDSHAP": "v",
     "SVARMIQ": "d",
+    "SVARMIQ_informed": "d",
     "SVARM": "d",
     "UnbiasedKernelSHAP": "P",
     "SHAPIQ": "P",
+    "SHAPIQ_informed": "P",
     "GraphSHAPIQ": "o",
     "L_Shapley": "o",
+    "informed": None,
+    "baseline": None,
 }
 
 # a dict denoting marker sizes for each approximation method
@@ -46,18 +59,37 @@ MARKER_SIZES, DEFAULT_MARKER_SIZES = {"GraphSHAPIQ": 8}, 8
 LINE_WIDTHS, DEFAULT_LINE_WIDTH = {"GraphSHAPIQ": 3}, 3
 METHOD_NAME_MAPPING = {
     "PermutationSamplingSII": "Permutation Sampling",
+    "PermutationSamplingSII_informed": "Permutation Sampling",
     "PermutationSamplingSV": "Permutation Sampling",
     "KernelSHAPIQ": "KernelSHAP-IQ",
+    "KernelSHAPIQ_informed": "KernelSHAP-IQ",
     "KernelSHAP": "KernelSHAP",
     "InconsistentKernelSHAPIQ": "Inc. KernelSHAP-IQ",
+    "InconsistentKernelSHAPIQ_informed": "Inc. KernelSHAP-IQ",
     "kADDSHAP": "k-add. SHAP",
     "SVARMIQ": "SVARM-IQ",
+    "SVARMIQ_informed": "SVARM-IQ",
     "SVARM": "SVARM",
     "UnbiasedKernelSHAP": "Unbiased KernelSHAP",
     "SHAPIQ": "SHAP-IQ",
+    "SHAPIQ_informed": "SHAP-IQ",
     "GraphSHAPIQ": "GraphSHAP-IQ",
     "L_Shapley": "L-Shapley",
+    "informed": "Informed Baseline",
+    "baseline": "Not Informed Baseline",
 }
+
+# all solid expect informed (they are dashed)
+LINESTYLES = {
+    "SHAPIQ_informed": "dashed",
+    "InconsistentKernelSHAPIQ_informed": "dashed",
+    "KernelSHAPIQ_informed": "dashed",
+    "SVARMIQ_informed": "dashed",
+    "PermutationSamplingSII_informed": "dashed",
+    "informed": "dashed",
+    "baseline": "solid",
+}
+DEFAULT_LINESTYLE = "solid"
 
 
 def make_box_plots(plot_df, moebius_plot_df) -> None:
@@ -262,15 +294,16 @@ def make_scatter_plot(
             metrics_mean.append(metric.mean()), metrics_sem.append(metric.sem())
             if not baseline_scatter and approx_method != "GraphSHAPIQ":
                 continue
-            ax.plot(
-                budgets,
-                metric,
-                color=COLORS[approx_method],
-                marker=MARKERS[approx_method],
-                alpha=alpha,
-                linewidth=0,
-                markersize=MARKER_SIZES.get(approx_method, DEFAULT_MARKER_SIZES),
-            )
+            if SCATTER_VALUES:
+                ax.plot(
+                    budgets,
+                    metric,
+                    color=COLORS[approx_method],
+                    marker=MARKERS[approx_method],
+                    alpha=alpha,
+                    linewidth=0,
+                    markersize=MARKER_SIZES.get(approx_method, DEFAULT_MARKER_SIZES),
+                )
 
         # plot the line plots and error bars with whiskers
         ax.errorbar(
@@ -280,18 +313,19 @@ def make_scatter_plot(
             yerr=metrics_sem,
             color=COLORS[approx_method],
             marker=MARKERS[approx_method],
-            linestyle="solid",
+            linestyle=LINESTYLES.get(approx_method, DEFAULT_LINESTYLE),
             linewidth=LINE_WIDTHS.get(approx_method, DEFAULT_LINE_WIDTH),
             mec="white",
             markersize=MARKER_SIZES.get(approx_method, DEFAULT_MARKER_SIZES) + 2,
         )
-        ax.fill_between(
-            budgets_mean,
-            np.array(metrics_mean) - np.array(metrics_sem),
-            np.array(metrics_mean) + np.array(metrics_sem),
-            alpha=0.25,
-            color=COLORS[approx_method],
-        )
+        if SCATTER_FILL_BETWEEN:
+            ax.fill_between(
+                budgets_mean,
+                np.array(metrics_mean) - np.array(metrics_sem),
+                np.array(metrics_mean) + np.array(metrics_sem),
+                alpha=0.12,
+                color=COLORS[approx_method],
+            )
 
     if exact_budget is not None:
         ax.axvline(
@@ -311,6 +345,8 @@ def make_scatter_plot(
 
     # manually add GraphSHAP-IQ to the legend
     _add_approx_to_legend(ax, "GraphSHAPIQ")
+    _add_approx_to_legend(ax, "informed")
+    _add_approx_to_legend(ax, "baseline")
 
     ax.set_xlabel("Model Evaluations")
     ax.set_ylabel(PLOT_METRIC)
@@ -336,6 +372,7 @@ def make_scatter_plot(
 
     plt.tight_layout()
     if SAVE_FIG:
+        print(f"Saving plot to plots/{SAVE_NAME_PREFIX}_scatter.pdf")
         plt.savefig(f"plots/{SAVE_NAME_PREFIX}_scatter.pdf")
     plt.show()
 
@@ -473,15 +510,18 @@ def make_errors_at_exact_plot(
     plt.show()
 
 
-def _add_approx_to_legend(axis, approx_name) -> None:
+def _add_approx_to_legend(axis, approx_name, color=None) -> None:
+    if color is None:
+        color = COLORS[approx_name]
     axis.plot(
         [],
         [],
         label=METHOD_NAME_MAPPING.get(approx_name, approx_name),
-        color=COLORS[approx_name],
+        color=color,
         marker=MARKERS[approx_name],
         markersize=MARKER_SIZES.get(approx_name, DEFAULT_MARKER_SIZES) + 1,
         linewidth=LINE_WIDTHS.get(approx_name, DEFAULT_LINE_WIDTH) + 1,
+        linestyle=LINESTYLES.get(approx_name, DEFAULT_LINESTYLE),
         mec="white",
     )
 
@@ -503,11 +543,11 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------
 
     # setting parameters  --------------------------------------------------------------------------
-    MODEL_ID = "GCN"  # GCN GIN GAT
+    MODEL_ID = "GIN"  # GCN GIN GAT
     DATASET_NAME = "Mutagenicity"  # Mutagenicity PROTEINS BZR
     N_LAYERS = 2  # 2 3
     SMALL_GRAPH = False  # True False
-    INDEX = "SV"  # k-SII
+    INDEX = "k-SII"  # k-SII
     MAX_ORDER = 2  # 2
 
     # plot parameters  -----------------------------------------------------------------------------
@@ -522,17 +562,20 @@ if __name__ == "__main__":
     ]
     APPROX_TO_PLOT_K_SII = [
         "PermutationSamplingSII",
+        "PermutationSamplingSII_informed",
         "SHAPIQ",
+        "SHAPIQ_informed",
         "SVARMIQ",
-        "InconsistentKernelSHAPIQ",
+        "SVARMIQ_informed",
+        #"InconsistentKernelSHAPIQ",
+        #"InconsistentKernelSHAPIQ_informed",
         "KernelSHAPIQ",
+        "KernelSHAPIQ_informed",
         "GraphSHAPIQ",
     ]
 
     PLOT_METRIC = "MSE"  # MSE, SSE, MAE, Precision@10
-    LOAD_FROM_CSV = (
-        True  # True False (load the results from a csv file or build it from scratch)
-    )
+    LOAD_FROM_CSV = True  # True False (load the results from a csv file or build it from scratch)
     MIN_ESTIMATES = 2  # n drop all max_interaction_sizes with less than n estimates
     SAVE_FIG = True  # True False (save the figure as a pdf)
     plt.rcParams.update({"font.size": 16})  # increase the font size of the plot
@@ -542,16 +585,18 @@ if __name__ == "__main__":
     SCATTER_PLOT = (
         True  # True False (plot the approximation qualities as a scatter plot)
     )
+    SCATTER_VALUES = False  # True False (scatter individual values in the scatter plot)
+    SCATTER_FILL_BETWEEN = True  # True False (fill between the error bars)
 
     MAX_SIZE = None  # None -n to n (select the maximum neighborhood size to plot)
-    Y_LIM = None  # None (set the y-axis limits for the scatter plot)
+    Y_LIM = (3e-11, 2e-1)  # None (set the y-axis limits for the scatter plot)
     LOG_SCALE = True  # True False (set the y-axis to log scale)
     MIN_SIZE_TO_PLOT_SCATTER = 2  # n (minimum size to plot the scatter plot)
     MAX_BUDGET = 10_000
     EXACT_BUDGET = None  # None (set the budget where GraphSHAP-IQ has exact values)
 
     # box plot parameters
-    BOX_PLOTS = True  # True False (plot the approximation qualities as box plots)
+    BOX_PLOTS = False  # True False (plot the approximation qualities as box plots)
     # None [n, m] (remove the interaction sizes not to plot)
     INTERACTION_SIZE_NOT_TO_PLOT = [1, 2]
 
