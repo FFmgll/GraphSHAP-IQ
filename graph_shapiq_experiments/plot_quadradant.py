@@ -1,6 +1,9 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+data_folder = "../results/runtime_analysis/"
 
 
 if __name__ == '__main__':
@@ -8,7 +11,10 @@ if __name__ == '__main__':
     add_inset = True
     plt.rcParams.update({"font.size": 20})  # increase the font size of the plot
     plt.rcParams["figure.figsize"] = (8, 7)
+    # adjust hatch size
+    plt.rcParams["hatch.linewidth"] = 1.5
     MARKER_SIZE = 18
+    SCATTER_SIZE = 400
 
     ORDER_MARKERS = {
         1: "o",
@@ -31,9 +37,17 @@ if __name__ == '__main__':
         "L_Shapley": "black",
     }
 
-    data_first_order = pd.read_csv("GCN_Mutagenicity_2_1_0_runtime_metrics.csv")
-    data_second_order = pd.read_csv("GCN_Mutagenicity_2_2_0_runtime_metrics.csv")
-    data_third_order = pd.read_csv("GCN_Mutagenicity_2_3_0_runtime_metrics.csv")
+    # load the data
+    path = os.path.join(data_folder, "GCN_Mutagenicity_2_1_0_runtime_metrics.csv")
+    data_first_order = pd.read_csv(path)
+    path = os.path.join(data_folder, "GCN_Mutagenicity_2_2_0_runtime_metrics.csv")
+    data_second_order = pd.read_csv(path)
+    path = os.path.join(data_folder, "GCN_Mutagenicity_2_3_0_runtime_metrics.csv")
+    data_third_order = pd.read_csv(path)
+
+    # load informed data
+    path = os.path.join(data_folder, "GCN_Mutagenicity_2_2_0_True_runtime_metrics.csv")
+    data_second_order_informed = pd.read_csv(path)
 
     metrics = ["mse", "runtime"]
 
@@ -55,6 +69,7 @@ if __name__ == '__main__':
     # rename columns
     data_first_order = data_first_order.rename(columns=rename_dict)
     data_second_order = data_second_order.rename(columns=rename_dict)
+    data_second_order_informed = data_second_order_informed.rename(columns=rename_dict)
     data_third_order = data_third_order.rename(columns=rename_dict)
 
     ORDERS = {
@@ -73,26 +88,53 @@ if __name__ == '__main__':
 
     ax = axes[0]
     ax_graphsahpiq = axes[1]
+    ax.grid(which="major", linestyle="--", color="gray", lw=0.5)
 
-    for method in methods:
+    for z_ord, method in enumerate(methods, start=1):
         for order in ORDERS.keys():
             if (method == "L_Shapley" and order != 1) or (method == "GraphSHAPIQ"):
                 continue
             data_order = ORDERS[order]
-            runtime = data_order[f"runtime_{method}"]
-            runtime_avg = float(runtime.mean())
-            mse = data_order[f"mse_{method}"]
-            mse_avg = float(mse.mean())
-            # if method == "L_Shapley":  # TODO DELETE once the data is available
-            #     runtime_avg = 1.978
-            ax.plot(
+            runtime_avg = float(data_order[f"runtime_{method}"].mean())
+            mse_avg = float(data_order[f"mse_{method}"].mean())
+            alpha = 0.7 if order != 1 else 1.0
+            ax.scatter(
                 runtime_avg,
                 mse_avg,
                 color=COLORS[method],
                 marker=ORDER_MARKERS[order],
-                mec="white",
-                markersize=MARKER_SIZE
+                edgecolors="black",
+                s=SCATTER_SIZE,
+                alpha=alpha,
+                zorder=0 + z_ord,
             )
+
+            # also add the informed second order data for all baseline methods as a hatched marker
+            if order == 2:
+                data_order = data_second_order_informed
+                runtime_avg = float(data_order[f"runtime_{method}"].mean())
+                mse_avg = float(data_order[f"mse_{method}"].mean())
+                ax.scatter(
+                    runtime_avg,
+                    mse_avg,
+                    color=COLORS[method],
+                    marker=ORDER_MARKERS[order],
+                    s=SCATTER_SIZE + 10,
+                    edgecolors="black",
+                    lw=2,
+                    zorder=0 + z_ord,
+                )
+                ax.scatter(
+                    runtime_avg,
+                    mse_avg,
+                    color=COLORS[method],
+                    marker=ORDER_MARKERS[order],
+                    hatch=5*"/",
+                    s=SCATTER_SIZE,
+                    edgecolors="white",
+                    lw=0,
+                    zorder=1 + z_ord,
+                )
 
     # adjust the scale of the plot
     ax.set_xscale("log")
@@ -106,13 +148,13 @@ if __name__ == '__main__':
         data_order = ORDERS[order]
         runtime_avg = float(data_order["runtime_GraphSHAPIQ"].mean())
         mse_avg = 0.0
-        ax_graphsahpiq.plot(
+        ax_graphsahpiq.scatter(
             runtime_avg,
             mse_avg,
             color=COLORS["GraphSHAPIQ"],
             marker=ORDER_MARKERS[order],
-            mec="white",
-            markersize=MARKER_SIZE
+            edgecolor="black",
+            s=SCATTER_SIZE
         )
     ax_graphsahpiq.hlines(0, 0, 1000, colors="gray", linestyles="solid", lw=0.5, zorder=0)
     ax_graphsahpiq.set_yticks([0.0])
@@ -130,7 +172,7 @@ if __name__ == '__main__':
                 mse_avg,
                 color=COLORS["GraphSHAPIQ"],
                 marker=ORDER_MARKERS[order],
-                mec="white",
+                mec="black",
                 markersize=MARKER_SIZE
             )
         ax_inset.set_yticks([])
@@ -147,16 +189,16 @@ if __name__ == '__main__':
         ax_graphsahpiq.add_patch(
             plt.Polygon(
                 np.array([
-                    [2.5, -0.01],
+                    [2.7, -0.013],
                     [4.9, -0.0059],
                     [5, -0.0059],
                     [5, 0.0339],
                     [4.77, 0.0339],
-                    [2.5, 0.01],
-                    [2.5, -0.01],
-                    [1.62, -0.01],
-                    [1.62, 0.01],
-                    [2.5, 0.01],
+                    [2.7, 0.013],
+                    [2.7, -0.013],
+                    [1.5, -0.013],
+                    [1.5, 0.013],
+                    [2.7, 0.013],
                 ]),
                 closed=False,
                 fill=False,
@@ -166,9 +208,8 @@ if __name__ == '__main__':
             )
         )
 
-    # add grid only on major ticks
-    ax.grid(which="major", linestyle="--", color="gray", lw=0.5)
-    ax_graphsahpiq.grid(which="major", linestyle="--", color="gray", lw=0.5)
+    # add grid only for x axis ticks for ax_graphsahpiq
+    ax_graphsahpiq.grid(which="major", linestyle="--", color="gray", lw=0.5, axis="x")
 
     # add empty plots for the legend only with the order markers in color black
     for order in [1, 2, 3]:
@@ -177,7 +218,7 @@ if __name__ == '__main__':
             [],
             color="black",
             marker=ORDER_MARKERS[order],
-            mec="white",
+            mec="black",
             markersize=MARKER_SIZE,
             label=ORDER_NAMES[order],
             lw=0
@@ -190,9 +231,9 @@ if __name__ == '__main__':
         [],
         color=COLORS["GraphSHAPIQ"],
         marker="s",
-        mec="white",
+        mec="black",
         markersize=MARKER_SIZE,
-        label="GraphSHAPIQ",
+        label="GraphSHAP-IQ",
         lw=0
     )
     second_legend = ax.legend(handles=graphshapiq_legend, loc="lower right")
