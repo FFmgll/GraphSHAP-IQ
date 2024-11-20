@@ -44,6 +44,7 @@ class MonteCarlo(Approximator):
         random_state: Optional[int] = None,
         pairing_trick: bool = False,
         sampling_weights: np.ndarray = None,
+        moebius_lookup: Optional[dict] = None,
     ):
         if index not in AVAILABLE_INDICES_MONTE_CARLO:
             raise ValueError(
@@ -59,6 +60,7 @@ class MonteCarlo(Approximator):
             random_state=random_state,
             pairing_trick=pairing_trick,
             sampling_weights=sampling_weights,
+            moebius_lookup=moebius_lookup,
         )
         self.stratify_coalition_size = stratify_coalition_size
         self.stratify_intersection = stratify_intersection
@@ -135,30 +137,31 @@ class MonteCarlo(Approximator):
 
         # compute approximations per interaction with monte carlo
         for interaction, interaction_pos in self.interaction_lookup.items():
-            interaction_binary = np.zeros(self.n, dtype=int)
-            interaction_binary[list(interaction)] = 1
-            interaction_size = len(interaction)
-            # find intersection sizes with current interaction
-            intersections_size = np.sum(coalitions_matrix * interaction_binary, axis=1)
-            # pre-compute all coalition weights with interaction, coalition, and intersection size
-            interaction_weights = standard_form_weights[
-                interaction_size, coalitions_size, intersections_size
-            ]
+            if self.moebius_lookup is None or (self.moebius_lookup is not None and interaction in self.moebius_lookup):
+                interaction_binary = np.zeros(self.n, dtype=int)
+                interaction_binary[list(interaction)] = 1
+                interaction_size = len(interaction)
+                # find intersection sizes with current interaction
+                intersections_size = np.sum(coalitions_matrix * interaction_binary, axis=1)
+                # pre-compute all coalition weights with interaction, coalition, and intersection size
+                interaction_weights = standard_form_weights[
+                    interaction_size, coalitions_size, intersections_size
+                ]
 
-            # get the sampling adjustment weights depending on the stratification strategy
-            if self.stratify_coalition_size and self.stratify_intersection:  # this is SVARM-IQ
-                sampling_adjustment_weights = self._svarmiq_routine(interaction)
-            elif not self.stratify_coalition_size and self.stratify_intersection:
-                sampling_adjustment_weights = self._intersection_stratification(interaction)
-            elif self.stratify_coalition_size and not self.stratify_intersection:
-                sampling_adjustment_weights = self._coalition_size_stratification()
-            else:  # this is SHAP-IQ
-                sampling_adjustment_weights = self._shapiq_routine()
+                # get the sampling adjustment weights depending on the stratification strategy
+                if self.stratify_coalition_size and self.stratify_intersection:  # this is SVARM-IQ
+                    sampling_adjustment_weights = self._svarmiq_routine(interaction)
+                elif not self.stratify_coalition_size and self.stratify_intersection:
+                    sampling_adjustment_weights = self._intersection_stratification(interaction)
+                elif self.stratify_coalition_size and not self.stratify_intersection:
+                    sampling_adjustment_weights = self._coalition_size_stratification()
+                else:  # this is SHAP-IQ
+                    sampling_adjustment_weights = self._shapiq_routine()
 
-            # compute interaction approximation (using adjustment weights and interaction weights)
-            shapley_interaction_values[interaction_pos] = np.sum(
-                game_values_centered * interaction_weights * sampling_adjustment_weights
-            )
+                # compute interaction approximation (using adjustment weights and interaction weights)
+                shapley_interaction_values[interaction_pos] = np.sum(
+                    game_values_centered * interaction_weights * sampling_adjustment_weights
+                )
 
         # manually set emptyset interaction to baseline
         if self.min_order == 0:

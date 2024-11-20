@@ -51,7 +51,7 @@ COLORS = {
 
 def plot_runtime(INTERACTION_ORDER,x_variable,y_variable):
     results = pd.read_csv(SAVE_PATH + "/" + MODEL_ID + "_" + DATASET_NAME + "_" + str(N_LAYERS) + "_" + str(
-        INTERACTION_ORDER) + "_" + str(RUN_ID) + "_runtime_metrics.csv")
+        INTERACTION_ORDER) + "_" + str(RUN_ID) + "_" + "True" + "_runtime_metrics.csv")
 
     size = 8
 
@@ -115,11 +115,11 @@ if __name__=="__main__":
     MIN_N_PLAYERS = 20
     SORT_PLAYER = False
 
-    MAX_INTERACTION_ORDER = 3
+    MAX_INTERACTION_ORDER = 2
 
     RUN_ID = 0
 
-    for INTERACTION_ORDER in range(1,MAX_INTERACTION_ORDER+1):
+    for INTERACTION_ORDER in range(2,MAX_INTERACTION_ORDER+1):
         plot_runtime(INTERACTION_ORDER,"budget","runtime")
         plot_runtime(INTERACTION_ORDER,"n_players","runtime")
         plot_runtime(INTERACTION_ORDER,"budget","mse")

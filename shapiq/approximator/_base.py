@@ -69,6 +69,7 @@ class Approximator(ABC):
         random_state: Optional[int] = None,
         pairing_trick: bool = False,
         sampling_weights: Optional[np.ndarray[float]] = None,
+        moebius_lookup: Optional[dict] = None,
     ) -> None:
         # check if index can be approximated
         self.index: str = index
@@ -106,6 +107,8 @@ class Approximator(ABC):
             pairing_trick=pairing_trick,
             random_state=self._random_state,
         )
+
+        self.moebius_lookup = moebius_lookup
 
     def __call__(
         self, budget: int, game: Callable[[np.ndarray], np.ndarray], *args, **kwargs

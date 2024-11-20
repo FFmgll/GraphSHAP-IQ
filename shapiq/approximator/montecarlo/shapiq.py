@@ -41,6 +41,7 @@ class SHAPIQ(MonteCarlo):
         sampling_weights: Optional[float] = None,
         pairing_trick: bool = False,
         random_state: Optional[int] = None,
+        moebius_lookup: Optional[dict] = None,
     ):
         super().__init__(
             n,
@@ -52,6 +53,7 @@ class SHAPIQ(MonteCarlo):
             random_state=random_state,
             sampling_weights=sampling_weights,
             pairing_trick=pairing_trick,
+            moebius_lookup=moebius_lookup,
         )
 
 
