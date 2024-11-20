@@ -48,10 +48,11 @@ def runtime_analysis(INTERACTION_ORDER):
 
         APPROXIMATOR_LIST = [KernelSHAPIQ, SVARMIQ, InconsistentKernelSHAPIQ, SHAPIQ, PermutationSamplingSII]
 
+
         for approximator_class in APPROXIMATOR_LIST:
             approximator_name = approximator_class.__name__
             start_approximator = time.time()
-            approximator = approximator_class(n=game.n_players, index="k-SII", max_order=INTERACTION_ORDER)
+            approximator = approximator_class(n=game.n_players, index="k-SII", max_order=INTERACTION_ORDER, moebius_lookup=moebius.interaction_lookup)
             approx_shapley_interactions = approximator.approximate(game=game, budget=total_budget)
             end_approximator = time.time()
             results.loc[game.game_id,"mse_"+approximator_name] = np.mean((approx_shapley_interactions-gt_shapley_interactions).values**2)
@@ -89,7 +90,7 @@ def runtime_analysis(INTERACTION_ORDER):
             results.loc[game.game_id, "runtime_" + approximator_name] = runtime
 
         results.to_csv(SAVE_PATH + "/" + MODEL_ID + "_" + DATASET_NAME + "_" + str(N_LAYERS) + "_" + str(
-            INTERACTION_ORDER) + "_" + str(RUN_ID) + "_runtime_metrics.csv")
+            INTERACTION_ORDER) + "_" + str(RUN_ID) + "_" + str(GRAPH_INFORMED) + "_runtime_metrics.csv")
 
 if __name__ == "__main__":
 
@@ -110,6 +111,8 @@ if __name__ == "__main__":
     MAX_N_PLAYERS = 40
     MIN_N_PLAYERS = 20
     SORT_PLAYER = False
+
+    GRAPH_INFORMED = True
 
 
     RUN_ID = 0
@@ -157,6 +160,6 @@ if __name__ == "__main__":
     print(f"Running the GraphSHAP-IQ approximation on {len(games_to_run)} games.")
     print(f"Game_ids: {[game.game_id for game in games_to_run]}")
 
-    runtime_analysis(INTERACTION_ORDER=1)
+    #runtime_analysis(INTERACTION_ORDER=1)
     #runtime_analysis(INTERACTION_ORDER=2)
-    #runtime_analysis(INTERACTION_ORDER=3)
+    runtime_analysis(INTERACTION_ORDER=3)

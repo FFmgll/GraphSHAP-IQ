@@ -35,6 +35,7 @@ class PermutationSamplingSII(Approximator):
         index: str = "SII",
         top_order: bool = False,
         random_state: Optional[int] = None,
+        moebius_lookup: Optional[int] = None,
     ) -> None:
         if index not in ["SII", "k-SII"]:
             raise ValueError(f"Invalid index {index}. Must be either 'SII' or 'k-SII'.")
@@ -131,13 +132,15 @@ class PermutationSamplingSII(Approximator):
                         interaction = permutations[permutation_id, k : k + order]
                         interaction = tuple(sorted(interaction))
                         interaction_index = self._interaction_lookup[interaction]
-                        counts[interaction_index] += 1
-                        # update the discrete derivative given the subset
-                        for subset_ in powerset(interaction, min_size=0):
-                            game_value = game_values[subset_index]
-                            update = game_value * (-1) ** (order - len(subset_))
-                            result[interaction_index] += update
-                            subset_index += 1
+                        if self.moebius_lookup is None or (
+                                self.moebius_lookup is not None and interaction in self.moebius_lookup):
+                            counts[interaction_index] += 1
+                            # update the discrete derivative given the subset
+                            for subset_ in powerset(interaction, min_size=0):
+                                game_value = game_values[subset_index]
+                                update = game_value * (-1) ** (order - len(subset_))
+                                result[interaction_index] += update
+                                subset_index += 1
 
             used_budget += self.iteration_cost * batch_size
 

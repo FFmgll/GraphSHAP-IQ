@@ -31,6 +31,7 @@ class KernelSHAPIQ(Regression):
         n: int,
         max_order: int = 2,
         index: str = "k-SII",
+        moebius_lookup: Optional[dict] = None,
         random_state: Optional[int] = None,
         pairing_trick: bool = False,
         sampling_weights: Optional[np.ndarray] = None,
@@ -48,6 +49,7 @@ class KernelSHAPIQ(Regression):
             random_state=random_state,
             pairing_trick=pairing_trick,
             sampling_weights=sampling_weights,
+            moebius_lookup=moebius_lookup,
         )
 
 
@@ -74,6 +76,7 @@ class InconsistentKernelSHAPIQ(Regression):
         random_state: Optional[int] = None,
         pairing_trick: bool = False,
         sampling_weights: Optional[np.ndarray] = None,
+        moebius_lookup: Optional[dict] = None,
     ) -> None:
         if index not in AVAILABLE_INDICES_KERNELSHAPIQ:
             raise ValueError(
@@ -88,4 +91,5 @@ class InconsistentKernelSHAPIQ(Regression):
             random_state=random_state,
             pairing_trick=pairing_trick,
             sampling_weights=sampling_weights,
+            moebius_lookup=moebius_lookup,
         )

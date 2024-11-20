@@ -44,6 +44,7 @@ class Regression(Approximator):
         pairing_trick: bool = False,
         sampling_weights: Optional[np.ndarray] = None,
         random_state: Optional[int] = None,
+        moebius_lookup: Optional[dict] = None,
     ):
         if index not in AVAILABLE_INDICES_REGRESSION:
             raise ValueError(
@@ -59,6 +60,7 @@ class Regression(Approximator):
             random_state=random_state,
             pairing_trick=pairing_trick,
             sampling_weights=sampling_weights,
+            moebius_lookup=moebius_lookup,
         )
         self._bernoulli_numbers = bernoulli(self.n)  # used for SII
         self._sii_consistent = (
@@ -192,10 +194,12 @@ class Regression(Approximator):
                         max_size=interaction_size,
                     )
                 ):
-                    intersection_size = np.sum(coalition[list(interaction)])
-                    regression_matrix[coalition_pos, interaction_pos] = (
-                        regression_coefficient_weight[interaction_size, intersection_size]
-                    )
+                    if self.moebius_lookup is None or (
+                            self.moebius_lookup is not None and interaction in self.moebius_lookup):
+                        intersection_size = np.sum(coalition[list(interaction)])
+                        regression_matrix[coalition_pos, interaction_pos] = (
+                            regression_coefficient_weight[interaction_size, intersection_size]
+                        )
 
             # Regression weights adjusted by sampling weights
             regression_weights = (
@@ -287,11 +291,13 @@ class Regression(Approximator):
             for interaction_pos, interaction in enumerate(
                 powerset(self._grand_coalition_set, max_size=self.max_order)
             ):
-                interaction_size = len(interaction)
-                intersection_size = np.sum(coalition[list(interaction)])
-                regression_matrix[coalition_pos, interaction_pos] = regression_coefficient_weight[
-                    interaction_size, intersection_size
-                ]
+                if self.moebius_lookup is None or (
+                        self.moebius_lookup is not None and interaction in self.moebius_lookup):
+                    interaction_size = len(interaction)
+                    intersection_size = np.sum(coalition[list(interaction)])
+                    regression_matrix[coalition_pos, interaction_pos] = regression_coefficient_weight[
+                        interaction_size, intersection_size
+                    ]
 
         # Regression weights adjusted by sampling weights
         regression_weights = kernel_weights[coalitions_size] * sampling_adjustment_weights
