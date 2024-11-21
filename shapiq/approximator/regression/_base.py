@@ -257,17 +257,6 @@ class Regression(Approximator):
                     sii_values_current_size_minus + sii_values_current_size_plus
                 )
 
-            if self.moebius_lookup is not None:
-                for interaction_pos, interaction in enumerate(
-                    powerset(
-                        self._grand_coalition_set,
-                        min_size=interaction_size,
-                        max_size=interaction_size,
-                    )
-                ):
-                    if interaction not in self.moebius_lookup:
-                        sii_values_current_size[interaction_pos] = 0
-
             approximations = np.dot(regression_matrix, sii_values_current_size)
             sii_values = np.hstack((sii_values, sii_values_current_size))
             residual_game_values[interaction_size + 1] = (
@@ -341,16 +330,6 @@ class Regression(Approximator):
             regression_response=regression_response,
             regression_weights=regression_weights,
         )
-
-        if self.moebius_lookup is not None:
-            for interaction_pos, interaction in enumerate(
-                powerset(
-                    self._grand_coalition_set,
-                    max_size=self.max_order,
-                )
-            ):
-                if interaction not in self.moebius_lookup:
-                    shapley_interactions_values[interaction_pos] = 0
 
         shapley_interactions_values[0] = empty_coalition_value
 
