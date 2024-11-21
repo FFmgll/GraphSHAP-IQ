@@ -73,10 +73,10 @@ METHOD_NAME_MAPPING = {
     "UnbiasedKernelSHAP": "Unbiased KernelSHAP",
     "SHAPIQ": "SHAP-IQ",
     "SHAPIQ_informed": "SHAP-IQ",
-    "GraphSHAPIQ": "GraphSHAP-IQ",
+    "GraphSHAPIQ": "GraphSHAP-IQ ($\\bf{ours}$)",
     "L_Shapley": "L-Shapley",
-    "informed": "Informed Baseline",
-    "baseline": "Not Informed Baseline",
+    "informed": "Interaction-Informed ($\\bf{ours}$)",
+    "baseline": "Baseline",
 }
 
 # all solid expect informed (they are dashed)
@@ -567,8 +567,8 @@ if __name__ == "__main__":
         "SHAPIQ_informed",
         "SVARMIQ",
         "SVARMIQ_informed",
-        #"InconsistentKernelSHAPIQ",
-        #"InconsistentKernelSHAPIQ_informed",
+        "InconsistentKernelSHAPIQ",
+        "InconsistentKernelSHAPIQ_informed",
         "KernelSHAPIQ",
         "KernelSHAPIQ_informed",
         "GraphSHAPIQ",

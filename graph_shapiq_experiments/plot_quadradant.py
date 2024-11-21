@@ -9,7 +9,7 @@ data_folder = "../results/runtime_analysis/"
 if __name__ == '__main__':
 
     add_inset = True
-    plt.rcParams.update({"font.size": 20})  # increase the font size of the plot
+    plt.rcParams.update({"font.size": 18})  # increase the font size of the plot
     plt.rcParams["figure.figsize"] = (8, 7)
     # adjust hatch size
     plt.rcParams["hatch.linewidth"] = 1.5
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
     # adjust the scale of the plot
     ax.set_xscale("log")
-    ax.set_ylim(2e-3, 2e5)
+    ax.set_ylim(2e-3, 2e6)
     ax_graphsahpiq.set_ylim(-0.025, 0.04)
     ax.set_yscale("log")
     plt.minorticks_off()
@@ -187,7 +187,7 @@ if __name__ == '__main__':
         ax_inset.set_xticklabels(["1.9s", "2.0s"])
         ax_inset.set_xlim(1.86, 2.07)
         ax_inset.hlines(0, 0, 1000, colors="gray", linestyles="solid", lw=0.5, zorder=0)
-        ax_inset.tick_params(axis='x', direction='in', pad=-15, labelsize=plt.rcParams["font.size"] - 6)
+        ax_inset.tick_params(axis='x', direction='in', pad=-15, labelsize=plt.rcParams["font.size"] - 4)
 
     # show where the inset came from and draw a rectangle around it in the main plot
     if add_inset:
@@ -225,24 +225,28 @@ if __name__ == '__main__':
             color="black",
             marker=ORDER_MARKERS[order],
             mec="black",
-            markersize=MARKER_SIZE,
+            markersize=MARKER_SIZE - 2,
             label=ORDER_NAMES[order],
             lw=0
         )
-    first_legend = ax.legend(title="$\\bf{Order}$", loc="upper left")
-
-    # add graphshapiq name to legend as a second legend
-    graphshapiq_legend = ax.plot(
-        [],
-        [],
-        color=COLORS["GraphSHAPIQ"],
-        marker="s",
-        mec="black",
-        markersize=MARKER_SIZE,
-        label="GraphSHAP-IQ",
-        lw=0
+    first_legend = ax.legend(
+        #title="$\\bf{Order}$",
+        loc="upper left",
+        fontsize=plt.rcParams["font.size"] - 4,
+        title_fontsize=plt.rcParams["font.size"] - 4,
     )
-    second_legend = ax.legend(handles=graphshapiq_legend, loc="upper right")
+
+    graphshapiq_legend = [plt.scatter([0], [0], color=COLORS["GraphSHAPIQ"], marker="s", lw=0, label="GraphSHAP-IQ ($\\bf{ours}$)", s=SCATTER_SIZE - 100, edgecolors="black")]
+    graphshapiq_legend.append(plt.scatter([0], [0], color="black", marker="s", lw=0, label="Interaction-Informed ($\\bf{ours}$)", s=SCATTER_SIZE - 100, hatch=5*"/", edgecolors="white"))
+    graphshapiq_legend.append(plt.scatter([0], [0], color="black", marker="s", lw=0, label="Baseline", s=SCATTER_SIZE - 100, edgecolors="white"))
+
+    second_legend = ax.legend(
+        #title="$\\bf{Method}$",
+        handles=graphshapiq_legend,
+        loc="upper right",
+        fontsize=plt.rcParams["font.size"] - 4,
+        title_fontsize=plt.rcParams["font.size"] - 4,
+    )
     ax.add_artist(second_legend)
     ax.add_artist(first_legend)
 

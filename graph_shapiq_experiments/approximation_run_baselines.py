@@ -342,10 +342,10 @@ if __name__ == "__main__":
         GRAPH_INFORMED = True  # if True, the approximations are graph-informed
         if INDEX == "k-SII":
             APPROXIMATORS_TO_RUN = [
-                #"KernelSHAPIQ",
+                "KernelSHAPIQ",
                 #"PermutationSamplingSII",
-                "SVARMIQ",
-                # "InconsistentKernelSHAPIQ",
+                # "SVARMIQ",
+                #"InconsistentKernelSHAPIQ",
                 #"SHAPIQ",
             ]
         elif INDEX == "SV":

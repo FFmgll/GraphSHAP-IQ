@@ -61,11 +61,12 @@ if __name__ == "__main__":
 
     RUN_MODEL = False
     SAVE_FIG = True
-    PLOT_TITLE = True
+    PLOT_TITLE = False
     INCREASE_FONT_SIZE = False
-    APPROXIMATE_SVARMIQ = True
-    APPROXIMATE_KERNELSHAPIQ = False
-    APPROXIMATION_ORDER = 2
+    APPROXIMATE_SVARMIQ = False
+    APPROXIMATE_KERNELSHAPIQ = True
+    APPROXIMATE_INFORMED = False
+    APPROXIMATION_ORDER = 3
 
     # for saving the plots
     file_identifier = "_".join([MODEL_TYPE, DATASET_NAME, str(N_LAYER), str(DATA_ID)])
@@ -292,6 +293,13 @@ if __name__ == "__main__":
         }
 
     # run approximation methods as comparison ------------------------------------------------------
+
+    lookup = None
+    informed_str = ""
+    if APPROXIMATE_INFORMED:
+        lookup = moebius_values.interaction_lookup
+        informed_str = "_informed"
+
     if APPROXIMATE_SVARMIQ:
         from shapiq.approximator import SVARMIQ
 
@@ -301,11 +309,14 @@ if __name__ == "__main__":
             max_order=APPROXIMATION_ORDER,
             index="k-SII",
             random_state=RANDOM_SEED,
+            moebius_lookup=lookup,
         )
         approx_values = approx.approximate(budget=used_budget, game=game)
         if SAVE_FIG:
             approx_values.save(
-                os.path.join(PLOT_DIR, f"{file_identifier}_approximation.interaction_values")
+                os.path.join(
+                    PLOT_DIR, f"{file_identifier}_approximation{informed_str}.interaction_values"
+                )
             )
 
         # visualize the approximation
@@ -333,7 +344,7 @@ if __name__ == "__main__":
         else:
             fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
         if SAVE_FIG:
-            plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SVARM-IQ.pdf"))
+            plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_SVARM-IQ{informed_str}.pdf"))
         plt.show()
 
     if APPROXIMATE_KERNELSHAPIQ:
@@ -345,11 +356,14 @@ if __name__ == "__main__":
             max_order=APPROXIMATION_ORDER,
             index="k-SII",
             random_state=RANDOM_SEED,
+            moebius_lookup=lookup,
         )
         approx_values = approx.approximate(budget=used_budget, game=game)
         if SAVE_FIG:
             approx_values.save(
-                os.path.join(PLOT_DIR, f"{file_identifier}_approximation.interaction_values")
+                os.path.join(
+                    PLOT_DIR, f"{file_identifier}_approximation{informed_str}.interaction_values"
+                )
             )
 
         # visualize the approximation
@@ -377,7 +391,9 @@ if __name__ == "__main__":
         else:
             fig.subplots_adjust(left=-0.02, right=1.02, bottom=-0.02, top=1.02)
         if SAVE_FIG:
-            plt.savefig(os.path.join(PLOT_DIR, f"{file_identifier}_plot_KernelSHAPIQ.pdf"))
+            plt.savefig(
+                os.path.join(PLOT_DIR, f"{file_identifier}_plot_KernelSHAPIQ{informed_str}.pdf")
+            )
         plt.show()
 
     # plot full graph explanation ------------------------------------------------------------------
