@@ -265,7 +265,7 @@ class Regression(Approximator):
                         max_size=interaction_size,
                     )
                 ):
-                    if interaction in self.moebius_lookup:
+                    if interaction not in self.moebius_lookup:
                         sii_values_current_size[interaction_pos] = 0
 
             approximations = np.dot(regression_matrix, sii_values_current_size)
@@ -349,7 +349,7 @@ class Regression(Approximator):
                     max_size=self.max_order,
                 )
             ):
-                if interaction in self.moebius_lookup:
+                if interaction not in self.moebius_lookup:
                     shapley_interactions_values[interaction_pos] = 0
 
         shapley_interactions_values[0] = empty_coalition_value
