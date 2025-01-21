@@ -90,15 +90,28 @@ def load_graph_model_architecture(
     else:
         raise Exception("Dataset not found. It has to be downloaded first.")
 
-    if hidden is True:
-        # Load the best hyperparameters (for now only hidden size)
-        hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)][
-            "hidden"
-        ]
-        if deep_readout:
-            hidden = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)][
-                "hidden_dr"
-            ]
+    # Load the best hyperparameters from dictionary
+    if  model_type in _best_hyperparameters and dataset_name in _best_hyperparameters[
+            model_type] and "n_layers" in _best_hyperparameters[model_type][dataset_name] and str(n_layers) in \
+                _best_hyperparameters[model_type][dataset_name]["n_layers"]:
+
+            model_specific_params = _best_hyperparameters[model_type][dataset_name]["n_layers"][str(n_layers)]
+
+            if hidden is True:
+                hidden = model_specific_params.get("hidden", 128)  # default value 128
+            if node_bias is None:
+                node_bias = model_specific_params.get("node_bias", True)  # default value True
+            if graph_bias is None:
+                graph_bias = model_specific_params.get("graph_bias", True)  # default value True
+            if dropout is None:
+                dropout = model_specific_params.get("dropout", True)  # default value True
+            if batch_norm is None:
+                batch_norm = model_specific_params.get("batch_norm", True)  # default value True
+            if jumping_knowledge is None:
+                jumping_knowledge = model_specific_params.get("jumping_knowledge", True)  # default value True
+            if deep_readout is None:
+                deep_readout = model_specific_params.get("deep_readout", False)  # default value False
+
     # otherwise check if hidden is a valid integer
     elif not isinstance(hidden, int):
         raise ValueError(
@@ -225,219 +238,1279 @@ def get_explanation_instances(dataset_name):
 
 # Helper container with all the stored best configurations
 _best_hyperparameters = {
-		"GCN": {
-				"AIDS": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 128},
-								"3": {"hidden": 128},
-								"4": {"hidden": 128},
-								}
-						},
-				"AlkaneCarbonyl": {
-						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 32},
-								"3": {"hidden": 64},
-								"4": {"hidden": 128},
-								}
-						},
-				"Benzene": {
-						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
-								"4": {"hidden": 0},
-								}
-						},
-				"DHFR": {
-						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 128},
-								"3": {"hidden": 32},
-								"4": {"hidden": 64},
-								}
-						},
-				"COX2": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 128},
-								"3": {"hidden": 128},
-								"4": {"hidden": 32},
-								}
-						},
-				"BZR": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
-								"4": {"hidden": 128},
-								},
-						},
-				"FluorideCarbonyl": {
-						"n_layers": {
-								"1": {"hidden": 16},
-								"2": {"hidden": 64},
-								"3": {"hidden": 32},
-								"4": {"hidden": 0},
-								}
-						},
-				"PROTEINS": {
-						"n_layers": {
-								"1": {"hidden": 64, "hidden_dr": 64},
-								"2": {"hidden": 64, "hidden_dr": 64},
-								"3": {"hidden": 128, "hidden_dr": 32},
-								"4": {"hidden": 32},
-								},
-						},
-				"ENZYMES": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 64, "hidden_dr": 32},
-								"3": {"hidden": 32, "hidden_dr": 32},
-								"4": {"hidden": 64},
-								},
-						},
-				"MUTAG": {},
-				"Mutagenicity": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
-								"4": {"hidden": 64},
-								}
-						},
-				},
-		"GIN": {
-				"AlkaneCarbonyl": {
-						"n_layers": {
-								"1": {"hidden": 16},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
-								"4": {"hidden": 0},
-								}
-						},
-				"Benzene": {
-						"n_layers": {
-								"1": {"hidden": 16},
-								"2": {"hidden": 128},
-								"3": {"hidden": 128},
-								"4": {"hidden": 0},
-								},
-						},
-				"BZR": {
-						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
-								"4": {"hidden": 32},
-								}
-						},
-				"COX2": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 32},
-								"3": {"hidden": 128},
-								"4": {"hidden": 128},
-								}
-						},
-				"ENZYMES": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 32, "hidden_dr": 32},
-								"3": {"hidden": 128, "hidden_dr": 128},
-								"4": {"hidden": 128},
-								},
-						},
-				"FluorideCarbonyl": {
-						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 32},
-								"3": {"hidden": 32},
-								"4": {"hidden": 0},
-								}
-						},
-				"Mutagenicity": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 32},
-								"3": {"hidden": 32},
-								"4": {"hidden": 64},
-								},
-						},
-				"PROTEINS": {
-						"n_layers": {
-								"1": {"hidden": 128, "hidden_dr": 32},
-								"2": {"hidden": 128, "hidden_dr": 64},
-								"3": {"hidden": 32, "hidden_dr": 64},
-								"4": {"hidden": 32},
-								},
-						},
-				},
-		"GAT": {
-				"AlkaneCarbonyl": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 16},
-								"3": {"hidden": 64},
-								"4": {"hidden": 0},
-								}
-						},
-				"Benzene": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 128},
-								"3": {"hidden": 64},
-								"4": {"hidden": 0},
-								},
-						},
-				"BZR": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 128},
-								"3": {"hidden": 128},
-								"4": {"hidden": 8},
-								},
-						},
-				"COX2": {
-						"n_layers": {
-								"1": {"hidden": 64},
-								"2": {"hidden": 32},
-								"3": {"hidden": 32},
-								"4": {"hidden": 32},
-								}
-						},
-				"ENZYMES": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 32},
-								"3": {"hidden": 64},
-								"4": {"hidden": 32},
-								}
-						},
-				"FluorideCarbonyl": {
-						"n_layers": {
-								"1": {"hidden": 16},
-								"2": {"hidden": 16},
-								"3": {"hidden": 16},
-								"4": {"hidden": 0},
-								}
-						},
-				"Mutagenicity": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 64},
-								"3": {"hidden": 128},
-								"4": {"hidden": 64},
-								}
-						},
-				"PROTEINS": {
-						"n_layers": {
-								"1": {"hidden": 128},
-								"2": {"hidden": 32},
-								"3": {"hidden": 128},
-								"4": {"hidden": 32},
-								},
-						}
-				},
-		}
+    "GAT": {
+        "AIDS": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        },
+        "AlkaneCarbonyl": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 16
+                },
+                "3": {
+                    "hidden": 64
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "BZR": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 128
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "Benzene": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 128
+                },
+                "3": {
+                    "hidden": 64
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "COX2": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "DHFR": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "ENZYMES": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 64
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        },
+        "FluorideCarbonyl": {
+            "n_layers": {
+                "1": {
+                    "hidden": 16
+                },
+                "2": {
+                    "hidden": 16
+                },
+                "3": {
+                    "hidden": 16
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "MUTAG": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "Mutagenicity": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "PROTEINS": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        }
+    },
+    "GCN": {
+        "AIDS": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 128
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "AlkaneCarbonyl": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 64
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "BZR": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "Benzene": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "COX2": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 128
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "DHFR": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64
+                },
+                "2": {
+                    "hidden": 128
+                },
+                "3": {
+                    "hidden": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "ENZYMES": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 64,
+                    "hidden_dr": 32
+                },
+                "3": {
+                    "hidden": 32,
+                    "hidden_dr": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        },
+        "FluorideCarbonyl": {
+            "n_layers": {
+                "1": {
+                    "hidden": 16
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "MUTAG": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "Mutagenicity": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "PROTEINS": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64,
+                    "hidden_dr": 64
+                },
+                "2": {
+                    "hidden": 64,
+                    "hidden_dr": 64
+                },
+                "3": {
+                    "hidden": 128,
+                    "hidden_dr": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        }
+    },
+    "GIN": {
+        "AIDS": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "AlkaneCarbonyl": {
+            "n_layers": {
+                "1": {
+                    "hidden": 16
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        },
+        "BZR": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64
+                },
+                "2": {
+                    "hidden": 64
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "Benzene": {
+            "n_layers": {
+                "1": {
+                    "hidden": 16
+                },
+                "2": {
+                    "hidden": 128
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "COX2": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        },
+        "DHFR": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "ENZYMES": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 32,
+                    "hidden_dr": 32
+                },
+                "3": {
+                    "hidden": 128,
+                    "hidden_dr": 128
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "FluorideCarbonyl": {
+            "n_layers": {
+                "1": {
+                    "hidden": 64
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "MUTAG": {
+            "n_layers": {
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 16,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        },
+        "Mutagenicity": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128
+                },
+                "2": {
+                    "hidden": 32
+                },
+                "3": {
+                    "hidden": 32
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 128,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                }
+            }
+        },
+        "PROTEINS": {
+            "n_layers": {
+                "1": {
+                    "hidden": 128,
+                    "hidden_dr": 32
+                },
+                "2": {
+                    "hidden": 128,
+                    "hidden_dr": 64
+                },
+                "3": {
+                    "hidden": 32,
+                    "hidden_dr": 64
+                },
+                "4": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                },
+                "5": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 64,
+                    "jumping_knowledge": False,
+                    "node_bias": True
+                },
+                "6": {
+                    "batch_norm": True,
+                    "deep_readout": False,
+                    "dropout": True,
+                    "graph_bias": True,
+                    "hidden": 32,
+                    "jumping_knowledge": True,
+                    "node_bias": True
+                }
+            }
+        }
+    }
+}
+## How to load the model architecture for a given dataset and model:
+# print(load_graph_model_architecture("GCN", "PROTEINS", 4))

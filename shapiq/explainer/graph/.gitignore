@@ -1,3 +1,4 @@
 # gitignore for the graph moule
 
 /graph_datasets/*
+/ckpt/training_logs/*
