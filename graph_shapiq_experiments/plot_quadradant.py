@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
     # add a minature plot only of graphshapiq
     if add_inset:
-        ax_inset = fig.add_axes([0.48, 0.191, 0.2, 0.09])
+        ax_inset = fig.add_axes((0.472, 0.178, 0.2, 0.093))
         for order in ORDERS.keys():
             data_order = ORDERS[order]
             runtime_avg = float(data_order["runtime_GraphSHAPIQ"].mean())
